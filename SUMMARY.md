@@ -8,3 +8,4 @@
 * [Создающие паттерны (Creational patterns)](sozdayushie-patterny-creational-patterns-1/README.md)
   * [1. Abstract Factory (Абстрактная фабрика)](sozdayushie-patterny-creational-patterns-1/1.-abstract-factory-abstraktnaya-fabrika/README.md)
     * [Abstract Factory (Абстрактная фабрика)](<Создающие паттерны (Creational patterns)/1. Abstract Factory (Абстрактная фабрика)/Описание паттерна Abstract Factory (Абстрактная фабрика).md>)
+* [О проекте](o-proekte.md)
