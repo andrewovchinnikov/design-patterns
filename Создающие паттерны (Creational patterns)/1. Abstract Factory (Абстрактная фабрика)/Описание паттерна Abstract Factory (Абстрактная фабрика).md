@@ -109,26 +109,6 @@ abstract class PaymentFactory
 ```
 {% endtab %}
 
-{% tab title="Использование" %}
-```php
-/**
- * В примере использования мы создаем объект фабрики оплаты картой и выполняем оплату с помощью созданного объекта.
- * Затем мы создаем объект фабрики оплаты Яндекс.Деньгами и выполняем оплату аналогичным образом.
- */
-$amount = 1000; // Сумма оплаты
-
-// Создание фабрики оплаты картой
-$factory = new CardPaymentFactory();
-$payment = $factory->createPayment($amount, '1234 5678 9012 3456', 'Иван Иванов', '12/24', '123');
-$payment->pay();
-
-// Создание фабрики оплаты Яндекс.Деньгами
-$factory = new YandexMoneyPaymentFactory();
-$payment = $factory->createPayment($amount, '4100112333445566');
-$payment->pay();
-```
-{% endtab %}
-
 {% tab title="Class YandexMoneyPaymentFactory" %}
 ```php
 // Конкретный класс для фабрики оплаты Яндекс.Деньгами
@@ -158,6 +138,26 @@ class CardPaymentFactory extends PaymentFactory
         return new CardPayment(...$params);
     }
 }
+```
+{% endtab %}
+
+{% tab title="Использование" %}
+```php
+/**
+ * В примере использования мы создаем объект фабрики оплаты картой и выполняем оплату с помощью созданного объекта.
+ * Затем мы создаем объект фабрики оплаты Яндекс.Деньгами и выполняем оплату аналогичным образом.
+ */
+$amount = 1000; // Сумма оплаты
+
+// Создание фабрики оплаты картой
+$factory = new CardPaymentFactory();
+$payment = $factory->createPayment($amount, '1234 5678 9012 3456', 'Иван Иванов', '12/24', '123');
+$payment->pay();
+
+// Создание фабрики оплаты Яндекс.Деньгами
+$factory = new YandexMoneyPaymentFactory();
+$payment = $factory->createPayment($amount, '4100112333445566');
+$payment->pay();
 ```
 {% endtab %}
 {% endtabs %}
