@@ -1,0 +1,2 @@
+# Создающие паттерны (Creational patterns)
+
