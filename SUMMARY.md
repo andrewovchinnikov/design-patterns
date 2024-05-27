@@ -6,7 +6,14 @@
 
 ## Классификация паттернов
 
-* [Структурные паттерны (Structural patterns)](klassifikaciya-patternov/structural-patterns.md)
+* [Структурные паттерны (Structural patterns)](klassifikaciya-patternov/structural-patterns/README.md)
+  * [Адаптер (Adapter)](klassifikaciya-patternov/structural-patterns/adapter-adapter.md)
+  * [Бридж (Bridge) ](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
+  * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
+  * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
+  * [Фасад (Facade)](klassifikaciya-patternov/structural-patterns/fasad-facade.md)
+  * [Легковесный объект (Flyweight)](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight.md)
+  * [Заместитель (Proxy)](klassifikaciya-patternov/structural-patterns/zamestitel-proxy.md)
 * [Порождающие паттерны (Creational patterns)](klassifikaciya-patternov/creationals-patterns/README.md)
   * [Пулл объектов (Object Pool)](klassifikaciya-patternov/creationals-patterns/pull-obektov-object-pool.md)
   * [Одиночка (Singleton)](klassifikaciya-patternov/creationals-patterns/odinochka-singleton.md)
