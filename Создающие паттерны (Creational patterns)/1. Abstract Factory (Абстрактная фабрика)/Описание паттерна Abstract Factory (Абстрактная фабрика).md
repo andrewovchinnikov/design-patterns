@@ -13,6 +13,7 @@
 
 {% tabs %}
 {% tab title="Abstract class" %}
+{% code title="abstract class Payment" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * Начнем с того, что определим абстрактный класс Payment, который будет содержать общие методы и свойства для всех видов оплаты.
@@ -31,11 +32,13 @@ abstract class Payment
     abstract public function pay();
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Class CardPayment" %}
 
 
+{% code title="class CardPayment extends Payment" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * Затем мы определим конкретные классы для каждого вида оплаты, например, CardPayment для оплаты картой и YandexMoneyPayment для оплаты Яндекс.Деньгами.
@@ -67,11 +70,13 @@ class CardPayment extends Payment
     }
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Class YandexMoneyPayment" %}
 
 
+{% code title="class YandexMoneyPayment extends Payment" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * Конкретный класс для оплаты Яндекс.Деньгами
@@ -93,9 +98,11 @@ class YandexMoneyPayment extends Payment
     }
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Abstract class PaymentFactory" %}
+{% code title="abstract class PaymentFactory" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * Затем мы определим абстрактный класс PaymentFactory, который будет содержать метод createPayment() для создания объекта оплаты.
@@ -107,9 +114,11 @@ abstract class PaymentFactory
     abstract public function createPayment(...$params);
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Class YandexMoneyPaymentFactory" %}
+{% code title="class YandexMoneyPaymentFactory extends PaymentFactory" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 // Конкретный класс для фабрики оплаты Яндекс.Деньгами
 class YandexMoneyPaymentFactory extends PaymentFactory
@@ -121,9 +130,11 @@ class YandexMoneyPaymentFactory extends PaymentFactory
     }
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Class CardPaymentFactory" %}
+{% code title="class CardPaymentFactory extends PaymentFactory" overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * Затем мы определим конкретные классы для каждого вида оплаты, например, CardPaymentFactory для создания объекта оплаты картой и YandexMoneyPaymentFactory
@@ -139,9 +150,11 @@ class CardPaymentFactory extends PaymentFactory
     }
 }
 ```
+{% endcode %}
 {% endtab %}
 
 {% tab title="Использование" %}
+{% code overflow="wrap" lineNumbers="true" fullWidth="true" %}
 ```php
 /**
  * В примере использования мы создаем объект фабрики оплаты картой и выполняем оплату с помощью созданного объекта.
@@ -159,5 +172,6 @@ $factory = new YandexMoneyPaymentFactory();
 $payment = $factory->createPayment($amount, '4100112333445566');
 $payment->pay();
 ```
+{% endcode %}
 {% endtab %}
 {% endtabs %}
