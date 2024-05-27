@@ -12,3 +12,4 @@
 * [Порождающие паттерны (Creational patterns)](klassifikaciya-patternov/creationals-patterns/README.md)
   * [1. Abstract Factory (Абстрактная фабрика)](klassifikaciya-patternov/creationals-patterns/1.-abstract-factory-abstraktnaya-fabrika/README.md)
     * [Abstract Factory (Абстрактная фабрика)](klassifikaciya-patternov/creationals-patterns/1.-abstract-factory-abstraktnaya-fabrika/opisanie-patterna-abstract-factory-abstraktnaya-fabrika.md)
+* [Поведенческие паттерны (Behavioral patterns)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns.md)
