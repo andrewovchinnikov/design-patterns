@@ -25,6 +25,7 @@
       * [Платежи в   интернет-магазине](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/platezhi-v-internet-magazine/README.md)
         * [PHP](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/platezhi-v-internet-magazine/php.md)
         * [Go](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/platezhi-v-internet-magazine/go.md)
+        * [Python](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/platezhi-v-internet-magazine/python.md)
       * [Создание задачи сотруднику в ERP системе](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/sozdanie-zadachi-sotrudniku-v-erp-sisteme.md)
       * [Формирование отчета в аналитической системе](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/formirovanie-otcheta-v-analiticheskoi-sisteme.md)
 * [Поведенческие паттерны (Behavioral patterns)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/README.md)
