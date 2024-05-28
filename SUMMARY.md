@@ -20,7 +20,7 @@
   * [Прототип (Prototype)](klassifikaciya-patternov/creationals-patterns/prototip-prototype.md)
   * [Строитель (Builder)](klassifikaciya-patternov/creationals-patterns/stroitel-builder.md)
   * [ Фабричный метод (Factory Method)](klassifikaciya-patternov/creationals-patterns/fabrichnyi-metod-factory-method.md)
-  * [Абстрактная фабрика (Abstract Factor)](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika.md)
+  * [Абстрактная фабрика (Abstract Factory)](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika.md)
 * [Поведенческие паттерны (Behavioral patterns)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/README.md)
   * [Цепочка обязанностей (Chain of Responsibility)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/cepochka-obyazannostei-chain-of-responsibility.md)
   * [Команда (Command)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/komanda-command.md)
