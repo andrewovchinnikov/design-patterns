@@ -1,0 +1,49 @@
+@startuml
+
+interface PaymentFactory {
+    + createCreditCardPayment(): CreditCardPayment
+    + createYandexMoneyPayment(): YandexMoneyPayment
+}
+
+class TokenizedPaymentFactory implements PaymentFactory {
+    + createCreditCardPayment(): TokenizedCreditCardPayment
+    + createYandexMoneyPayment(): TokenizedYandexMoneyPayment
+}
+
+class NonTokenizedPaymentFactory implements PaymentFactory {
+    + createCreditCardPayment(): NonTokenizedCreditCardPayment
+    + createYandexMoneyPayment(): NonTokenizedYandexMoneyPayment
+}
+
+interface CreditCardPayment {
+    + pay(amount: float): void
+}
+
+class TokenizedCreditCardPayment implements CreditCardPayment {
+    + pay(amount: float): void
+}
+
+class NonTokenizedCreditCardPayment implements CreditCardPayment {
+    + pay(amount: float): void
+}
+
+interface YandexMoneyPayment {
+    + pay(amount: float): void
+}
+
+class TokenizedYandexMoneyPayment implements YandexMoneyPayment {
+    + pay(amount: float): void
+}
+
+class NonTokenizedYandexMoneyPayment implements YandexMoneyPayment {
+    + pay(amount: float): void
+}
+
+PaymentFactory <|-- TokenizedPaymentFactory
+PaymentFactory <|-- NonTokenizedPaymentFactory
+CreditCardPayment <|-- TokenizedCreditCardPayment
+CreditCardPayment <|-- NonTokenizedCreditCardPayment
+YandexMoneyPayment <|-- TokenizedYandexMoneyPayment
+YandexMoneyPayment <|-- NonTokenizedYandexMoneyPayment
+
+@enduml

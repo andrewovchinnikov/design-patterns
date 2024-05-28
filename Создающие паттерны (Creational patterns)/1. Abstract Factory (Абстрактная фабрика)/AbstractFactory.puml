@@ -1,0 +1,58 @@
+@startuml
+
+interface AbstractFactory {
+    + createProductA(): AbstractProductA
+    + createProductB(): AbstractProductB
+}
+
+class ConcreteFactory1 implements AbstractFactory {
+    + createProductA(): ConcreteProductA1
+    + createProductB(): ConcreteProductB1
+}
+
+class ConcreteFactory2 implements AbstractFactory {
+    + createProductA(): ConcreteProductA2
+    + createProductB(): ConcreteProductB2
+}
+
+interface AbstractProductA {
+    + usefulFunctionA(): void
+}
+
+class ConcreteProductA1 implements AbstractProductA {
+    + usefulFunctionA(): void
+}
+
+class ConcreteProductA2 implements AbstractProductA {
+    + usefulFunctionA(): void
+}
+
+interface AbstractProductB {
+    + usefulFunctionB(): void
+    + anotherUsefulFunctionB(collaborator: AbstractProductA): void
+}
+
+class ConcreteProductB1 implements AbstractProductB {
+    + usefulFunctionB(): void
+    + anotherUsefulFunctionB(collaborator: AbstractProductA): void
+}
+
+class ConcreteProductB2 implements AbstractProductB {
+    + usefulFunctionB(): void
+    + anotherUsefulFunctionB(collaborator: AbstractProductA): void
+}
+
+AbstractFactory <|-- ConcreteFactory1
+AbstractFactory <|-- ConcreteFactory2
+AbstractProductA <|-- ConcreteProductA1
+AbstractProductA <|-- ConcreteProductA2
+AbstractProductB <|-- ConcreteProductB1
+AbstractProductB <|-- ConcreteProductB2
+
+ConcreteFactory1 -- ConcreteProductA1
+ConcreteFactory1 -- ConcreteProductB1
+ConcreteFactory2 -- ConcreteProductA2
+ConcreteFactory2 -- ConcreteProductB2
+AbstractProductB -- AbstractProductA : collaborates
+
+@enduml
