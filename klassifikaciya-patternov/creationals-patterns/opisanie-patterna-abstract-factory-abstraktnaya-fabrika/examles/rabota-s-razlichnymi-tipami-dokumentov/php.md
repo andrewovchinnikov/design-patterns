@@ -1,18 +1,16 @@
 # PHP
 
-<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для примера применения абстрактной фабрики в платежной системе</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Абстрактная фабрика" в ERP системе</p></figcaption></figure>
 
-1. Определяем интерфейс `DocumentInterface`, который содержит методы для работы с документами: `create()`, `edit()`, `delete()` и `print()`.
-2. Определяем конкретные реализации интерфейса `DocumentInterface`: `InvoiceDocument` для работы со счетами-фактурами и `DeliveryNoteDocument` для работы с накладными. В этих классах реализуем методы интерфейса `DocumentInterface`.
-3. Определяем интерфейс абстрактной фабрики `DocumentFactoryInterface`, который содержит метод `createDocument()`, возвращающий объект, реализующий интерфейс `DocumentInterface`.
-4. Определяем конкретные реализации интерфейса `DocumentFactoryInterface`: `InvoiceFactory` для работы со счетами-фактурами и `DeliveryNoteFactory` для работы с накладными. В этих классах реализуем метод `createDocument()`, возвращающий объект соответствующего типа документа.
-5. Создаем экземпляры конкретных фабрик и с их помощью создаем объекты документов. Затем вызываем методы этих объектов для создания, редактирования, удаления и печати документов.
+Этот пример кода на Go реализует паттерн абстрактная фабрика для создания семейств связанных объектов, не завися от конкретных классов этих объектов.
 
-Паттерн абстрактная фабрика позволяет создавать семейства связанных объектов, не завися от конкретных классов этих объектов. В данном примере, мы создали две фабрики: `InvoiceFactory` и `DeliveryNoteFactory`, которые создают объекты соответствующих типов документов. При этом, код, который создает объекты, не зависит от конкретных классов этих объектов, а работает с ними через интерфейс `DocumentInterface`.
+* Интерфейс `DocumentInterface` определяет методы для работы с документами.
+* Структуры `InvoiceDocument` и `DeliveryNoteDocument` реализуют интерфейс `DocumentInterface` и предоставляют конкретные реализации этих методов.
+* Интерфейс `DocumentFactoryInterface` определяет метод `createDocument()`, который возвращает объект, реализующий интерфейс `DocumentInterface`.
+* Структуры `InvoiceFactory` и `DeliveryNoteFactory` реализуют интерфейс `DocumentFactoryInterface` и предоставляют конкретные реализации метода `createDocument()`, создающие объекты соответствующих типов документов.
+* В функции `main()` создаются экземпляры конкретных фабрик и с их помощью создаются объекты документов. Затем вызываются методы этих объектов для создания, редактирования, удаления и печати документов.
 
-Это позволяет легко добавлять новые типы документов и фабрик, не изменяя существующий код. Например, если мы захотим добавить новый тип документа - счет-фактура на возврат товара, то нам достаточно будет создать новый класс, реализующий интерфейс `DocumentInterface`, и новую фабрику, реализующую интерфейс `DocumentFactoryInterface`, которая будет создавать объекты нового типа документа.
-
-Кроме того, паттерн абстрактная фабрика позволяет гибко настраивать систему, выбирая нужные фабрики и создавая объекты нужных типов. Например, в зависимости от типа пользователя или роли, мы можем выбирать разные фабрики и создавать объекты с разным функционалом или ограничениями.
+Паттерн абстрактная фабрика позволяет создавать семейства связанных объектов, не завися от конкретных классов этих объектов. Это позволяет легко добавлять новые типы объектов и фабрик, не изменяя существующий код. Кроме того, паттерн абстрактная фабрика позволяет гибко настраивать систему, выбирая нужные фабрики и создавая объекты нужных типов.
 
 Общие преимущества паттерна абстрактная фабрика:
 
@@ -23,105 +21,96 @@
 * Упрощает код, вынося логику создания объектов в отдельные классы-фабрики.
 
 {% code overflow="wrap" lineNumbers="true" fullWidth="false" %}
-```php
-<?php
+```go
+package main
+
+import "fmt"
+
 // Интерфейс для работы с документами
-interface DocumentInterface
-{
-    public function create();
-    public function edit();
-    public function delete();
-    public function print();
+type DocumentInterface interface {
+    create()
+    edit()
+    delete()
+    print()
 }
 
 // Конкретная реализация для работы со счетами-фактурами
-class InvoiceDocument implements DocumentInterface
-{
-    public function create()
-    {
-        echo 'Создание счета-фактуры' . PHP_EOL;
-    }
+type InvoiceDocument struct {}
 
-    public function edit()
-    {
-        echo 'Редактирование счета-фактуры' . PHP_EOL;
-    }
+func (d *InvoiceDocument) create() {
+    fmt.Println("Создание счета-фактуры")
+}
 
-    public function delete()
-    {
-        echo 'Удаление счета-фактуры' . PHP_EOL;
-    }
+func (d *InvoiceDocument) edit() {
+    fmt.Println("Редактирование счета-фактуры")
+}
 
-    public function print()
-    {
-        echo 'Печать счета-фактуры' . PHP_EOL;
-    }
+func (d *InvoiceDocument) delete() {
+    fmt.Println("Удаление счета-фактуры")
+}
+
+func (d *InvoiceDocument) print() {
+    fmt.Println("Печать счета-фактуры")
 }
 
 // Конкретная реализация для работы с накладными
-class DeliveryNoteDocument implements DocumentInterface
-{
-    public function create()
-    {
-        echo 'Создание накладной' . PHP_EOL;
-    }
+type DeliveryNoteDocument struct {}
 
-    public function edit()
-    {
-        echo 'Редактирование накладной' . PHP_EOL;
-    }
+func (d *DeliveryNoteDocument) create() {
+    fmt.Println("Создание накладной")
+}
 
-    public function delete()
-    {
-        echo 'Удаление накладной' . PHP_EOL;
-    }
+func (d *DeliveryNoteDocument) edit() {
+    fmt.Println("Редактирование накладной")
+}
 
-    public function print()
-    {
-        echo 'Печать накладной' . PHP_EOL;
-    }
+func (d *DeliveryNoteDocument) delete() {
+    fmt.Println("Удаление накладной")
+}
+
+func (d *DeliveryNoteDocument) print() {
+    fmt.Println("Печать накладной")
 }
 
 // Интерфейс абстрактной фабрики для работы с документами
-interface DocumentFactoryInterface
-{
-    public function createDocument(): DocumentInterface;
+type DocumentFactoryInterface interface {
+    createDocument() DocumentInterface
 }
 
 // Конкретная фабрика для работы со счетами-фактурами
-class InvoiceFactory implements DocumentFactoryInterface
-{
-    public function createDocument(): DocumentInterface
-    {
-        return new InvoiceDocument();
-    }
+type InvoiceFactory struct {}
+
+func (f *InvoiceFactory) createDocument() DocumentInterface {
+    return &InvoiceDocument{}
 }
 
 // Конкретная фабрика для работы с накладными
-class DeliveryNoteFactory implements DocumentFactoryInterface
-{
-    public function createDocument(): DocumentInterface
-    {
-        return new DeliveryNoteDocument();
-    }
+type DeliveryNoteFactory struct {}
+
+func (f *DeliveryNoteFactory) createDocument() DocumentInterface {
+    return &DeliveryNoteDocument{}
 }
 
-// Использование
-$invoiceFactory = new InvoiceFactory();
-$invoiceDocument = $invoiceFactory->createDocument();
-$invoiceDocument->create();
-$invoiceDocument->edit();
-$invoiceDocument->delete();
-$invoiceDocument->print();
+func main() {
+    // Создаем экземпляры конкретных фабрик
+    invoiceFactory := &InvoiceFactory{}
+    deliveryNoteFactory := &DeliveryNoteFactory{}
 
-echo PHP_EOL;
+    // Создаем объекты документов с помощью фабрик
+    invoiceDocument := invoiceFactory.createDocument()
+    deliveryNoteDocument := deliveryNoteFactory.createDocument()
 
-$deliveryNoteFactory = new DeliveryNoteFactory();
-$deliveryNoteDocument = $deliveryNoteFactory->createDocument();
-$deliveryNoteDocument->create();
-$deliveryNoteDocument->edit();
-$deliveryNoteDocument->delete();
-$deliveryNoteDocument->print();
+    // Вызываем методы объектов для создания, редактирования, удаления и печати документов
+    invoiceDocument.create()
+    invoiceDocument.edit()
+    invoiceDocument.delete()
+    invoiceDocument.print()
+
+    deliveryNoteDocument.create()
+    deliveryNoteDocument.edit()
+    deliveryNoteDocument.delete()
+    deliveryNoteDocument.print()
+}
 
 ```
 {% endcode %}
