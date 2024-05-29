@@ -1,0 +1,41 @@
+@startuml
+
+interface DocumentInterface {
+  + create(): void
+  + edit(): void
+  + delete(): void
+  + print(): void
+}
+
+class InvoiceDocument implements DocumentInterface {
+  + create(): void
+  + edit(): void
+  + delete(): void
+  + print(): void
+}
+
+class DeliveryNoteDocument implements DocumentInterface {
+  + create(): void
+  + edit(): void
+  + delete(): void
+  + print(): void
+}
+
+interface DocumentFactoryInterface {
+  + createDocument(): DocumentInterface
+}
+
+class InvoiceFactory implements DocumentFactoryInterface {
+  + createDocument(): DocumentInterface
+}
+
+class DeliveryNoteFactory implements DocumentFactoryInterface {
+  + createDocument(): DocumentInterface
+}
+
+DocumentFactoryInterface <|-- InvoiceFactory
+DocumentFactoryInterface <|-- DeliveryNoteFactory
+DocumentInterface <|-- InvoiceDocument
+DocumentInterface <|-- DeliveryNoteDocument
+
+@enduml
