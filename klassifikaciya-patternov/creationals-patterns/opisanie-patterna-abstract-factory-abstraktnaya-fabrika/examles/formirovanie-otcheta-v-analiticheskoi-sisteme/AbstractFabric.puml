@@ -1,0 +1,47 @@
+@startuml
+
+interface DataFactory {
+    + createData(): DataType
+}
+
+interface DataType {
+    + getData()
+    + setFormat(format: string)
+}
+
+class UserDataFactory implements DataFactory {
+    + createData(): UserData
+}
+
+class SalesDataFactory implements DataFactory {
+    + createData(): SalesData
+}
+
+class UserData implements DataType {
+    - format: string
+    + getData()
+    + setFormat(format: string)
+}
+
+class SalesData implements DataType {
+    - format: string
+    + getData()
+    + setFormat(format: string)
+}
+
+class Report {
+    - factory: DataFactory
+    - data: DataType
+    + __construct(factory: DataFactory)
+    + generateReport(): string
+    + setFormat(format: string)
+}
+
+DataFactory <|-- UserDataFactory
+DataFactory <|-- SalesDataFactory
+DataType <|-- UserData
+DataType <|-- SalesData
+Report o-- DataFactory
+Report o-- DataType
+
+@enduml
