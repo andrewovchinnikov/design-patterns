@@ -1,0 +1,21 @@
+@startuml
+
+class Database {
+    - instance : Database
+    - pdo : PDO
+    + getInstance() : Database
+    + query(sql: string, params: array = []): array
+    - __construct()
+}
+
+class PDO {
+    + prepare(query: string, options: array = []): PDOStatement
+    + exec(statement: string): int
+    + query(statement: string): PDOStatement
+}
+
+class PDOStatement {
+    + fetchAll(fetch_style: int = PDO::FETCH_BOTH, flags: int = 0): array
+}
+
+@enduml

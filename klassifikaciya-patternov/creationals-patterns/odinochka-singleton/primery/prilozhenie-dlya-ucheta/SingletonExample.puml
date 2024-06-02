@@ -1,0 +1,13 @@
+@startuml
+
+class FinanceManager {
+    - balance: float
+    - transactions: list[map]
+    + `__new__(): FinanceManager`
+    + get_balance(): float
+    + add_income(amount: float, description: str = ''): None
+    + add_expense(amount: float, description: str): None
+    + get_transactions(): list[map]
+}
+
+@enduml
