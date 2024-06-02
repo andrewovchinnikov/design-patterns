@@ -1,0 +1,13 @@
+@startuml
+
+class SettingsManager {
+    - settings: map[string, any]
+    - _instance: SettingsManager
+    + __new__(cls: class, *args, **kwargs)
+    + get_instance(): SettingsManager
+    + add_setting(key: string, value: any)
+    + get_setting(key: string): any
+    + delete_setting(key: string)
+}
+
+@enduml

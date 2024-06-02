@@ -1,0 +1,13 @@
+@startuml
+
+class SettingsManager {
+    - settings: map[string]any
+    - instance: SettingsManager
+    + newSettingsManager() SettingsManager
+    + GetInstance() SettingsManager
+    + AddSetting(key string, value any)
+    + GetSetting(key string) (any, bool)
+    + DeleteSetting(key string)
+}
+
+@enduml

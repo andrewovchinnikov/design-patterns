@@ -1,0 +1,15 @@
+@startuml
+
+class SettingsManager {
+    - settings: array
+    - _instance: SettingsManager
+    + __construct()
+    + __clone()
+    + __wakeup()
+    + getInstance(): SettingsManager
+    + addSetting(key: string, value: any): void
+    + getSetting(key: string): any
+    + deleteSetting(key: string): void
+}
+
+@enduml
