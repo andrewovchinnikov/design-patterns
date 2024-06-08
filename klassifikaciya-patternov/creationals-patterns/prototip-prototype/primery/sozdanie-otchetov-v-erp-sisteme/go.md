@@ -10,7 +10,7 @@
 
 Вот пример кода для реализации паттерна Прототип на Go:
 
-Интерфейс Report:
+#### Интерфейс Report:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -27,7 +27,7 @@ type Report interface {
 
 Метод GetTitle() должен возвращать заголовок отчета. Метод GetData() должен возвращать данные отчета. Метод Clone() должен возвращать копию текущего отчета.
 
-Конкретный тип SalesReport:
+#### Конкретный тип SalesReport:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -60,7 +60,7 @@ func (r *SalesReport) Clone() Report {
 
 Метод GetTitle() возвращает значение поля title. Метод GetData() возвращает значение поля data. Метод Clone() создает копию текущего отчета и возвращает ее.
 
-Конкретный тип InventoryReport:
+#### Конкретный тип InventoryReport:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -96,7 +96,7 @@ func (r *InventoryReport) Clone() Report {
 
 Метод GetTitle() возвращает значение поля title. Метод GetData() возвращает значение поля data. Метод Clone() создает копию текущего отчета и возвращает ее.
 
-Тип ReportFactory:
+#### Тип ReportFactory:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -126,7 +126,7 @@ func (f *ReportFactory) CreateReport(typ, title string, data interface{}) Report
 
 Метод CreateReport() сначала получает прототип отчета из карты prototypes. Затем он создает копию прототипа с помощью метода Clone(). Затем он устанавливает заголовок и данные для нового отчета. Наконец, он возвращает новый отчет.
 
-Функция main:
+#### Функция main:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
