@@ -1,0 +1,32 @@
+@startuml
+interface Report {
+  + GetTitle(): string
+  + GetData(): interface{}
+  + Clone(): Report
+}
+
+class SalesReport {
+  - title: string
+  - data: []int
+  + GetTitle(): string
+  + GetData(): interface{}
+  + Clone(): Report
+}
+
+class InventoryReport {
+  - title: string
+  - data: map[string]int
+  + GetTitle(): string
+  + GetData(): interface{}
+  + Clone(): Report
+}
+
+class ReportFactory {
+  - prototypes: map[string]Report
+  + CreateReport(typ, title string, data interface{}): Report
+}
+
+ReportFactory "1" -- "0..*" Report : prototypes
+
+
+@enduml
