@@ -1,0 +1,26 @@
+@startuml
+interface Report {
+    + title: str
+    + data: Any
+    + __init__(title: str, data: Any)
+    + clone(): Report
+}
+
+class SalesReport implements Report {
+    + __init__(title: str, data: List[int])
+    + clone(): Report
+}
+
+class InventoryReport implements Report {
+    + __init__(title: str, data: Dict[str, int])
+    + clone(): Report
+}
+
+class ReportFactory {
+    - prototypes: Dict[str, Report]
+    + __init__()
+    + create_report(report_type: str, title: str, data: Any): Report
+}
+
+
+@enduml
