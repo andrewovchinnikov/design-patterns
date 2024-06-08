@@ -1,0 +1,31 @@
+@startuml
+abstract class Report {
+  -title: string
+  -data: array
+  +__construct(title: string, data: array)
+  +getTitle(): string
+  +getData(): array
+  +clone(): Report
+}
+
+class SalesReport extends Report {
+  +__construct(title: string, data: array)
+  +clone(): SalesReport
+}
+
+class InventoryReport extends Report {
+  +__construct(title: string, data: array)
+  +clone(): InventoryReport
+}
+
+class ReportFactory {
+  -prototypes: array
+  +__construct()
+  +createReport(type: string, title: string, data: array): Report
+}
+
+ReportFactory o-- Report
+ReportFactory o-- SalesReport
+ReportFactory o-- InventoryReport
+
+@enduml
