@@ -2,146 +2,101 @@
 
 <figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Прототип"</p></figcaption></figure>
 
-Предположим, что наша команда разрабатывает систему управления контентом (CMS) для средних и крупных бизнесов. В рамках разработки нам необходимо реализовать функционал по созданию и редактированию страниц сайта.
+Задача: Необходимо разработать систему управления содержимым сайта (CMS), которая позволит пользователям создавать и управлять страницами сайта. Система должна предоставлять набор шаблонов страниц, которые пользователи могут использовать для создания новых страниц.
 
-Каждой странице сайта соответствует объект класса Page, который содержит информацию о заголовке страницы, её содержимом, мета-тегах и других атрибутах. При создании новой страницы пользователь выбирает шаблон, на основе которого будет создана новая страница. Шаблон представляет собой объект класса Template, который содержит информацию о структуре и дизайне страницы.
+Решение: Для решения этой задачи мы будем использовать паттерн проектирования "Прототип". Этот паттерн позволяет создавать новые объекты путем клонирования существующих объектов. В нашем случае, мы будем создавать новые страницы путем клонирования существующих шаблонов страниц.
 
-Создание новых страниц на основе шаблонов может быть реализовано с помощью паттерна Прототип. Для этого мы можем создать класс-фабрику PageFactory, который будет содержать прототипы страниц для каждого шаблона. При создании новой страницы пользователь выбирает шаблон, а PageFactory создаёт новый объект класса Page, клонируя прототип соответствующего шаблона.
-
-Вот пример кода для реализации паттерна Прототип в Python:
-
-Начнем с определения интерфейса Report, который будет содержать общие методы для всех отчетов:
+Во-первых, определим абстрактный базовый класс `Template`, который будет содержать абстрактный метод `clone()`:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-type Report interface {
-    GetTitle() string
-    GetData() interface{}
-    Clone() Report
-}
+from abc import ABC, abstractmethod
+
+class Template(ABC):
+    @abstractmethod
+    def clone(self):
+        pass
+
 ```
 {% endcode %}
 
-Здесь мы определяем, что любой отчет должен иметь методы GetTitle() и GetData(), которые будут возвращать заголовок и данные отчета соответственно. Кроме того, мы определяем метод Clone(), который будет использоваться для создания копии отчета.
-
-Теперь давайте определим два конкретных отчета: SalesReport и InventoryReport.
-
-SalesReport будет содержать информацию о продажах:
+Затем, определим конкретный класс-шаблон `PageTemplate`, который будет наследоваться от базового класса `Template` и реализовывать метод `clone()`:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-type SalesReport struct {
-    title string
-    data  []int
-}
+class PageTemplate(Template):
+    def __init__(self, title, content, *args, **kwargs):
+        self.title = title
+        self.content = content
+        self.args = args
+        self.kwargs = kwargs
 
-func (r *SalesReport) GetTitle() string {
-    return r.title
-}
+    def clone(self):
+        return PageTemplate(self.title, self.content, *self.args, **self.kwargs)
 
-func (r *SalesReport) GetData() interface{} {
-    return r.data
-}
-
-func (r *SalesReport) Clone() Report {
-    return &SalesReport{
-        title: r.title,
-        data:  append([]int{}, r.data...),
-    }
-}
 ```
 {% endcode %}
 
-Здесь мы определяем структуру SalesReport, которая содержит поля title и data. Затем мы реализуем методы GetTitle(), GetData() и Clone(), которые были определены в интерфейсе Report.
+Класс `PageTemplate` содержит конструктор, который принимает аргументы `title`, `content`, а также произвольное количество позиционных и именованных аргументов. Метод `clone()` создает копию объекта `PageTemplate` с теми же значениями атрибутов.
 
-InventoryReport будет содержать информацию о остатках на складе:
+Теперь, определим класс `Page`, который будет представлять собой конкретную страницу, созданную на основе шаблона:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-type InventoryReport struct {
-    title string
-    data  map[string]int
-}
+class Page:
+    def __init__(self, title, content, *args, **kwargs):
+        self.title = title
+        self.content = content
+        self.args = args
+        self.kwargs = kwargs
 
-func (r *InventoryReport) GetTitle() string {
-    return r.title
-}
-
-func (r *InventoryReport) GetData() interface{} {
-    return r.data
-}
-
-func (r *InventoryReport) Clone() Report {
-    data := make(map[string]int, len(r.data))
-    for k, v := range r.data {
-        data[k] = v
-    }
-    return &InventoryReport{
-        title: r.title,
-        data:  data,
-    }
-}
 ```
 {% endcode %}
 
-Здесь мы определяем структуру InventoryReport, которая содержит поля title и data. Затем мы реализуем методы GetTitle(), GetData() и Clone(), которые были определены в интерфейсе Report.
+Класс `Page` аналогичен классу `PageTemplate`, за исключением того, что он не наследуется от базового класса `Template` и не содержит метода `clone()`.
 
-Теперь давайте определим класс ReportFactory, который будет использоваться для создания отчетов:
+Наконец, определим класс-фабрику `PageFactory`, который будет создавать новые страницы на основе шаблонов:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-type ReportFactory struct {
-    prototypes map[string]Report
-}
+class PageFactory:
+    def __init__(self):
+        self.prototypes = {
+            'default': PageTemplate('Default Title', 'Default Content'),
+            'blog': PageTemplate('Blog Title', 'Blog Content', post_format='standard'),
+            'portfolio': PageTemplate('Portfolio Title', 'Portfolio Content', num_columns=3),
+        }
 
-func (f *ReportFactory) CreateReport(typ, title string, data interface{}) Report {
-    proto := f.prototypes[typ]
-    report := proto.Clone()
-    report.(*SalesReport).title = title
-    report.(*SalesReport).data = data.([]int)
-    // или
-    // report.(*InventoryReport).title = title
-    // report.(*InventoryReport).data = data.(map[string]int)
-    return report
-}
+    def create_page(self, template_name, title, content, *args, **kwargs):
+        prototype = self.prototypes[template_name]
+        page = prototype.clone()
+        page.title = title
+        page.content = content
+        page.args = args
+        page.kwargs = kwargs
+        return page
+
 ```
 {% endcode %}
 
-Здесь мы определяем структуру ReportFactory, которая содержит поле prototypes, которое является картой, где ключ - это тип отчета, а значение - это экземпляр отчета, который будет использоваться в качестве прототипа.
+Класс `PageFactory` содержит конструктор, который инициализирует атрибут `prototypes` - словарь, содержащий шаблоны страниц. Метод `create_page()` принимает аргументы `template_name`, `title`, `content`, а также произвольное количество позиционных и именованных аргументов. Он создает новую страницу путем клонирования шаблона, задает значения атрибутов и возвращает ее.
 
-Затем мы определяем метод CreateReport(), который будет использоваться для создания отчетов. Этот метод принимает три аргумента: typ, title и data. Аргумент typ указывает, какой тип отчета мы хотим создать. Аргумент title указывает заголовок отчета, а аргумент data указывает данные отчета.
-
-В методе CreateReport() мы получаем прототип отчета из карты prototypes, затем создаем копию этого прототипа с помощью метода Clone(). Затем устанавливаем заголовок и данные отчета в соответствующих полях. Наконец, возвращаем созданный отчет.
-
-Теперь давайте посмотрим на main функцию:
+Пример использования:
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-func main() {
-    factory := &ReportFactory{
-        prototypes: map[string]Report{
-            "sales":    &SalesReport{title: "Sales Report", data: []int{}},
-            "inventory": &InventoryReport{title: "Inventory Report", data: map[string]int{}},
-        },
-    }
+factory = PageFactory()
 
-    // Создаем новый отчет по продажам на основе существующего
-    report := factory.CreateReport("sales", "New Sales Report", []int{1, 2, 3})
-    fmt.Println(report.GetTitle())
-    fmt.Println(report.GetData())
+# Создаем новую страницу на основе шаблона "default"
+page = factory.create_page('default', 'New Page Title', 'New Page Content')
+print(page.title)
+print(page.content)
 
-    // Создаем новый отчет по остаткам на складе на основе существующего
-    report = factory.CreateReport("inventory", "New Inventory Report", map[string]int{"apple": 10, "banana": 20})
-    fmt.Println(report.GetTitle())
-    fmt.Println(report.GetData())
-}
+# Создаем новую страницу на основе шаблона "blog"
+page = factory.create_page('blog', 'New Blog Title', 'New Blog Content', post_format='gallery')
+print(page.title)
+print(page.content)
+print(page.kwargs['post_format'])
+
 ```
 {% endcode %}
-
-Здесь мы создаем экземпляр класса ReportFactory и устанавливаем прототипы отчетов в поле prototypes.
-
-Затем мы создаем новый отчет по продажам на основе существующего с помощью метода CreateReport(). Затем выводим заголовок и данные отчета на экран.
-
-После этого мы создаем новый отчет по остаткам на складе на основе существующего с помощью метода CreateReport(). Затем выводим заголовок и данные отчета на экран.
-
-В итоге, мы видим, что паттерн Прототип позволяет нам создавать новые отчеты на основе существующих, что значительно упрощает и ускоряет процесс разработки.
