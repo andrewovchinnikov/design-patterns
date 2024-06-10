@@ -1,0 +1,34 @@
+@startuml
+
+interface Template {
+    + clone(): Template
+}
+
+class PageTemplate {
+    - title: string
+    - content: string
+    - args: []string
+    - kwargs: map[string]string
+    + clone(): Template
+}
+
+class Page {
+    - title: string
+    - content: string
+    - args: []string
+    - kwargs: map[string]string
+}
+
+class PageFactory {
+    - prototypes: map[string]Template
+    + createPage(templateName: string, title: string, content: string, args: []string, kwargs: map[string]string): Page
+}
+
+Template <|-- PageTemplate
+PageFactory o-- Template
+PageFactory --> Page
+
+@enduml
+
+
+@enduml
