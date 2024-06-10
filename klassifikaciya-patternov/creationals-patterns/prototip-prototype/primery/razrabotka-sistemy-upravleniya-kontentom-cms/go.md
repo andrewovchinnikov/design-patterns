@@ -2,82 +2,138 @@
 
 <figure><img src="../../../../../.gitbook/assets/image (17).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Одиночка"</p></figcaption></figure>
 
-Наша команда разрабатывает ERP систему для управления бизнес-процессами в средних и крупных компаниях. В рамках разработки нам необходимо решить задачу с управлением настройками пользователей. Наша система должна обеспечивать гибкость и масштабируемость, поэтому мы решили использовать паттерн "Одиночка" (Singleton) для создания единственного экземпляра класса, отвечающего за работу с настройками.
+Предположим, что наша команда разрабатывает систему управления контентом (CMS) для средних и крупных бизнесов. В рамках разработки нам необходимо реализовать функционал по созданию и редактированию страниц сайта.
 
-Задача:
+Каждой странице сайта соответствует объект класса Page, который содержит информацию о заголовке страницы, её содержимом, мета-тегах и других атрибутах. При создании новой страницы пользователь выбирает шаблон, на основе которого будет создана новая страница. Шаблон представляет собой объект класса Template, который содержит информацию о структуре и дизайне страницы.
 
-Нужно разработать класс `SettingsManager`, который будет отвечать за работу с настройками пользователей. Для этого необходимо реализовать паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`. Этот экземпляр будет предоставлять доступ к данным о настройках и выполнять операции над ними.
+Создание новых страниц на основе шаблонов может быть реализовано с помощью паттерна Прототип. Для этого мы можем создать класс-фабрику PageFactory, который будет содержать прототипы страниц для каждого шаблона. При создании новой страницы пользователь выбирает шаблон, а PageFactory создаёт новый объект класса Page, клонируя прототип соответствующего шаблона.
 
-Почему мы выбрали этот паттерн:
+Вот пример кода для реализации паттерна Прототип в Go:
 
-Мы выбрали паттерн "Одиночка" для решения этой задачи, потому что он позволяет нам централизовать управление настройками и избежать конфликтов при работе с ними. Кроме того, мы смогли упростить код и уменьшить количество ошибок, связанных с инициализацией и использованием экземпляров класса.
+Определяем интерфейс Template, который будет являться базовым для всех шаблонов:
 
-```php
-// Класс SettingsManager, отвечающий за работу с настройками
-class SettingsManager {
-    // Свойство, хранящее массив настроек
-    private $settings = [];
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
 
-    // Приватное свойство, хранящее единственный экземплярр класса
-    private static $instance = null;
+import (
+    "fmt"
+)
 
-    // Приватный конструктор, предотвращающий создание экземпляров класса с помощью оператора new
-    private function __construct() {}
+type Template interface {
+    clone() Template
+}
+```
+{% endcode %}
 
-    // Статический и публичный метод, возвращающий единственный экземплярр класса SettingsManager
-    public static function getInstance(): SettingsManager {
-        // Проверяем, существует ли уже экземплярр класса
-        if (self::$instance === null) {
-            // Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве instance
-            self::$instance = new SettingsManager();
-        }
-        // Возвращаем существующий экземплярр класса
-        return self::$instance;
-    }
+Далее определяем конкретный шаблон PageTemplate, который реализует интерфейс Template:
 
-    // Публичный метод, добавляющий новую настройку в массив настроек
-    public function addSetting(string $key, $value): void {
-        // Добавляем новую настройку в массив настроек
-        $this->settings[$key] = $value;
-    }
-
-    // Публичный метод, возвращающий значение настройки по ее ключу
-    public function getSetting(string $key) {
-        // Возвращаем значение настройки по ее ключу
-        return $this->settings[$key] ?? null;
-    }
-
-    // Публичный метод, удаляющий настройку из массива настроек по ее ключу
-    public function deleteSetting(string $key): void {
-        // Если настройка существует, то удаляем ее из массива настроек
-        if (array_key_exists($key, $this->settings)) {
-            unset($this->settings[$key]);
-        }
-    }
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type PageTemplate struct {
+    title       string
+    content     string
+    args        []string
+    kwargs      map[string]string
 }
 
-//usage
-// Получаем единственный экземплярр класса SettingsManager
-$settingsManager = SettingsManager::getInstance();
-// Добавляем новые настройки в массив настроек
-$settingsManager->addSetting("language", "en");
-$settingsManager->addSetting("theme", "dark");
-// Получаем значение настройки по ее ключу
-$language = $settingsManager->getSetting("language");
-echo $language; // en
-// Удаляем настройку из массива настроек по ее ключу
-$settingsManager->deleteSetting("theme");
-// Получаем обновленный массив всех настроек
-$settings = $settingsManager->getSettings();
-print_r($settings); // ["language" => "en"]
+func (p *PageTemplate) clone() Template {
+    return &PageTemplate{
+        title:       p.title,
+        content:     p.content,
+        args:        append([]string{}, p.args...),
+        kwargs:      map[string]string{},
+    }
+}
 ```
+{% endcode %}
 
-В этом примере мы создаем класс `SettingsManager`, который отвечает за работу с настройками. Мы используем паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`.
+PageTemplate содержит поля title, content, args и kwargs. Метод clone() реализует интерфейс Template и создает копию текущего шаблона.
 
-Мы объявляем приватное свойство `$settings`, которое будет хранить массив настроек. Мы также объявляем приватное свойство `$instance`, которое будет хранить единственный экземплярр класса. Мы объявляем приватный конструктор, чтобы предотвратить создание экземпляров класса с помощью оператора `new`.
+Затем определяем структуру Page, которая будет представлять собой конкретную страницу:
 
-Метод `getInstance()` является статическим и публичным, и он используется для получения единственного экземпляра класса `SettingsManager`. В этом методе мы проверяем, существует ли уже экземплярр класса. Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве `$instance`. В противном случае, мы просто возвращаем существующий экземплярр класса `SettingsManager`.
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type Page struct {
+    title       string
+    content     string
+    args        []string
+    kwargs      map[string]string
+}
+```
+{% endcode %}
 
-Методы `addSetting()`, `getSetting()` и `deleteSetting()` используются для выполнения операций над настройками.
+Page содержит те же поля, что и PageTemplate.
 
-Надеюсь, этот пример поможет вам лучше понять, как можно использовать паттерн "Одиночка" для решения задач, связанных с управлением настройками пользователей в веб-приложении на PHP.
+Далее определяем структуру PageFactory, которая будет создавать новые страницы на основе существующих шаблонов:
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type PageFactory struct {
+    prototypes map[string]Template
+}
+
+func (f *PageFactory) createPage(templateName string, title string, content string, args []string, kwargs map[string]string) Page {
+    prototype := f.prototypes[templateName]
+    page := prototype.clone()
+    pageTemplate := page.(*PageTemplate)
+    pageTemplate.title = title
+    pageTemplate.content = content
+    pageTemplate.args = args
+    pageTemplate.kwargs = kwargs
+    return Page{
+        title:       pageTemplate.title,
+        content:     pageTemplate.content,
+        args:        pageTemplate.args,
+        kwargs:      pageTemplate.kwargs,
+    }
+}
+```
+{% endcode %}
+
+PageFactory содержит поле prototypes, которое является картой, где ключ - это имя шаблона, а значение - это сам шаблон. Метод createPage() создает новую страницу на основе существующего шаблона. Он принимает в качестве аргументов имя шаблона, заголовок, контент, args и kwargs. Затем он получает шаблон из карты prototypes, создает его копию с помощью метода clone() и заполняет поля title, content, args и kwargs. В конце он возвращает новую страницу.
+
+Наконец, в функции main() мы создаем экземпляр PageFactory, заполняем карту prototypes существующими шаблонами и создаем новые страницы с помощью метода createPage():
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+func main() {
+    factory := &PageFactory{
+        prototypes: map[string]Template{
+            "default": &PageTemplate{
+                title:   "Default Title",
+                content: "Default Content",
+            },
+            "blog": &PageTemplate{
+                title:   "Blog Title",
+                content: "Blog Content",
+                args:    []string{"post_format"},
+                kwargs: map[string]string{
+                    "post_format": "standard",
+                },
+            },
+            "portfolio": &PageTemplate{
+                title:   "Portfolio Title",
+                content: "Portfolio Content",
+                args:    []string{"num_columns"},
+                kwargs: map[string]string{
+                    "num_columns": "3",
+                },
+            },
+        },
+    }
+
+    // Создаем новую страницу на основе шаблона "default"
+    page := factory.createPage("default", "New Page Title", "New Page Content", nil, nil)
+    fmt.Println(page.title)
+    fmt.Println(page.content)
+
+    // Создаем новую страницу на основе шаблона "blog"
+    page = factory.createPage("blog", "New Blog Title", "New Blog Content", []string{"post_format"}, map[string]string{"post_format": "gallery"})
+    fmt.Println(page.title)
+    fmt.Println(page.content)
+    fmt.Println(page.kwargs["post_format"])
+}
+
+```
+{% endcode %}
