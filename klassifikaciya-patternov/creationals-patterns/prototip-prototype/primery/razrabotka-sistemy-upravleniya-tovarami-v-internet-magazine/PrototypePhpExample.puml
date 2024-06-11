@@ -1,0 +1,49 @@
+@startuml
+
+interface Prototype {
+  + clone(): Prototype
+}
+
+abstract class Product implements Prototype {
+  - name: string
+  - price: float
+  + __construct(name: string, price: float)
+  + getName(): string
+  + getPrice(): float
+  + clone(): Product
+}
+
+class ClothesProduct extends Product {
+  - size: string
+  - color: string
+  - material: string
+  + __construct(name: string, price: float, size: string, color: string, material: string)
+  + getSize(): string
+  + getColor(): string
+  + getMaterial(): string
+  + clone(): ClothesProduct
+}
+
+class TechProduct extends Product {
+  - manufacturer: string
+  - model: string
+  - year: int
+  + __construct(name: string, price: float, manufacturer: string, model: string, year: int)
+  + getManufacturer(): string
+  + getModel(): string
+  + getYear(): int
+  + clone(): TechProduct
+}
+
+class ProductFactory {
+  - prototypes: array
+  + setPrototype(type: string, prototype: Prototype)
+  + createProduct(type: string, data: array): Product
+}
+
+Prototype <|-- Product
+Product <|-- ClothesProduct
+Product <|-- TechProduct
+ProductFactory *-- Prototype
+
+@enduml
