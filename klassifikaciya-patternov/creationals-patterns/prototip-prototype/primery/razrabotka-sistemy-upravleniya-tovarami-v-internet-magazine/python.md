@@ -1,83 +1,100 @@
 # Python
 
-<figure><img src="../../../../../.gitbook/assets/image (17).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Одиночка"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Прототип"</p></figcaption></figure>
 
-Наша команда разрабатывает ERP систему для управления бизнес-процессами в средних и крупных компаниях. В рамках разработки нам необходимо решить задачу с управлением настройками пользователей. Наша система должна обеспечивать гибкость и масштабируемость, поэтому мы решили использовать паттерн "Одиночка" (Singleton) для создания единственного экземпляра класса, отвечающего за работу с настройками.
+В интернет-магазине имеется большое количество товаров, которые можно разделить на несколько категорий (одежда, обувь, техника и т.д.). Для каждой категории товаров имеется свои наборы свойств (для одежды это размер, цвет, материал; для техники это производитель, модель, год выпуска и т.д.). При добавлении нового товара в систему, необходимо создавать объект товара с определенными свойствами. В этом случае, можно использовать паттерн Прототип, который позволяет создавать новые объекты путем копирования существующих объектов-прототипов.
 
-Задача:
+Паттерн Прототип полезен в ситуациях, когда создание объекта требует больших затрат ресурсов или сложных вычислений, либо когда объекты должны быть подобны друг другу. В нашем кейсе, паттерн Прототип позволяет нам создавать новые объекты товаров, копируя существующие объекты-прототипы для каждой категории товаров, и изменяя только те свойства, которые необходимо изменить для нового товара.
 
-Нужно разработать класс `SettingsManager`, который будет отвечать за работу с настройками пользователей. Для этого необходимо реализовать паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`. Этот экземпляр будет предоставлять доступ к данным о настройках и выполнять операции над ними.
+**Класс `Product`**
 
-Почему мы выбрали этот паттерн:
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+import copy
 
-Мы выбрали паттерн "Одиночка" для решения этой задачи, потому что он позволяет нам централизовать управление настройками и избежать конфликтов при работе с ними. Кроме того, мы смогли упростить код и уменьшить количество ошибок, связанных с инициализацией и использованием экземпляров класса.
+class Product:
+    def __init__(self, name, price):
+        self.name = name
+        self.price = price
 
-```php
-// Класс SettingsManager, отвечающий за работу с настройками
-class SettingsManager {
-    // Свойство, хранящее массив настроек
-    private $settings = [];
-
-    // Приватное свойство, хранящее единственный экземплярр класса
-    private static $instance = null;
-
-    // Приватный конструктор, предотвращающий создание экземпляров класса с помощью оператора new
-    private function __construct() {}
-
-    // Статический и публичный метод, возвращающий единственный экземплярр класса SettingsManager
-    public static function getInstance(): SettingsManager {
-        // Проверяем, существует ли уже экземплярр класса
-        if (self::$instance === null) {
-            // Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве instance
-            self::$instance = new SettingsManager();
-        }
-        // Возвращаем существующий экземплярр класса
-        return self::$instance;
-    }
-
-    // Публичный метод, добавляющий новую настройку в массив настроек
-    public function addSetting(string $key, $value): void {
-        // Добавляем новую настройку в массив настроек
-        $this->settings[$key] = $value;
-    }
-
-    // Публичный метод, возвращающий значение настройки по ее ключу
-    public function getSetting(string $key) {
-        // Возвращаем значение настройки по ее ключу
-        return $this->settings[$key] ?? null;
-    }
-
-    // Публичный метод, удаляющий настройку из массива настроек по ее ключу
-    public function deleteSetting(string $key): void {
-        // Если настройка существует, то удаляем ее из массива настроек
-        if (array_key_exists($key, $this->settings)) {
-            unset($this->settings[$key]);
-        }
-    }
-}
-
-//usage
-// Получаем единственный экземплярр класса SettingsManager
-$settingsManager = SettingsManager::getInstance();
-// Добавляем новые настройки в массив настроек
-$settingsManager->addSetting("language", "en");
-$settingsManager->addSetting("theme", "dark");
-// Получаем значение настройки по ее ключу
-$language = $settingsManager->getSetting("language");
-echo $language; // en
-// Удаляем настройку из массива настроек по ее ключу
-$settingsManager->deleteSetting("theme");
-// Получаем обновленный массив всех настроек
-$settings = $settingsManager->getSettings();
-print_r($settings); // ["language" => "en"]
+    def clone(self):
+        return copy.deepcopy(self)
 ```
+{% endcode %}
 
-В этом примере мы создаем класс `SettingsManager`, который отвечает за работу с настройками. Мы используем паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`.
+Базовый класс для всех товаров. Содержит общие свойства `name` и `price`.
 
-Мы объявляем приватное свойство `$settings`, которое будет хранить массив настроек. Мы также объявляем приватное свойство `$instance`, которое будет хранить единственный экземплярр класса. Мы объявляем приватный конструктор, чтобы предотвратить создание экземпляров класса с помощью оператора `new`.
+Реализует метод `clone` для создания глубокой копии объекта.
 
-Метод `getInstance()` является статическим и публичным, и он используется для получения единственного экземпляра класса `SettingsManager`. В этом методе мы проверяем, существует ли уже экземплярр класса. Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве `$instance`. В противном случае, мы просто возвращаем существующий экземплярр класса `SettingsManager`.
+**Классы `ClothesProduct` и `TechProduct`**
 
-Методы `addSetting()`, `getSetting()` и `deleteSetting()` используются для выполнения операций над настройками.
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class ClothesProduct(Product):
+    def __init__(self, name, price, size, color, material):
+        super().__init__(name, price)
+        self.size = size
+        self.color = color
+        self.material = material
 
-Надеюсь, этот пример поможет вам лучше понять, как можно использовать паттерн "Одиночка" для решения задач, связанных с управлением настройками пользователей в веб-приложении на PHP.
+class TechProduct(Product):
+    def __init__(self, name, price, manufacturer, model, year):
+        super().__init__(name, price)
+        self.manufacturer = manufacturer
+        self.model = model
+        self.year = year
+```
+{% endcode %}
+
+Конкретные классы для товаров категории "Одежда" и "Техника", наследующие от базового класса `Product`.
+
+Дополнительно содержат свои уникальные свойства, такие как размер, цвет, материал для одежды и производитель, модель, год выпуска для техники.
+
+**Класс `ProductFactory`**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class ProductFactory:
+    def __init__(self):
+        self.prototypes = {}
+
+    def set_prototype(self, type_name, prototype):
+        self.prototypes[type_name] = prototype
+
+    def create_product(self, type_name, **kwargs):
+        if type_name not in self.prototypes:
+            raise ValueError(f"Unknown product type: {type_name}")
+
+        prototype = self.prototypes[type_name]
+        product = prototype.clone()
+
+        for key, value in kwargs.items():
+            setattr(product, key, value)
+
+        return product
+```
+{% endcode %}
+
+Класс-фабрика, используемый для создания новых объектов товаров.
+
+Содержит словарь `prototypes`, где ключами являются имена типов товаров, а значениями - экземпляры прототипов.
+
+Реализует методы `set_prototype` для добавления новых прототипов и `create_product` для создания новых объектов товаров на основе прототипов.
+
+Теперь, когда у нас есть все классы, мы можем использовать `ProductFactory` для создания новых объектов товаров:
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+factory = ProductFactory()
+
+# Добавление прототипов
+factory.set_prototype("clothes", ClothesProduct("T-shirt", 29.99, "M", "Blue", "Cotton"))
+factory.set_prototype("tech", TechProduct("Laptop", 999.99, "Apple", "MacBook Pro", 2020))
+
+# Создание нового объекта товара
+product = factory.create_product("clothes", name="Jeans", price=59.99, size="L", color="Blue", material="Denim")
+print(product.__dict__)  # Выведет: {'name': 'Jeans', 'price': 59.99, 'size': 'L', 'color': 'Blue', 'material': 'Denim'}
+```
+{% endcode %}
+
+В этом примере мы создаем фабрику, добавляем прототипы для одежды и техники, а затем используем фабрику для создания нового экземпляра товара одежды с заданными данными. Метод `create_product` принимает тип товара и произвольное количество именованных аргументов для изменения свойств товара.
