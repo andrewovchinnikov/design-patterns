@@ -14,7 +14,6 @@ interface Prototype
 {
     public function clone();
 }
-
 ```
 {% endcode %}
 
@@ -52,7 +51,6 @@ abstract class Product implements Prototype
         return clone $this;
     }
 }
-
 ```
 {% endcode %}
 
@@ -98,7 +96,6 @@ class ClothesProduct extends Product
         return $clone;
     }
 }
-
 ```
 {% endcode %}
 
@@ -148,7 +145,6 @@ class TechProduct extends Product
         return $clone;
     }
 }
-
 ```
 {% endcode %}
 
@@ -183,7 +179,6 @@ class ProductFactory
         return $product;
     }
 }
-
 ```
 {% endcode %}
 
