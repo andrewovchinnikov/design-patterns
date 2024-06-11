@@ -1,0 +1,37 @@
+@startuml
+
+class Product {
+  - name: string
+  - price: float
+  + Product(name: string, price: float)
+  + clone(): Product
+}
+
+class ClothesProduct {
+  - size: string
+  - color: string
+  - material: string
+  + ClothesProduct(name: string, price: float, size: string, color: string, material: string)
+  + clone(): ClothesProduct
+}
+
+class TechProduct {
+  - manufacturer: string
+  - model: string
+  - year: int
+  + TechProduct(name: string, price: float, manufacturer: string, model: string, year: int)
+  + clone(): TechProduct
+}
+
+class ProductFactory {
+  - prototypes: Map<string, Product>
+  + ProductFactory()
+  + setPrototype(typeName: string, prototype: Product)
+  + createProduct(typeName: string, data: Map<string, any>): Product
+}
+
+Product <|-- ClothesProduct
+Product <|-- TechProduct
+ProductFactory --* Product
+
+@enduml
