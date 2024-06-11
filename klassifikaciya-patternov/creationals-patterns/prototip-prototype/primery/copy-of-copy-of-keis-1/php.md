@@ -2,82 +2,186 @@
 
 <figure><img src="../../../../../.gitbook/assets/image (17).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Одиночка"</p></figcaption></figure>
 
-Наша команда разрабатывает ERP систему для управления бизнес-процессами в средних и крупных компаниях. В рамках разработки нам необходимо решить задачу с управлением настройками пользователей. Наша система должна обеспечивать гибкость и масштабируемость, поэтому мы решили использовать паттерн "Одиночка" (Singleton) для создания единственного экземпляра класса, отвечающего за работу с настройками.
+В интернет-магазине имеется большое количество товаров, которые можно разделить на несколько категорий (одежда, обувь, техника и т.д.). Для каждой категории товаров имеется свои наборы свойств (для одежды это размер, цвет, материал; для техники это производитель, модель, год выпуска и т.д.). При добавлении нового товара в систему, необходимо создавать объект товара с определенными свойствами. В этом случае, можно использовать паттерн Прототип, который позволяет создавать новые объекты путем копирования существующих объектов-прототипов.
 
-Задача:
+Паттерн Прототип полезен в ситуациях, когда создание объекта требует больших затрат ресурсов или сложных вычислений, либо когда объекты должны быть подобны друг другу. В нашем кейсе, паттерн Прототип позволяет нам создавать новые объекты товаров, копируя существующие объекты-прототипы для каждой категории товаров, и изменяя только те свойства, которые необходимо изменить для нового товара.
 
-Нужно разработать класс `SettingsManager`, который будет отвечать за работу с настройками пользователей. Для этого необходимо реализовать паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`. Этот экземпляр будет предоставлять доступ к данным о настройках и выполнять операции над ними.
-
-Почему мы выбрали этот паттерн:
-
-Мы выбрали паттерн "Одиночка" для решения этой задачи, потому что он позволяет нам централизовать управление настройками и избежать конфликтов при работе с ними. Кроме того, мы смогли упростить код и уменьшить количество ошибок, связанных с инициализацией и использованием экземпляров класса.
+1. Интерфейс Прототип (Prototype)
 
 ```php
-// Класс SettingsManager, отвечающий за работу с настройками
-class SettingsManager {
-    // Свойство, хранящее массив настроек
-    private $settings = [];
+interface Prototype
+    public function clone();
+}
 
-    // Приватное свойство, хранящее единственный экземплярр класса
-    private static $instance = null;
+```
 
-    // Приватный конструктор, предотвращающий создание экземпляров класса с помощью оператора new
-    private function __construct() {}
+Интерфейс Прототип определяет метод clone(), который используется для создания копии объекта-прототипа. Этот интерфейс обеспечивает единообразный способ создания копий объектов для всех классов, реализующих его.
 
-    // Статический и публичный метод, возвращающий единственный экземплярр класса SettingsManager
-    public static function getInstance(): SettingsManager {
-        // Проверяем, существует ли уже экземплярр класса
-        if (self::$instance === null) {
-            // Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве instance
-            self::$instance = new SettingsManager();
-        }
-        // Возвращаем существующий экземплярр класса
-        return self::$instance;
+2. Базовый класс Товара (Product)
+
+Базовый класс Товара реализует интерфейс Прототип и содержит общие свойства (name, price) для всех товаров. Метод clone() реализуется с помощью ключевого слова clone.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+abstract class Product implements Prototype
+{
+    protected $name;
+    protected $price;
+
+    public function __construct($name, $price)
+    {
+        $this->name = $name;
+        $this->price = $price;
     }
 
-    // Публичный метод, добавляющий новую настройку в массив настроек
-    public function addSetting(string $key, $value): void {
-        // Добавляем новую настройку в массив настроек
-        $this->settings[$key] = $value;
+    public function getName()
+    {
+        return $this->name;
     }
 
-    // Публичный метод, возвращающий значение настройки по ее ключу
-    public function getSetting(string $key) {
-        // Возвращаем значение настройки по ее ключу
-        return $this->settings[$key] ?? null;
+    public function getPrice()
+    {
+        return $this->price;
     }
 
-    // Публичный метод, удаляющий настройку из массива настроек по ее ключу
-    public function deleteSetting(string $key): void {
-        // Если настройка существует, то удаляем ее из массива настроек
-        if (array_key_exists($key, $this->settings)) {
-            unset($this->settings[$key]);
-        }
+    public function clone()
+    {
+        return clone $this;
     }
 }
 
-//usage
-// Получаем единственный экземплярр класса SettingsManager
-$settingsManager = SettingsManager::getInstance();
-// Добавляем новые настройки в массив настроек
-$settingsManager->addSetting("language", "en");
-$settingsManager->addSetting("theme", "dark");
-// Получаем значение настройки по ее ключу
-$language = $settingsManager->getSetting("language");
-echo $language; // en
-// Удаляем настройку из массива настроек по ее ключу
-$settingsManager->deleteSetting("theme");
-// Получаем обновленный массив всех настроек
-$settings = $settingsManager->getSettings();
-print_r($settings); // ["language" => "en"]
 ```
+{% endcode %}
 
-В этом примере мы создаем класс `SettingsManager`, который отвечает за работу с настройками. Мы используем паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`.
+3. Конкретный класс Товара для категории Одежда (ClothesProduct)
 
-Мы объявляем приватное свойство `$settings`, которое будет хранить массив настроек. Мы также объявляем приватное свойство `$instance`, которое будет хранить единственный экземплярр класса. Мы объявляем приватный конструктор, чтобы предотвратить создание экземпляров класса с помощью оператора `new`.
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class ClothesProduct extends Product
+{
+    protected $size;
+    protected $color;
+    protected $material;
 
-Метод `getInstance()` является статическим и публичным, и он используется для получения единственного экземпляра класса `SettingsManager`. В этом методе мы проверяем, существует ли уже экземплярр класса. Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве `$instance`. В противном случае, мы просто возвращаем существующий экземплярр класса `SettingsManager`.
+    public function __construct($name, $price, $size, $color, $material)
+    {
+        parent::__construct($name, $price);
+        $this->size = $size;
+        $this->color = $color;
+        $this->material = $material;
+    }
 
-Методы `addSetting()`, `getSetting()` и `deleteSetting()` используются для выполнения операций над настройками.
+    public function getSize()
+    {
+        return $this->size;
+    }
 
-Надеюсь, этот пример поможет вам лучше понять, как можно использовать паттерн "Одиночка" для решения задач, связанных с управлением настройками пользователей в веб-приложении на PHP.
+    public function getColor()
+    {
+        return $this->color;
+    }
+
+    public function getMaterial()
+    {
+        return $this->material;
+    }
+
+    public function clone()
+    {
+        $clone = parent::clone();
+        $clone->size = $this->size;
+        $clone->color = $this->color;
+        $clone->material = $this->material;
+        return $clone;
+    }
+}
+
+```
+{% endcode %}
+
+Конкретный класс Товара для категории Одежда наследуется от класса Product и содержит свои наборы свойств (size, color, material). Метод clone() должен быть переопределен в каждом конкретном классе Товара, чтобы обеспечить глубокое копирование объекта.
+
+4. Конкретный класс Товара для категории Техника (TechProduct)
+
+Конкретный класс Товара для категории Техника наследуется от класса Product и содержит свои наборы свойств (manufacturer, model, year). Метод clone() должен быть переопределен в каждом конкретном классе Товара, чтобы обеспечить глубокое копирование объекта.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class TechProduct extends Product
+{
+    protected $manufacturer;
+    protected $model;
+    protected $year;
+
+    public function __construct($name, $price, $manufacturer, $model, $year)
+    {
+        parent::__construct($name, $price);
+        $this->manufacturer = $manufacturer;
+        $this->model = $model;
+        $this->year = $year;
+    }
+
+    public function getManufacturer()
+    {
+        return $this->manufacturer;
+    }
+
+    public function getModel()
+    {
+        return $this->model;
+    }
+
+    public function getYear()
+    {
+        return $this->year;
+    }
+
+    public function clone()
+    {
+        $clone = parent::clone();
+        $clone->manufacturer = $this->manufacturer;
+        $clone->model = $this->model;
+        $clone->year = $this->year;
+        return $clone;
+    }
+}
+
+```
+{% endcode %}
+
+5. Класс-фабрика для создания объектов Товаров (ProductFactory)
+
+Класс-фабрика для создания объектов Товаров содержит массив прототипов (prototypes) и предоставляет методы для добавления новых прототипов (setPrototype) и создания новых объектов Товаров (createProduct). Метод createProduct создает копию объекта-прототипа из массива prototypes и заполняет ее данными из массива data.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class ProductFactory
+{
+    private $prototypes = [];
+
+    public function setPrototype(string $type, Prototype $prototype)
+    {
+        $this->prototypes[$type] = $prototype;
+    }
+
+    public function createProduct(string $type, array $data)
+    {
+        if (!isset($this->prototypes[$type])) {
+            throw new Exception('Unknown product type');
+        }
+
+        $prototype = $this->prototypes[$type];
+        $product = $prototype->clone();
+
+        foreach ($data as $key => $value) {
+            $product->{$key} = $value;
+        }
+
+        return $product;
+    }
+}
+
+```
+{% endcode %}
+
+В этом кейсе, класс ProductFactory используется для создания новых объектов Товаров путем копирования существующих объектов-прототипов для каждой категории товаров и изменения только тех свойств, которые необходимо изменить для нового товара. Это позволяет нам избежать сложных вычислений и больших затрат ресурсов при создании новых объектов, а также обеспечивает подобие объектов внутри каждой категории товаров.

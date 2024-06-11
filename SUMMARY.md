@@ -31,7 +31,7 @@
         * [PHP](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/razrabotka-sistemy-upravleniya-kontentom-cms/php.md)
         * [Go](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/razrabotka-sistemy-upravleniya-kontentom-cms/go.md)
         * [Python](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/razrabotka-sistemy-upravleniya-kontentom-cms/python.md)
-      * [Copy of Copy of Кейс 1](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/copy-of-copy-of-keis-1/README.md)
+      * [Разработка системы управления товарами в интернет-магазине](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/copy-of-copy-of-keis-1/README.md)
         * [PHP](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/copy-of-copy-of-keis-1/php.md)
         * [Go](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/copy-of-copy-of-keis-1/go.md)
         * [Python](klassifikaciya-patternov/creationals-patterns/prototip-prototype/primery/copy-of-copy-of-keis-1/python.md)
