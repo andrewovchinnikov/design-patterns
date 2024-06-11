@@ -1,0 +1,38 @@
+@startuml
+
+interface Prototype {
+  + Clone()
+}
+
+class Product {
+  - Name: string
+  - Price: float64
+  + Clone()
+}
+
+class ClothesProduct {
+  - Size: string
+  - Color: string
+  - Material: string
+  + Clone()
+}
+
+class TechProduct {
+  - Manufacturer: string
+  - Model: string
+  - Year: int
+  + Clone()
+}
+
+class ProductFactory {
+  - prototypes: map[string]Prototype
+  + SetPrototype(typeName: string, prototype: Prototype)
+  + CreateProduct(typeName: string, data: map[string]interface{}): (Prototype, error)
+}
+
+Product --|> Prototype
+ClothesProduct --|> Product
+TechProduct --|> Product
+ProductFactory ..> Prototype
+
+@enduml
