@@ -1,0 +1,40 @@
+@startuml
+
+abstract class Template {
+    + clone(): Template
+}
+
+class PageTemplate extends Template {
+    - title: string
+    - content: string
+    - args: array
+    - kwargs: array
+    + __construct(title: string, content: string, ...args): PageTemplate
+    + getTitle(): string
+    + getContent(): string
+    + getArgs(): array
+    + getKwargs(): array
+}
+
+class Page {
+    - title: string
+    - content: string
+    - args: array
+    - kwargs: array
+    + __construct(title: string, content: string, ...args): Page
+    + getTitle(): string
+    + getContent(): string
+    + getArgs(): array
+    + getKwargs(): array
+}
+
+class PageFactory {
+    - prototypes: array
+    + __construct(): PageFactory
+    + createPage(templateName: string, title: string, content: string, ...args): Page
+}
+
+PageFactory --|> PageTemplate
+PageFactory --|> Page
+
+@enduml
