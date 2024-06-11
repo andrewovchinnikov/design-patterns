@@ -2,82 +2,162 @@
 
 <figure><img src="../../../../../.gitbook/assets/image (17).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Одиночка"</p></figcaption></figure>
 
-Наша команда разрабатывает ERP систему для управления бизнес-процессами в средних и крупных компаниях. В рамках разработки нам необходимо решить задачу с управлением настройками пользователей. Наша система должна обеспечивать гибкость и масштабируемость, поэтому мы решили использовать паттерн "Одиночка" (Singleton) для создания единственного экземпляра класса, отвечающего за работу с настройками.
+Задача: Разработать систему управления контентом (CMS) для сайта, которая позволит администраторам создавать, редактировать и удалять страницы сайта. Для упрощения процесса создания страниц, необходимо предоставить возможность создавать новые страницы на основе существующих шаблонов.
 
-Задача:
+Решение: Для реализации этой задачи, мы будем использовать паттерн проектирования "Прототип". Этот паттерн позволяет создавать новые объекты путем копирования существующих объектов. В нашем случае, мы будем создавать новые страницы на основе существующих шаблонов, которые будут являться прототипами.
 
-Нужно разработать класс `SettingsManager`, который будет отвечать за работу с настройками пользователей. Для этого необходимо реализовать паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`. Этот экземпляр будет предоставлять доступ к данным о настройках и выполнять операции над ними.
+Код:
 
-Почему мы выбрали этот паттерн:
-
-Мы выбрали паттерн "Одиночка" для решения этой задачи, потому что он позволяет нам централизовать управление настройками и избежать конфликтов при работе с ними. Кроме того, мы смогли упростить код и уменьшить количество ошибок, связанных с инициализацией и использованием экземпляров класса.
+Сначала, определим абстрактный класс Template, который будет содержать абстрактный метод clone():
 
 ```php
-// Класс SettingsManager, отвечающий за работу с настройками
-class SettingsManager {
-    // Свойство, хранящее массив настроек
-    private $settings = [];
+abstract class Template {
+    abstract public function clone();
+}
 
-    // Приватное свойство, хранящее единственный экземплярр класса
-    private static $instance = null;
+```
 
-    // Приватный конструктор, предотвращающий создание экземпляров класса с помощью оператора new
-    private function __construct() {}
+Затем, определим конкретный класс-шаблон PageTemplate, который будет наследоваться от класса Template и реализовывать метод clone():
 
-    // Статический и публичный метод, возвращающий единственный экземплярр класса SettingsManager
-    public static function getInstance(): SettingsManager {
-        // Проверяем, существует ли уже экземплярр класса
-        if (self::$instance === null) {
-            // Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве instance
-            self::$instance = new SettingsManager();
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class PageTemplate extends Template {
+    private $title;
+    private $content;
+    private $args;
+    private $kwargs;
+
+    public function __construct($title, $content, ...$args) {
+        $this->title = $title;
+        $this->content = $content;
+        $this->args = $args;
+        $this->kwargs = array();
+        if (isset($args[sizeof($args) - 1]) && is_array($args[sizeof($args) - 1])) {
+            $this->kwargs = $args[sizeof($args) - 1];
+            unset($this->args[sizeof($this->args) - 1]);
         }
-        // Возвращаем существующий экземплярр класса
-        return self::$instance;
     }
 
-    // Публичный метод, добавляющий новую настройку в массив настроек
-    public function addSetting(string $key, $value): void {
-        // Добавляем новую настройку в массив настроек
-        $this->settings[$key] = $value;
+    public function getTitle() {
+        return $this->title;
     }
 
-    // Публичный метод, возвращающий значение настройки по ее ключу
-    public function getSetting(string $key) {
-        // Возвращаем значение настройки по ее ключу
-        return $this->settings[$key] ?? null;
+    public function getContent() {
+        return $this->content;
     }
 
-    // Публичный метод, удаляющий настройку из массива настроек по ее ключу
-    public function deleteSetting(string $key): void {
-        // Если настройка существует, то удаляем ее из массива настроек
-        if (array_key_exists($key, $this->settings)) {
-            unset($this->settings[$key]);
-        }
+    public function getArgs() {
+        return $this->args;
+    }
+
+    public function getKwargs() {
+        return $this->kwargs;
+    }
+
+    public function clone() {
+        return new PageTemplate($this->title, $this->content, ...$this->args);
     }
 }
 
-//usage
-// Получаем единственный экземплярр класса SettingsManager
-$settingsManager = SettingsManager::getInstance();
-// Добавляем новые настройки в массив настроек
-$settingsManager->addSetting("language", "en");
-$settingsManager->addSetting("theme", "dark");
-// Получаем значение настройки по ее ключу
-$language = $settingsManager->getSetting("language");
-echo $language; // en
-// Удаляем настройку из массива настроек по ее ключу
-$settingsManager->deleteSetting("theme");
-// Получаем обновленный массив всех настроек
-$settings = $settingsManager->getSettings();
-print_r($settings); // ["language" => "en"]
 ```
+{% endcode %}
 
-В этом примере мы создаем класс `SettingsManager`, который отвечает за работу с настройками. Мы используем паттерн "Одиночка" для создания единственного экземпляра класса `SettingsManager`.
+Класс PageTemplate содержит конструктор, который принимает аргументы $title, $content, ...$args. Аргумент $title будет использоваться в качестве заголовка страницы, а $content - в качестве ее содержимого. Аргументы, переданные в ...$args, будут использоваться для дальнейшей настройки шаблона. Метод clone() создает копию текущего объекта PageTemplate.
 
-Мы объявляем приватное свойство `$settings`, которое будет хранить массив настроек. Мы также объявляем приватное свойство `$instance`, которое будет хранить единственный экземплярр класса. Мы объявляем приватный конструктор, чтобы предотвратить создание экземпляров класса с помощью оператора `new`.
+Теперь, определим класс Page, который будет представлять собой конкретную страницу, созданную на основе шаблона:
 
-Метод `getInstance()` является статическим и публичным, и он используется для получения единственного экземпляра класса `SettingsManager`. В этом методе мы проверяем, существует ли уже экземплярр класса. Если нет, то создаем новый экземплярр класса и сохраняем его в свойстве `$instance`. В противном случае, мы просто возвращаем существующий экземплярр класса `SettingsManager`.
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Page {
+    private $title;
+    private $content;
+    private $args;
+    private $kwargs;
 
-Методы `addSetting()`, `getSetting()` и `deleteSetting()` используются для выполнения операций над настройками.
+    public function __construct($title, $content, ...$args) {
+        $this->title = $title;
+        $this->content = $content;
+        $this->args = $args;
+        $this->kwargs = array();
+        if (isset($args[sizeof($args) - 1]) && is_array($args[sizeof($args) - 1])) {
+            $this->kwargs = $args[sizeof($args) - 1];
+            unset($this->args[sizeof($this->args) - 1]);
+        }
+    }
 
-Надеюсь, этот пример поможет вам лучше понять, как можно использовать паттерн "Одиночка" для решения задач, связанных с управлением настройками пользователей в веб-приложении на PHP.
+    public function getTitle() {
+        return $this->title;
+    }
+
+    public function getContent() {
+        return $this->content;
+    }
+
+    public function getArgs() {
+        return $this->args;
+    }
+
+    public function getKwargs() {
+        return $this->kwargs;
+    }
+}
+
+```
+{% endcode %}
+
+Класс Page аналогичен классу PageTemplate, за исключением того, что он не наследуется от класса Template и не содержит метода clone().
+
+Наконец, определим класс-фабрику PageFactory, который будет создавать новые страницы на основе шаблонов:
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class PageFactory {
+    private $prototypes;
+
+    public function __construct() {
+        $this->prototypes = array(
+            "default" => new PageTemplate("Default Title", "Default Content"),
+            "blog" => new PageTemplate("Blog Title", "Blog Content", "post_format" => "standard"),
+            "portfolio" => new PageTemplate("Portfolio Title", "Portfolio Content", "num_columns" => 3),
+        );
+    }
+
+    public function createPage($templateName, $title, $content, ...$args) {
+        $prototype = $this->prototypes[$templateName];
+        $page = $prototype->clone();
+        $page->title = $title;
+        $page->content = $content;
+        $page->args = $args;
+        $page->kwargs = array();
+        if (isset($args[sizeof($args) - 1]) && is_array($args[sizeof($args) - 1])) {
+            $page->kwargs = $args[sizeof($args) - 1];
+            unset($page->args[sizeof($page->args) - 1]);
+        }
+        return $page;
+    }
+}
+
+```
+{% endcode %}
+
+Класс PageFactory содержит конструктор, который инициализирует массив $prototypes, содержащий шаблоны страниц. Метод createPage() принимает аргументы $templateName, $title, $content, ...$args, где $templateName - это имя шаблона, который будет использоваться для создания новой страницы. Метод создает копию шаблона, заменяет заголовок и содержимое страницы на те, что были переданы в аргументах, и возвращает объект класса Page.
+
+Пример использования:
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+$factory = new PageFactory();
+
+// Создаем новую страницу на основе шаблона "default"
+$page = $factory->createPage("default", "New Page Title", "New Page Content");
+echo $page->getTitle();
+echo $page->getContent();
+
+// Создаем новую страницу на основе шаблона "blog"
+$page = $factory->createPage("blog", "New Blog Title", "New Blog Content", "post_format" => "gallery");
+echo $page->getTitle();
+echo $page->getContent();
+echo $page->getKwargs()["post_format"];
+
+```
+{% endcode %}
