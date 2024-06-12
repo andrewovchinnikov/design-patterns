@@ -1,0 +1,30 @@
+@startuml
+
+class Contract {
+    -cost: float
+    -deadline: DateTime
+    -obligations: array
+    -order: Order
+    -invoice: Invoice
+    +__construct()
+    +getCost(): float
+    +getDeadline(): DateTime
+    +getObligations(): array
+    +getOrder(): Order
+    +getInvoice(): Invoice
+}
+
+class ContractBuilder {
+    -contract: Contract
+    +__construct()
+    +setCost(cost: float): ContractBuilder
+    +setDeadline(deadline: DateTime): ContractBuilder
+    +addObligation(obligation: string): ContractBuilder
+    +setOrder(order: Order): ContractBuilder
+    +setInvoice(invoice: Invoice): ContractBuilder
+    +build(): Contract
+}
+
+ContractBuilder --> Contract : has a
+
+@enduml
