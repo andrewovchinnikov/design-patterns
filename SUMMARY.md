@@ -40,6 +40,7 @@
       * [Формирование договора с поставщиков в ERP системе](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/formirovanie-dogovora-s-postavshikov-v-erp-sisteme/README.md)
         * [PHP](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/formirovanie-dogovora-s-postavshikov-v-erp-sisteme/php.md)
         * [Python](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/formirovanie-dogovora-s-postavshikov-v-erp-sisteme/python.md)
+        * [Go](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/formirovanie-dogovora-s-postavshikov-v-erp-sisteme/go.md)
   * [Фабричный метод (Factory Method)](klassifikaciya-patternov/creationals-patterns/fabrichnyi-metod-factory-method.md)
   * [Абстрактная фабрика (Abstract Factory)](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/README.md)
     * [Примеры](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/README.md)
