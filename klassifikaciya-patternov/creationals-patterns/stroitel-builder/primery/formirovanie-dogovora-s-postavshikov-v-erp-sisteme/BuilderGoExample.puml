@@ -1,0 +1,40 @@
+@startuml
+
+class Order {
+    <<placeholder>>
+}
+
+class Invoice {
+    <<placeholder>>
+}
+
+class Contract {
+    - cost: float64
+    - deadline: time.Time
+    - obligations: []string
+    - order: *Order
+    - invoice: *Invoice
+
+    + getCost(): float64
+    + getDeadline(): time.Time
+    + getObligations(): []string
+    + getOrder(): *Order
+    + getInvoice(): *Invoice
+}
+
+class ContractBuilder {
+    - contract: *Contract
+
+    + setCost(cost: float64): *ContractBuilder
+    + setDeadline(deadline: time.Time): *ContractBuilder
+    + addObligation(obligation: string): *ContractBuilder
+    + setOrder(order: *Order): *ContractBuilder
+    + setInvoice(invoice: *Invoice): *ContractBuilder
+    + build(): *Contract
+}
+
+ContractBuilder "1" -- "1" Contract: has
+ContractBuilder "1" -- "1" Order: uses
+ContractBuilder "1" -- "1" Invoice: uses
+
+@enduml
