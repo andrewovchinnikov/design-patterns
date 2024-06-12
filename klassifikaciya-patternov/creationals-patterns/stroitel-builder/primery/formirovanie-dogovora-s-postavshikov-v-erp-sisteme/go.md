@@ -106,7 +106,6 @@ func main() {
     fmt.Printf("Связанный заказ: %v\n", contract.getOrder())
     fmt.Printf("Связанный счет: %v\n", contract.getInvoice())
 }
-
 </code></pre>
 
 В этом коде определены три структуры: `Order`, `Invoice` и `Contract`.&#x20;
