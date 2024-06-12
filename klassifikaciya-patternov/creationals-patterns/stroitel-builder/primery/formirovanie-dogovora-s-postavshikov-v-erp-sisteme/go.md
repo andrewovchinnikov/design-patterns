@@ -8,23 +8,8 @@
 
 Ниже приведен пример кода, реализующего паттерн "Строитель" для создания объектов "Договор":
 
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-// Order - заглушка для фактического класса Order в вашей ERP-системе
-type Order struct{}
-
-// Invoice - заглушка для фактического класса Invoice в вашей ERP-системе
-type Invoice struct{}
-
-// Contract - представляет объект Контракт
-type Contract struct {
-    cost         float64
-    deadline      time.Time
-    obligations   []string
- package main
-
-import (
-    "fmt"
+<pre class="language-python" data-overflow="wrap" data-line-numbers><code class="lang-python"><strong>import (
+</strong>    "fmt"
     "time"
 )
 
@@ -34,7 +19,7 @@ type Order struct{}
 // Invoice - заглушка для фактического класса Invoice в вашей ERP-системе
 type Invoice struct{}
 
-// Contract - представляет объект Контракт
+// Contract - представляет объект Договор
 type Contract struct {
     cost         float64
     deadline      time.Time
@@ -63,7 +48,7 @@ func (c *Contract) getInvoice() *Invoice {
     return c.invoice
 }
 
-// ContractBuilder - отвечает за создание объектов Контракт
+// ContractBuilder - отвечает за создание объектов Договор
 type ContractBuilder struct {
     contract *Contract
 }
@@ -95,18 +80,18 @@ func (cb *ContractBuilder) setInvoice(invoice *Invoice) *ContractBuilder {
 
 func (cb *ContractBuilder) build() *Contract {
     result := cb.contract
-    cb.contract = &Contract{} // Сбросить значения для создания нового объекта
+    cb.contract = &#x26;Contract{} // Сбросить значения для создания нового объекта
     return result
 }
 
 func main() {
     // Создаем объект "Заказ"
-    order := &Order{}
+    order := &#x26;Order{}
     // Создаем объект "Счет"
-    invoice := &Invoice{}
+    invoice := &#x26;Invoice{}
 
-    // Используем Builder для создания Контракта с определенной стоимостью, сроком выполнения, обязанностями и ссылками на Заказ и Счет
-    contract := &ContractBuilder{contract: &Contract{}}}.
+    // Используем Builder для создания Договора с определенной стоимостью, сроком выполнения, обязанностями и ссылками на Заказ и Счет
+    contract := &#x26;ContractBuilder{contract: &#x26;Contract{}}}.
         setCost(1000.0).
         setDeadline(time.Now().Add(30 * 24 * time.Hour)).
         addObligation("Поставка товара в срок").
@@ -115,15 +100,14 @@ func main() {
         setInvoice(invoice).
         build()
 
-    fmt.Printf("Стоимость контракта: %.2f\n", contract.getCost())
-    fmt.Printf("Дедлайн контракта: %v\n", contract.getDeadline())
+    fmt.Printf("Стоимость договора: %.2f\n", contract.getCost())
+    fmt.Printf("Срок договора: %v\n", contract.getDeadline())
     fmt.Printf("Обязанности сторон: %v\n", contract.getObligations())
     fmt.Printf("Связанный заказ: %v\n", contract.getOrder())
     fmt.Printf("Связанный счет: %v\n", contract.getInvoice())
 }
 
-```
-{% endcode %}
+</code></pre>
 
 В этом коде определены три структуры: `Order`, `Invoice` и `Contract`.&#x20;
 
