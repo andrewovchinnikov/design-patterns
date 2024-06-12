@@ -1,0 +1,40 @@
+@startuml
+
+interface Builder {
+  + void buildPartA()
+  + void buildPartB()
+  + void buildPartC()
+  + Product getResult()
+}
+
+class ConcreteBuilder1 implements Builder {
+  + void buildPartA()
+  + void buildPartB()
+  + void buildPartC()
+  + Product getResult()
+}
+
+class ConcreteBuilder2 implements Builder {
+  + void buildPartA()
+  + void buildPartB()
+  + void buildPartC()
+  + Product getResult()
+}
+
+class Director {
+  + void construct(Builder builder)
+}
+
+class Product {
+  - partA: String
+  - partB: String
+  - partC: String
+  + void show()
+}
+
+Builder <|-- ConcreteBuilder1
+Builder <|-- ConcreteBuilder2
+Director -- Builder
+Product "*" -- Builder
+
+@enduml
