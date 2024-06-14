@@ -1,0 +1,58 @@
+@startuml
+abstract class ChartBuilder {
+    {abstract} +createNewChart()
+    {abstract} +getChart()
+    {abstract} +setType()
+    {abstract} +setColor()
+    {abstract} +setSize()
+    {abstract} +setAxisLabels()
+    {abstract} +addData()
+}
+
+class LineChartBuilder {
+    +createNewChart()
+    +getChart()
+    +setType()
+    +setColor()
+    +setSize()
+    +setAxisLabels()
+    +addData()
+}
+
+class BarChartBuilder {
+    +createNewChart()
+    +getChart()
+    +setType()
+    +setColor()
+    +setSize()
+    +setAxisLabels()
+    +addData()
+}
+
+class PieChartBuilder {
+    +createNewChart()
+    +getChart()
+    +setType()
+    +setColor()
+    +setSize()
+    +setAxisLabels()
+    +addData()
+}
+
+class Chart {
+    -type
+    -color
+    -size
+    -axisLabels
+    -data
+    +setType(type)
+    +setColor(color)
+    +setSize(size)
+    +setAxisLabels(axisLabels)
+    +addData(data)
+}
+
+ChartBuilder <|-- LineChartBuilder
+ChartBuilder <|-- BarChartBuilder
+ChartBuilder <|-- PieChartBuilder
+@enduml
