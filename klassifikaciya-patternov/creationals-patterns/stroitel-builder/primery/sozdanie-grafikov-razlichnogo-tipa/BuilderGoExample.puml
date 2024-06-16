@@ -1,0 +1,61 @@
+@startuml
+
+interface ChartBuilder {
+    +SetType()
+    +SetColor()
+    +SetSize()
+    +SetAxisLabels()
+    +AddData()
+    +GetChart(): Chart
+}
+
+class Chart {
+    -Type: string
+    -Color: string
+    -Size: string
+    -AxisLabels: []string
+    -Data: []float64
+}
+
+class LineChartBuilder {
+    -chart: Chart
+    +NewLineChartBuilder(): LineChartBuilder
+    +SetType()
+    +SetColor()
+    +SetSize()
+    +SetAxisLabels()
+    +AddData()
+    +GetChart(): Chart
+}
+
+class BarChartBuilder {
+    -chart: Chart
+    +NewBarChartBuilder(): BarChartBuilder
+    +SetType()
+    +SetColor()
+    +SetSize()
+    +SetAxisLabels()
+    +AddData()
+    +GetChart(): Chart
+}
+
+class PieChartBuilder {
+    -chart: Chart
+    +NewPieChartBuilder(): PieChartBuilder
+    +SetType()
+    +SetColor()
+    +SetSize()
+    +SetAxisLabels()
+    +AddData()
+    +GetChart(): Chart
+}
+
+ChartBuilder <|.. LineChartBuilder
+ChartBuilder <|.. BarChartBuilder
+ChartBuilder <|.. PieChartBuilder
+
+LineChartBuilder --> Chart
+BarChartBuilder --> Chart
+PieChartBuilder --> Chart
+
+@enduml
