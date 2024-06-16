@@ -44,6 +44,7 @@
       * [Создание графиков различного типа](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/sozdanie-grafikov-razlichnogo-tipa/README.md)
         * [PHP](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/sozdanie-grafikov-razlichnogo-tipa/php.md)
         * [Go](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/sozdanie-grafikov-razlichnogo-tipa/go.md)
+        * [Python](klassifikaciya-patternov/creationals-patterns/stroitel-builder/primery/sozdanie-grafikov-razlichnogo-tipa/python.md)
   * [Фабричный метод (Factory Method)](klassifikaciya-patternov/creationals-patterns/fabrichnyi-metod-factory-method.md)
   * [Абстрактная фабрика (Abstract Factory)](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/README.md)
     * [Примеры](klassifikaciya-patternov/creationals-patterns/opisanie-patterna-abstract-factory-abstraktnaya-fabrika/examles/README.md)
