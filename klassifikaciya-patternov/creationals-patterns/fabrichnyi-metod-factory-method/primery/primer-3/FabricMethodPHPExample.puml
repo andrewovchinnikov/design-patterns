@@ -1,0 +1,26 @@
+@startuml
+interface PriceCalculator {
+    +calculatePrice(basePrice: float): float
+}
+
+class ClothingPriceCalculator implements PriceCalculator {
+    +calculatePrice(basePrice: float): float
+}
+
+class ShoesPriceCalculator implements PriceCalculator {
+    +calculatePrice(basePrice: float): float
+}
+
+class ElectronicsPriceCalculator implements PriceCalculator {
+    +calculatePrice(basePrice: float): float
+}
+
+class PriceCalculatorFactory {
+    +createPriceCalculator(type: string): PriceCalculator
+}
+
+PriceCalculatorFactory --> PriceCalculator: createPriceCalculator
+PriceCalculator <|-- ClothingPriceCalculator
+PriceCalculator <|-- ShoesPriceCalculator
+PriceCalculator <|-- ElectronicsPriceCalculator
+@enduml

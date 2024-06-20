@@ -1,0 +1,26 @@
+@startuml
+interface Transport {
+    +deliver(): void
+}
+
+class Car implements Transport {
+    +deliver(): void
+}
+
+class Bicycle implements Transport {
+    +deliver(): void
+}
+
+class Plane implements Transport {
+    +deliver(): void
+}
+
+class TransportFactory {
+    +createTransport(type: string): Transport
+}
+
+TransportFactory --> Transport: createTransport
+Transport <|-- Car
+Transport <|-- Bicycle
+Transport <|-- Plane
+@enduml
