@@ -2,6 +2,7 @@
 
 Описание: Разработка веб-приложения с высокой нагрузкой, которое обращается к базе данных для получения информации о пользователях. Для оптимизации работы приложения и снижения нагрузки на базу данных, используется паттерн "Пулл объектов" для кеширования результатов запросов к базе данных.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
 
@@ -47,9 +48,12 @@ class DatabasePool
     }
 }
 ```
+{% endcode %}
 
+Использование
+
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Использование
 $pdo = new PDO('mysql:host=localhost;dbname=test', 'user', 'password');
 $pool = new DatabasePool($pdo);
 
@@ -62,8 +66,11 @@ $result = $connection->query('SELECT * FROM users');
 // Возвращаем соединение в пул
 $pool->releaseConnection($connection);
 ```
+{% endcode %}
 
 Диаграмма классов:
+
+<figure><img src="../../../../../.gitbook/assets/image (38).png" alt=""><figcaption><p>UML диаграмма для паттерна "Пулл  объектов"</p></figcaption></figure>
 
 ```plant-uml
 @startuml
