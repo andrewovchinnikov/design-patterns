@@ -1,0 +1,26 @@
+@startuml
+abstract class Transport {
+    +deliver(): void
+}
+
+class Car extends Transport {
+    +deliver(): void
+}
+
+class Bicycle extends Transport {
+    +deliver(): void
+}
+
+class Plane extends Transport {
+    +deliver(): void
+}
+
+class TransportFactory {
+    +create_transport(type: string): Transport
+}
+
+TransportFactory --> Transport: create_transport
+Transport <|-- Car
+Transport <|-- Bicycle
+Transport <|-- Plane
+@enduml

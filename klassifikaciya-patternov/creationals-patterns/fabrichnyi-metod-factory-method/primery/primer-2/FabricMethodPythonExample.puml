@@ -1,0 +1,26 @@
+@startuml
+abstract class Database {
+    +connect(): void
+}
+
+class MySQLDatabase extends Database {
+    +connect(): void
+}
+
+class PostgreSQLDatabase extends Database {
+    +connect(): void
+}
+
+class SQLiteDatabase extends Database {
+    +connect(): void
+}
+
+class DatabaseFactory {
+    +create_database(type: string): Database
+}
+
+DatabaseFactory --> Database: create_database
+Database <|-- MySQLDatabase
+Database <|-- PostgreSQLDatabase
+Database <|-- SQLiteDatabase
+@enduml

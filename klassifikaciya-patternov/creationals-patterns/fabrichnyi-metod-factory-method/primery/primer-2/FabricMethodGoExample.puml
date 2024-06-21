@@ -1,0 +1,26 @@
+@startuml
+interface Database {
+    +Connect(): void
+}
+
+class MySQLDatabase implements Database {
+    +Connect(): void
+}
+
+class PostgreSQLDatabase implements Database {
+    +Connect(): void
+}
+
+class SQLiteDatabase implements Database {
+    +Connect(): void
+}
+
+class DatabaseFactory {
+    +CreateDatabase(type: string): Database
+}
+
+DatabaseFactory --> Database: CreateDatabase
+Database <|-- MySQLDatabase
+Database <|-- PostgreSQLDatabase
+Database <|-- SQLiteDatabase
+@enduml
