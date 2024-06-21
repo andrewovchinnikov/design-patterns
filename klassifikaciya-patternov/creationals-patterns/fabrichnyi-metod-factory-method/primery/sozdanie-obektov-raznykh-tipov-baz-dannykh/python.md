@@ -4,6 +4,7 @@
 
 Для решения этой задачи вы решаете использовать паттерн "Фабричный метод". Для начала создаете интерфейс Database, который будет содержать метод connect(). Этот интерфейс будет определять общий функционал для всех типов баз данных.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
@@ -12,29 +13,37 @@ class Database(ABC):
     def connect(self):
         pass
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа базы данных (MySQL, PostgreSQL, SQLite и т.д.):
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class MySQLDatabase(Database):
     def connect(self):
         print("Подключение к MySQL")
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class PostgreSQLDatabase(Database):
     def connect(self):
         print("Подключение к PostgreSQL")
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class SQLiteDatabase(Database):
     def connect(self):
         print("Подключение к SQLite")
 ```
+{% endcode %}
 
 Далее создаете фабрику DatabaseFactory, которая будет создавать объекты баз данных в зависимости от типа, переданного в метод create\_database(). Этот метод будет возвращать объект типа Database.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class DatabaseFactory:
     @staticmethod
@@ -48,6 +57,7 @@ class DatabaseFactory:
         else:
             raise ValueError("Неверный тип базы данных")
 ```
+{% endcode %}
 
 В итоге, когда приложение запускается, оно использует фабрику для создания объекта базы данных и вызывает метод connect() для подключения к базе данных.
 
@@ -55,6 +65,7 @@ class DatabaseFactory:
 
 <figure><img src="../../../../../.gitbook/assets/image (35).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 abstract class Database {
@@ -83,3 +94,4 @@ Database <|-- PostgreSQLDatabase
 Database <|-- SQLiteDatabase
 @enduml
 ```
+{% endcode %}

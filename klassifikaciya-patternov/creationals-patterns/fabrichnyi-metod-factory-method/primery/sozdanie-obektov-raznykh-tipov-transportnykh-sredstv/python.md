@@ -4,6 +4,7 @@
 
 Для решения этой задачи вы решаете использовать паттерн "Фабричный метод". Для начала создаете интерфейс Transport, который будет содержать метод deliver(). Этот интерфейс будет определять общий функционал для всех типов транспортных средств.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
@@ -12,29 +13,37 @@ class Transport(ABC):
     def deliver(self):
         pass
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа транспортного средства (автомобиль, велосипед, самолет и т.д.):
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class Car(Transport):
     def deliver(self):
         print("Доставка груза на автомобиле")
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class Bicycle(Transport):
     def deliver(self):
         print("Доставка груза на велосипеде")
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class Plane(Transport):
     def deliver(self):
         print("Доставка груза на самолете")
 ```
+{% endcode %}
 
 Далее создаете фабрику TransportFactory, которая будет создавать объекты транспортных средств в зависимости от типа, переданного в метод create\_transport(). Этот метод будет возвращать объект типа Transport.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class TransportFactory:
     @staticmethod
@@ -48,6 +57,7 @@ class TransportFactory:
         else:
             raise ValueError("Неверный тип транспорта")
 ```
+{% endcode %}
 
 В итоге, когда клиент выбирает тип транспорта, ваше приложение использует фабрику для создания объекта транспортного средства и вызывает метод deliver() для доставки груза.
 
@@ -55,6 +65,7 @@ class TransportFactory:
 
 <figure><img src="../../../../../.gitbook/assets/image (34).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 abstract class Transport {
@@ -83,3 +94,4 @@ Transport <|-- Bicycle
 Transport <|-- Plane
 @enduml
 ```
+{% endcode %}

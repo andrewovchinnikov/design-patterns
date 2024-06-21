@@ -4,15 +4,18 @@
 
 Для решения этой задачи вы решаете использовать паттерн "Фабричный метод". Для начала создаете интерфейс Database, который будет содержать метод connect(). Этот интерфейс будет определять общий функционал для всех типов баз данных.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 interface Database
 {
     public function connect();
 }
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа базы данных (MySQL, PostgreSQL, SQLite и т.д.). Например, для MySQL:
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class MySQLDatabase implements Database
 {
@@ -22,9 +25,11 @@ class MySQLDatabase implements Database
     }
 }
 ```
+{% endcode %}
 
 Далее создаете фабрику DatabaseFactory, которая будет создавать объекты баз данных в зависимости от типа, переданного в метод createDatabase(). Этот метод будет возвращать объект типа Database.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class DatabaseFactory
 {
@@ -43,6 +48,7 @@ class DatabaseFactory
     }
 }
 ```
+{% endcode %}
 
 В итоге, когда приложение запускается, оно использует фабрику для создания объекта базы данных и вызывает метод connect() для подключения к базе данных.
 
@@ -50,6 +56,7 @@ class DatabaseFactory
 
 <figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```less
 @startuml
 interface Database {
@@ -78,3 +85,4 @@ Database <|-- PostgreSQLDatabase
 Database <|-- SQLiteDatabase
 @enduml
 ```
+{% endcode %}

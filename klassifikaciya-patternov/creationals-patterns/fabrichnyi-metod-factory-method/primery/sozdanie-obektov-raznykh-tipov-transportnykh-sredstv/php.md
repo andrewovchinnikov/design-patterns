@@ -6,15 +6,18 @@
 
 Сначала создадим интерфейс Transport:
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 interface Transport
 {
     public function deliver();
 }
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа транспортного средства (автомобиль, велосипед, самолет и т.д.). Например, для автомобиля:
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class Car implements Transport
 {
@@ -40,9 +43,11 @@ class Plane implements Transport
     }
 }
 ```
+{% endcode %}
 
 Далее создаете фабрику TransportFactory, которая будет создавать объекты транспортных средств в зависимости от типа, переданного в метод createTransport(). Этот метод будет возвращать объект типа Transport.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class TransportFactory
 {
@@ -61,6 +66,7 @@ class TransportFactory
     }
 }
 ```
+{% endcode %}
 
 Используем фабрику для создания объектов:
 
@@ -71,6 +77,7 @@ $transport->deliver(); // Выведет "Доставка груза на ав�
 
 <figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface Transport {
@@ -100,3 +107,4 @@ Transport <|-- Plane
 @enduml
 
 ```
+{% endcode %}
