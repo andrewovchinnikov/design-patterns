@@ -4,14 +4,17 @@
 
 Для решения этой задачи вы решаете использовать паттерн "Фабричный метод". Для начала создаете интерфейс PriceCalculator, который будет содержать метод CalculatePrice(). Этот интерфейс будет определять общий функционал для всех типов расчета цены.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type PriceCalculator interface {
     CalculatePrice(basePrice float64) float64
 }
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа товара (одежда, обувь, электроника и т.д.):
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type ClothingPriceCalculator struct{}
 
@@ -19,21 +22,27 @@ func (c *ClothingPriceCalculator) CalculatePrice(basePrice float64) float64 {
     return basePrice * 1.2 // Наценка 20% для одежды
 }
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 func (c *ShoesPriceCalculator) CalculatePrice(basePrice float64) float64 {
     return basePrice * 1.22 // Наценка 22% для обуви
 }
 ```
+{% endcode %}
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 func (c *ElectronicsPriceCalculator) CalculatePrice(basePrice float64) float64 {
     return basePrice * 1.3 // Наценка 30% для электроники
 }
 ```
+{% endcode %}
 
 Далее создаете фабрику PriceCalculatorFactory, которая будет создавать объекты для расчета цены в зависимости от типа товара, переданного в метод CreatePriceCalculator(). Этот метод будет возвращать объект типа PriceCalculator.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type PriceCalculatorFactory struct{}
 
@@ -50,6 +59,7 @@ func (f *PriceCalculatorFactory) CreatePriceCalculator(typ string) PriceCalculat
     }
 }
 ```
+{% endcode %}
 
 В итоге, когда клиент выбирает товар, ваше приложение использует фабрику для создания объекта, отвечающего за расчет цены, и вызывает метод CalculatePrice() для расчета цены товара.
 
@@ -57,6 +67,7 @@ func (f *PriceCalculatorFactory) CreatePriceCalculator(typ string) PriceCalculat
 
 <figure><img src="../../../../../.gitbook/assets/image (33).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 @startuml
 interface PriceCalculator {
@@ -85,3 +96,4 @@ PriceCalculator <|-- ShoesPriceCalculator
 PriceCalculator <|-- ElectronicsPriceCalculator
 @enduml
 ```
+{% endcode %}

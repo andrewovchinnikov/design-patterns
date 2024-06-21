@@ -4,15 +4,18 @@
 
 Для решения этой задачи вы решаете использовать паттерн "Фабричный метод". Для начала создаете интерфейс PriceCalculator, который будет содержать метод calculatePrice(). Этот интерфейс будет определять общий функционал для всех типов расчета цены.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 interface PriceCalculator
 {
     public function calculatePrice(float $basePrice): float;
 }
 ```
+{% endcode %}
 
 Затем реализуете этот интерфейс для каждого типа товара (одежда, обувь, электроника и т.д.). Например, для одежды:
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class ClothingPriceCalculator implements PriceCalculator
 {
@@ -22,9 +25,11 @@ class ClothingPriceCalculator implements PriceCalculator
     }
 }
 ```
+{% endcode %}
 
 Далее создаете фабрику PriceCalculatorFactory, которая будет создавать объекты для расчета цены в зависимости от типа товара, переданного в метод createPriceCalculator(). Этот метод будет возвращать объект типа PriceCalculator.
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class PriceCalculatorFactory
 {
@@ -43,6 +48,7 @@ class PriceCalculatorFactory
     }
 }
 ```
+{% endcode %}
 
 В итоге, когда клиент выбирает товар, ваше приложение использует фабрику для создания объекта, отвечающего за расчет цены, и вызывает метод calculatePrice() для расчета цены товара.
 
@@ -50,6 +56,7 @@ class PriceCalculatorFactory
 
 <figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фабричный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface PriceCalculator {
@@ -78,3 +85,4 @@ PriceCalculator <|-- ShoesPriceCalculator
 PriceCalculator <|-- ElectronicsPriceCalculator
 @enduml
 ```
+{% endcode %}
