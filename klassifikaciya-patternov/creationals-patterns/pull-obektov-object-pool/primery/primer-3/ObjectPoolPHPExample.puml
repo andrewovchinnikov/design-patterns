@@ -1,0 +1,15 @@
+@startuml
+class Socket {
+-socket: resource
++__construct(string $host, int $port): void
++send(string $data): void
++receive(): string
++close(): void
+}
+
+class SocketPool {
+-sockets: array
++getSocket(): Socket
++releaseSocket(Socket $socket): void
+}
+@enduml
