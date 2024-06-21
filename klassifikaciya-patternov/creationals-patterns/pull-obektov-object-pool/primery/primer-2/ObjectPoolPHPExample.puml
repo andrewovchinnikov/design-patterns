@@ -1,0 +1,15 @@
+@startuml
+class Image {
+-resource: resource
++__construct(string $filename): void
++resize(int $width, int $height): void
++crop(int $x, int $y, int $width, int $height): void
++save(string $filename): void
+}
+
+class ImagePool {
+-images: array
++getImage(): Image
++releaseImage(Image $image): void
+}
+@enduml

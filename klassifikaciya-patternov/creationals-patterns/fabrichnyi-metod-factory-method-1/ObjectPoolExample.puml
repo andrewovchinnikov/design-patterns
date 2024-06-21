@@ -1,0 +1,33 @@
+@startuml
+
+interface ObjectPool {
+  +initialize()
+  +getObject() : Object
+  +releaseObject(Object)
+  +shutdown()
+}
+
+class ConcreteObjectPool {
+  +initialize()
+  +getObject() : Object
+  +releaseObject(Object)
+  +shutdown()
+}
+
+abstract class PoolableObject {
+  +activate()
+  +passivate()
+}
+
+class ConcretePoolableObject {
+  +activate()
+  +passivate()
+}
+
+ObjectPool <|-- ConcreteObjectPool
+PoolableObject <|-- ConcretePoolableObject
+
+ObjectPool o-- PoolableObject
+ConcreteObjectPool o-- ConcretePoolableObject
+
+@enduml

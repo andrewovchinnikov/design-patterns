@@ -1,0 +1,15 @@
+@startuml
+class DatabaseConnection {
+-pdo: PDO
++query(string $query): array
+}
+
+class DatabasePool {
+-connections: array
+-pdo: PDO
++getConnection(): DatabaseConnection
++releaseConnection(DatabaseConnection $connection): void
+}
+
+PDO <|-- DatabaseConnection
+@enduml
