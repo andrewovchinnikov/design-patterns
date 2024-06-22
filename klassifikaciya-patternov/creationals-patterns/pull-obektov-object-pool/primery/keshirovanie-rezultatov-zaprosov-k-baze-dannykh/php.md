@@ -17,8 +17,14 @@ class DatabaseConnection
 
     public function query(string $query): array
     {
+        if (array_key_exists($query, $this->cache)) {
+            return $this->cache[$query];
+        }
+
         $stmt = $this->pdo->query($query);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $result = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->cache[$query] = $result;
+        return $result;
     }
 }
 ```
