@@ -1,0 +1,27 @@
+@startuml
+
+class DatabaseConnection {
+  -db: sql.DB
+  -cache: map[string][]map[string]interface{}
+  +NewDatabaseConnection(db: sql.DB): DatabaseConnection
+  +Query(query: string): ([]map[string]interface{}, error)
+}
+
+class DatabasePool {
+  -connections: []*DatabaseConnection
+  -mu: sync.Mutex
+  +NewDatabasePool(db: sql.DB, size: int): DatabasePool
+  +GetConnection(): DatabaseConnection
+  +ReleaseConnection(conn: DatabaseConnection): void
+}
+
+class sql.DB {
+  +Open(driverName: string, dataSourceName: string): (*sql.DB, error)
+  +Close(): error
+  +Query(query: string): (*sql.Rows, error)
+}
+
+DatabasePool --> DatabaseConnection : contains
+DatabaseConnection --> sql.DB : uses
+
+@enduml
