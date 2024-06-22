@@ -78,6 +78,7 @@ func main() {
 
 <figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Пулл объектов"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 
@@ -107,6 +108,7 @@ DatabaseConnection --> sql.DB : uses
 
 @enduml
 ```
+{% endcode %}
 
 Эта диаграмма отображает следующие классы и их взаимосвязи:
 
