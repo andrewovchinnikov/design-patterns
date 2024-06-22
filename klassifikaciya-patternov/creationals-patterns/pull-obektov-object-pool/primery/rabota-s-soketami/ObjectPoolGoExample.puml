@@ -1,0 +1,22 @@
+@startuml
+class Socket {
+    -conn: net.Conn
+    +NewSocket(host: string, port: int): (*Socket, error)
+    +Send(data: string): error
+    +Receive(): (string, error)
+    +Close(): error
+}
+
+class SocketPool {
+    -host: string
+    -port: int
+    -maxSize: int
+    -sockets: chan *Socket
+    -mu: sync.Mutex
+    +NewSocketPool(host: string, port: int, maxSize: int): (*SocketPool, error)
+    +GetSocket(): (*Socket, error)
+    +ReleaseSocket(socket: *Socket): void
+}
+
+SocketPool --> Socket
+@enduml
