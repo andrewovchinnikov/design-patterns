@@ -65,13 +65,59 @@ func main() {
 }
 ```
 
-* **Описание:**
-  * Создается соединение с базой данных с помощью `sql.Open`.
-  * Создается пул соединений с помощью `NewDatabasePool`.
-  * Из пула получается соединение с помощью `GetConnection`.
-  * Выполняется запрос к базе данных с помощью метода `Query` объекта `DatabaseConnection`.
-  * Результат запроса выводится на экран.
-  * Соединение возвращается обратно в пул с помощью `ReleaseConnection`.
+*   **Описание:**
+
+    * Создается соединение с базой данных с помощью `sql.Open`.
+    * Создается пул соединений с помощью `NewDatabasePool`.
+    * Из пула получается соединение с помощью `GetConnection`.
+    * Выполняется запрос к базе данных с помощью метода `Query` объекта `DatabaseConnection`.
+    * Результат запроса выводится на экран.
+    * Соединение возвращается обратно в пул с помощью `ReleaseConnection`.
+
+
+
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Пулл объектов"</p></figcaption></figure>
+
+```plant-uml
+@startuml
+
+class DatabaseConnection {
+  -db: sql.DB
+  -cache: map[string][]map[string]interface{}
+  +NewDatabaseConnection(db: sql.DB): DatabaseConnection
+  +Query(query: string): ([]map[string]interface{}, error)
+}
+
+class DatabasePool {
+  -connections: []*DatabaseConnection
+  -mu: sync.Mutex
+  +NewDatabasePool(db: sql.DB, size: int): DatabasePool
+  +GetConnection(): DatabaseConnection
+  +ReleaseConnection(conn: DatabaseConnection): void
+}
+
+class sql.DB {
+  +Open(driverName: string, dataSourceName: string): (*sql.DB, error)
+  +Close(): error
+  +Query(query: string): (*sql.Rows, error)
+}
+
+DatabasePool --> DatabaseConnection : contains
+DatabaseConnection --> sql.DB : uses
+
+@enduml
+```
+
+Эта диаграмма отображает следующие классы и их взаимосвязи:
+
+* `DatabaseConnection`: Представляет соединение с базой данных. Содержит поля `db` и `cache`, а также методы `NewDatabaseConnection` и `Query`.
+* `DatabasePool`: Представляет пул соединений с базой данных. Содержит поле `connections` и методы `NewDatabasePool`, `GetConnection`, и `ReleaseConnection`.
+* `sql.DB`: Представляет собой стандартный объект для работы с базой данных в Go. Содержит методы `Open`, `Close`, и `Query`.
+
+Связи между классами:
+
+* `DatabasePool` содержит (`contains`) объекты `DatabaseConnection`.
+* `DatabaseConnection` использует (`uses`) объект `sql.DB`.
 
 Этот пример демонстрирует, как можно управлять пулом соединений с базой данных в Go, обеспечивая эффективное использование ресурсов и улучшая производительность приложения.
 
