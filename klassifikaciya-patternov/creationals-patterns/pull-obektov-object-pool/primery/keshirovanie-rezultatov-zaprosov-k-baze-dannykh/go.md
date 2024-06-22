@@ -6,12 +6,14 @@
 
 **Структура `DatabaseConnection`**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type DatabaseConnection struct {
 	db    *sql.DB
 	cache map[string][]map[string]interface{}
 }
 ```
+{% endcode %}
 
 * **Поля:**
   * `db`: Объект `sql.DB`, представляющий соединение с базой данных.
@@ -22,12 +24,14 @@ type DatabaseConnection struct {
 
 **Структура `DatabasePool`**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type DatabasePool struct {
 	connections []*DatabaseConnection
 	mu          sync.Mutex
 }
 ```
+{% endcode %}
 
 * **Поля:**
   * `connections`: Массив объектов `DatabaseConnection`, представляющих пул соединений.
@@ -39,6 +43,7 @@ type DatabasePool struct {
 
 #### Использование
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
 	db, err := sql.Open("mysql", "user:password@tcp(localhost:3306)/test")
@@ -64,6 +69,7 @@ func main() {
 	pool.ReleaseConnection(connection)
 }
 ```
+{% endcode %}
 
 *   **Описание:**
 
