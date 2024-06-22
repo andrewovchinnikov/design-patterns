@@ -49,7 +49,7 @@ func main() {
 
 	pool := NewDatabasePool(db, 10)
 
-	// Получаем объект соединения из пула
+	// Получаем объект соединения из пулла
 	connection := pool.GetConnection()
 
 	// Выполняем запрос
