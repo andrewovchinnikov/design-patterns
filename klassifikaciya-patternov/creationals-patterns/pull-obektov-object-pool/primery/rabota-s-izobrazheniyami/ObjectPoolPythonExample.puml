@@ -1,0 +1,19 @@
+@startuml
+class Image {
+    -image: PILImage
+    +__init__(filename: str)
+    +resize(width: int, height: int): void
+    +crop(x: int, y: int, width: int, height: int): void
+    +save(filename: str): void
+}
+
+class ImagePool {
+    -images: list
+    -max_size: int
+    +__init__(max_size: int)
+    +get_image(): Image
+    +release_image(image: Image): void
+}
+
+ImagePool --> Image
+@enduml

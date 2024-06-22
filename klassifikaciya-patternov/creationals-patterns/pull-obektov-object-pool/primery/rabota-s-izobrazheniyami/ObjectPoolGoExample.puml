@@ -1,0 +1,18 @@
+@startuml
+class Image {
+    -img: image.Image
+    +Load(filename: string): error
+    +Resize(width: int, height: int): void
+    +Crop(x: int, y: int, width: int, height: int): void
+    +Save(filename: string): error
+}
+
+class ImagePool {
+    -pool: chan *Image
+    +NewImagePool(maxSize: int): *ImagePool
+    +GetImage(): *Image
+    +ReleaseImage(img: *Image): void
+}
+
+ImagePool --> Image
+@enduml
