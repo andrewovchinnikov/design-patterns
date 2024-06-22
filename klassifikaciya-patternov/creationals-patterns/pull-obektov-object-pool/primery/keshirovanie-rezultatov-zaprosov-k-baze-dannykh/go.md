@@ -49,18 +49,18 @@ func main() {
 
 	pool := NewDatabasePool(db, 10)
 
-	// Get a connection from the pool
+	// Получаем объект соединения из пула
 	connection := pool.GetConnection()
 
-	// Execute a query
+	// Выполняем запрос
 	result, err := connection.Query("SELECT * FROM users")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(result)
-
-	// Return the connection to the pool
+	
+	// Возвращаем объект соединения в пул
 	pool.ReleaseConnection(connection)
 }
 ```
