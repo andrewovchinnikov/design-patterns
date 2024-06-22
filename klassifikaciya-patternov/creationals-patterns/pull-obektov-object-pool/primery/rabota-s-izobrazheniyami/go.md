@@ -158,3 +158,5 @@ class ImagePool {
 ImagePool --> Image
 @enduml
 ```
+
+Эта диаграмма отображает взаимосвязь между классами `Image` и `ImagePool`. `ImagePool` содержит пул объектов `Image` и управляет их жизненным циклом.
