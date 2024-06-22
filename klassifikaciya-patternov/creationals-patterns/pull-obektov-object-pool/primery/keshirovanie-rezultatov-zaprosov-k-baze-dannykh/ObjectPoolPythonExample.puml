@@ -1,0 +1,26 @@
+@startuml
+
+class DatabaseConnection {
+  -connection: sqlite3.Connection
+  -cache: dict
+  +__init__(db_name: str)
+  +query(query: str): list
+  +close()
+}
+
+class DatabasePool {
+  -pool: Queue
+  +__init__(db_name: str, size: int)
+  +get_connection(): DatabaseConnection
+  +release_connection(connection: DatabaseConnection)
+}
+
+class sqlite3.Connection {
+  +cursor()
+  +close()
+}
+
+DatabasePool --> DatabaseConnection : contains
+DatabaseConnection --> sqlite3.Connection : uses
+
+@enduml
