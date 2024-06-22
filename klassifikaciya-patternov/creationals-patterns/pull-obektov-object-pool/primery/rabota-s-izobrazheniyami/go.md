@@ -134,7 +134,7 @@ func main() {
 ```
 {% endcode %}
 
-**Plant UML диаграмма:**
+**Диаграмма классов:**
 
 <figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Пулл объектов"</p></figcaption></figure>
 
