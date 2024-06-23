@@ -110,10 +110,15 @@ $inventoryManager->removeItem("Laptop", 1);
 ?>
 ```
 
-<pre class="language-php"><code class="lang-php">&#x3C;?php
+<details>
 
-<strong>// Абстракция
-</strong>abstract class InventoryManagement {
+<summary>Весь код</summary>
+
+```php
+<?php
+
+// Абстракция
+abstract class InventoryManagement {
     protected $inventory;
 
     public function __construct(Inventory $inventory) {
@@ -179,9 +184,13 @@ $inventoryManager->setInventory($storeInventory);
 $inventoryManager->addItem("Laptop", 5);
 $inventoryManager->removeItem("Laptop", 1);
 ?>
-</code></pre>
+```
+
+</details>
 
 #### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
 
 ```plant-uml
 @startuml
