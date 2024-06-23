@@ -7,6 +7,7 @@
 1.  **Создание интерфейса DataSourceInterface**:\
     Этот интерфейс будет определять метод `getData()`, который должен быть реализован всеми источниками данных.
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```python
     # DataSourceInterface определяет интерфейс для получения данных
     class DataSourceInterface(ABC):
@@ -14,12 +15,14 @@
         def get_data(self):
             pass
     ```
+    {% endcode %}
 2.  **Создание классов для каждого источника данных**:
 
     * `YandexMetrikaDataSource`
     * `RoistatDataSource`
     * `Bitrix24DataSource`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```python
     # YandexMetrikaDataSource представляет источник данных из Яндекс Метрики
     class YandexMetrikaDataSource:
@@ -54,12 +57,14 @@
                 }
             }
     ```
+    {% endcode %}
 3.  **Создание адаптеров для каждого источника данных**:
 
     * `YandexMetrikaAdapter`
     * `RoistatAdapter`
     * `Bitrix24Adapter`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```python
     # YandexMetrikaAdapter адаптирует YandexMetrikaDataSource к DataSourceInterface
     class YandexMetrikaAdapter(DataSourceInterface):
@@ -100,8 +105,10 @@
                 "tasks": data["data"]["tasks"]
             }
     ```
+    {% endcode %}
 4.  **Использование адаптеров в клиентском коде**:
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```python
     # client_code представляет клиентский код, который работает с DataSourceInterface
     def client_code(data_source):
@@ -121,11 +128,13 @@
     client_code(roistat_adapter)
     client_code(bitrix24_adapter)
     ```
+    {% endcode %}
 
 **UML диаграмма**
 
 <figure><img src="../../../../../.gitbook/assets/image (49).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface DataSourceInterface {
@@ -171,6 +180,7 @@ RoistatAdapter --> RoistatDataSource
 Bitrix24Adapter --> Bitrix24DataSource
 @enduml
 ```
+{% endcode %}
 
 **Объяснение**
 
