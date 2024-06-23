@@ -26,6 +26,8 @@
 
 ### UML диаграмма
 
+<figure><img src="../../../.gitbook/assets/image (50).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+
 ```
 @startuml
 abstract Abstraction {
