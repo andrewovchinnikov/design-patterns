@@ -1,0 +1,33 @@
+@startuml
+
+abstract class InventoryManagement {
+  - inventory: Inventory
+  + setInventory(Inventory): void
+  + addItem(item, quantity): void
+  + removeItem(item, quantity): void
+}
+
+class InventoryManager extends InventoryManagement {
+  + addItem(item, quantity): void
+  + removeItem(item, quantity): void
+}
+
+interface Inventory {
+  + add(item, quantity): void
+  + remove(item, quantity): void
+}
+
+class WarehouseInventory implements Inventory {
+  + add(item, quantity): void
+  + remove(item, quantity): void
+}
+
+class StoreInventory implements Inventory {
+  + add(item, quantity): void
+  + remove(item, quantity): void
+}
+
+InventoryManagement --> Inventory : uses
+InventoryManager --> Inventory : uses
+
+@enduml

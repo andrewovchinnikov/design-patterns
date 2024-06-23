@@ -1,0 +1,40 @@
+@startuml
+interface Target {
+    +request()
+}
+
+class Adapter {
+    -adaptee: Adaptee
+    +request()
+}
+
+class Adaptee {
+    +specificRequest()
+}
+@startuml
+abstract Abstraction {
+    +operation()
+}
+
+class RefinedAbstraction extends Abstraction {
+    +operation()
+}
+
+interface Implementor {
+    +operationImpl()
+}
+
+class ConcreteImplementorA implements Implementor {
+    +operationImpl()
+}
+
+class ConcreteImplementorB implements Implementor {
+    +operationImpl()
+}
+
+Abstraction o-- Implementor
+RefinedAbstraction --> Implementor
+@enduml
+Target <|.. Adapter
+Adapter --> Adaptee
+@enduml
