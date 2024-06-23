@@ -1,0 +1,31 @@
+@startuml
+interface DataSourceInterface {
+    +get_data(): dict
+}
+
+class NalogRuDataSource {
+    +fetch_data(): dict
+}
+
+class DadataRuDataSource {
+    +retrieve_data(): dict
+}
+
+class NalogRuAdapter {
+    -nalog_ru_data_source: NalogRuDataSource
+    +__init__(NalogRuDataSource)
+    +get_data(): dict
+}
+
+class DadataRuAdapter {
+    -dadata_ru_data_source: DadataRuDataSource
+    +__init__(DadataRuDataSource)
+    +get_data(): dict
+}
+
+DataSourceInterface <|.. NalogRuAdapter
+DataSourceInterface <|.. DadataRuAdapter
+
+NalogRuAdapter --> NalogRuDataSource
+DadataRuAdapter --> DadataRuDataSource
+@enduml
