@@ -1,0 +1,43 @@
+@startuml
+interface DataSourceInterface {
+    +get_data(): dict
+}
+
+class YandexMetrikaDataSource {
+    +fetch_data(): dict
+}
+
+class RoistatDataSource {
+    +retrieve_data(): dict
+}
+
+class Bitrix24DataSource {
+    +get_bitrix_data(): dict
+}
+
+class YandexMetrikaAdapter {
+    -data_source: YandexMetrikaDataSource
+    +__init__(YandexMetrikaDataSource)
+    +get_data(): dict
+}
+
+class RoistatAdapter {
+    -data_source: RoistatDataSource
+    +__init__(RoistatDataSource)
+    +get_data(): dict
+}
+
+class Bitrix24Adapter {
+    -data_source: Bitrix24DataSource
+    +__init__(Bitrix24DataSource)
+    +get_data(): dict
+}
+
+DataSourceInterface <|.. YandexMetrikaAdapter
+DataSourceInterface <|.. RoistatAdapter
+DataSourceInterface <|.. Bitrix24Adapter
+
+YandexMetrikaAdapter --> YandexMetrikaDataSource
+RoistatAdapter --> RoistatDataSource
+Bitrix24Adapter --> Bitrix24DataSource
+@enduml

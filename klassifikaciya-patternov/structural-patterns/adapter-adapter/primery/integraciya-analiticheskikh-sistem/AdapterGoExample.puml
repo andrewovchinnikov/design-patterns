@@ -1,0 +1,40 @@
+@startuml
+interface DataSourceInterface {
+    +GetData(): map[string]interface{}
+}
+
+class YandexMetrikaDataSource {
+    +FetchData(): map[string]interface{}
+}
+
+class RoistatDataSource {
+    +RetrieveData(): map[string]interface{}
+}
+
+class Bitrix24DataSource {
+    +GetBitrixData(): map[string]interface{}
+}
+
+class YandexMetrikaAdapter {
+    -DataSource: YandexMetrikaDataSource
+    +GetData(): map[string]interface{}
+}
+
+class RoistatAdapter {
+    -DataSource: RoistatDataSource
+    +GetData(): map[string]interface{}
+}
+
+class Bitrix24Adapter {
+    -DataSource: Bitrix24DataSource
+    +GetData(): map[string]interface{}
+}
+
+DataSourceInterface <|.. YandexMetrikaAdapter
+DataSourceInterface <|.. RoistatAdapter
+DataSourceInterface <|.. Bitrix24Adapter
+
+YandexMetrikaAdapter --> YandexMetrikaDataSource
+RoistatAdapter --> RoistatDataSource
+Bitrix24Adapter --> Bitrix24DataSource
+@enduml
