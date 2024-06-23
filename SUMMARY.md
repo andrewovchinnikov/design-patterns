@@ -100,6 +100,7 @@
         * [Python](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/polucheniya-svodnykh-dannykh-iz-raznykh-istochnikov/python.md)
       * [Интеграция аналитических систем](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/README.md)
         * [PHP](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/php.md)
+        * [Go](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/go.md)
   * [Бридж (Bridge)](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
   * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
   * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
