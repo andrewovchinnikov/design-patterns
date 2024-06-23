@@ -7,18 +7,21 @@
 1.  **Создание интерфейса DataSourceInterface**:\
     Этот интерфейс будет определять метод `getData()`, который должен быть реализован всеми источниками данных.
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```go
     // DataSourceInterface определяет интерфейс для получения данных
     type DataSourceInterface interface {
     	GetData() map[string]interface{}
     }
     ```
+    {% endcode %}
 2.  **Создание классов для каждого источника данных**:
 
     * `YandexMetrikaDataSource`
     * `RoistatDataSource`
     * `Bitrix24DataSource`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```go
     // YandexMetrikaDataSource представляет источник данных из Яндекс Метрики
     type YandexMetrikaDataSource struct{}
@@ -62,12 +65,14 @@
     	}
     }
     ```
+    {% endcode %}
 3.  **Создание адаптеров для каждого источника данных**:
 
     * `YandexMetrikaAdapter`
     * `RoistatAdapter`
     * `Bitrix24Adapter`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```go
     // YandexMetrikaAdapter адаптирует YandexMetrikaDataSource к DataSourceInterface
     type YandexMetrikaAdapter struct {
@@ -114,8 +119,10 @@
     	}
     }
     ```
+    {% endcode %}
 4.  **Использование адаптеров в клиентском коде**:
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```go
     // clientCode представляет клиентский код, который работает с DataSourceInterface
     func clientCode(dataSource DataSourceInterface) {
@@ -137,11 +144,13 @@
     	clientCode(roistatAdapter)
 
     ```
+    {% endcode %}
 
 **UML диаграмма**
 
 <figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface DataSourceInterface {
@@ -184,6 +193,7 @@ RoistatAdapter --> RoistatDataSource
 Bitrix24Adapter --> Bitrix24DataSource
 @enduml
 ```
+{% endcode %}
 
 **Объяснение**
 
