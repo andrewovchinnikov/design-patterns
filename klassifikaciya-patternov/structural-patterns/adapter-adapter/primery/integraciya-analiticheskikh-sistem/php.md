@@ -7,17 +7,20 @@
 1.  **Создание интерфейса DataSourceInterface**:\
     Этот интерфейс будет определять метод `getData()`, который должен быть реализован всеми источниками данных.
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```php
     interface DataSourceInterface {
         public function getData(): array;
     }
     ```
+    {% endcode %}
 2.  **Создание классов для каждого источника данных**:
 
     * `YandexMetrikaDataSource`
     * `RoistatDataSource`
     * `Bitrix24DataSource`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```php
     class YandexMetrikaDataSource {
         public function fetchData(): array {
@@ -58,12 +61,14 @@
         }
     }
     ```
+    {% endcode %}
 3.  **Создание адаптеров для каждого источника данных**:
 
     * `YandexMetrikaAdapter`
     * `RoistatAdapter`
     * `Bitrix24Adapter`
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```php
     class YandexMetrikaAdapter implements DataSourceInterface {
         private $yandexMetrikaDataSource;
@@ -116,8 +121,10 @@
         }
     }
     ```
+    {% endcode %}
 4.  **Использование адаптеров в клиентском коде**:
 
+    {% code overflow="wrap" lineNumbers="true" %}
     ```php
     function clientCode(DataSourceInterface $dataSource) {
         return $dataSource->getData();
@@ -136,11 +143,13 @@
     print_r(clientCode($roistatAdapter));
     print_r(clientCode($bitrix24Adapter));
     ```
+    {% endcode %}
 
 **UML диаграмма**
 
 <figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface DataSourceInterface {
@@ -186,6 +195,7 @@ RoistatAdapter --> RoistatDataSource
 Bitrix24Adapter --> Bitrix24DataSource
 @enduml
 ```
+{% endcode %}
 
 **Объяснение**
 
