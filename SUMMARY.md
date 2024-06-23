@@ -107,6 +107,7 @@
       * [Система управления запасами](klassifikaciya-patternov/structural-patterns/bridzh-bridge/primery/sistema-upravleniya-zapasami/README.md)
         * [PHP](klassifikaciya-patternov/structural-patterns/bridzh-bridge/primery/sistema-upravleniya-zapasami/php.md)
         * [Go](klassifikaciya-patternov/structural-patterns/bridzh-bridge/primery/sistema-upravleniya-zapasami/go.md)
+        * [Python](klassifikaciya-patternov/structural-patterns/bridzh-bridge/primery/sistema-upravleniya-zapasami/python.md)
   * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
   * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
   * [Фасад (Facade)](klassifikaciya-patternov/structural-patterns/fasad-facade.md)
