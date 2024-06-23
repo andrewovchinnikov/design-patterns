@@ -5,7 +5,7 @@
 Паттерн Адаптер (Adapter) используется для преобразования интерфейса одного класса в интерфейс другого, который ожидают клиенты. Это позволяет классам с несовместимыми интерфейсами работать вместе. В нашем случае, каждый источник данных имеет свой собственный формат данных, и мы хотим, чтобы они выглядели как имеющие один и тот же интерфейс. Использование паттерна Адаптер позволяет нам создать обертки (адаптеры) для каждого источника данных, которые будут преобразовывать данные в единый формат.
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // DataSourceInterface определяет интерфейс для получения данных
 type DataSourceInterface interface {
 	GetData() map[string]string
@@ -16,7 +16,7 @@ type DataSourceInterface interface {
 1. **Интерфейс `DataSourceInterface`**: Определяет метод `getData()`, который должен возвращать данные в едином формате.
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // NalogRuDataSource представляет источник данных из pb.nalog.ru
 type NalogRuDataSource struct{}
 
@@ -34,7 +34,7 @@ func (n *NalogRuDataSource) FetchData() map[string]interface{} {
 {% endcode %}
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // DadataRuDataSource представляет источник данных из dadata.ru
 type DadataRuDataSource struct{}
 
@@ -54,7 +54,7 @@ func (d *DadataRuDataSource) RetrieveData() map[string]interface{} {
 2. **Классы `NalogRuDataSource` и `DadataRuDataSource`**: Реализуют логику для получения данных из соответствующих источников.
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // NalogRuAdapter адаптирует NalogRuDataSource к DataSourceInterface
 type NalogRuAdapter struct {
 	DataSource *NalogRuDataSource
@@ -73,7 +73,7 @@ func (a *NalogRuAdapter) GetData() map[string]string {
 {% endcode %}
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // DadataRuAdapter адаптирует DadataRuDataSource к DataSourceInterface
 type DadataRuAdapter struct {
 	DataSource *DadataRuDataSource
@@ -94,7 +94,7 @@ func (a *DadataRuAdapter) GetData() map[string]string {
 3. **Адаптеры `NalogRuAdapter` и `DadataRuAdapter`**: Реализуют интерфейс `DataSourceInterface` и преобразуют данные из источников в единый формат.
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
+```go
 // clientCode представляет клиентский код, который работает с DataSourceInterface
 func clientCode(dataSource DataSourceInterface) {
 	data := dataSource.GetData()
@@ -118,33 +118,31 @@ func main() {
 
 UML диаграмма классов
 
-<figure><img src="../../../../../.gitbook/assets/image (47).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (48).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface DataSourceInterface {
-    +getData(): array
+    +GetData(): map[string]string
 }
 
 class NalogRuDataSource {
-    +fetchData(): array
+    +FetchData(): map[string]interface{}
 }
 
 class DadataRuDataSource {
-    +retrieveData(): array
+    +RetrieveData(): map[string]interface{}
 }
 
 class NalogRuAdapter {
-    -nalogRuDataSource: NalogRuDataSource
-    +__construct(NalogRuDataSource)
-    +getData(): array
+    -DataSource: NalogRuDataSource
+    +GetData(): map[string]string
 }
 
 class DadataRuAdapter {
-    -dadataRuDataSource: DadataRuDataSource
-    +__construct(DadataRuDataSource)
-    +getData(): array
+    -DataSource: DadataRuDataSource
+    +GetData(): map[string]string
 }
 
 DataSourceInterface <|.. NalogRuAdapter
