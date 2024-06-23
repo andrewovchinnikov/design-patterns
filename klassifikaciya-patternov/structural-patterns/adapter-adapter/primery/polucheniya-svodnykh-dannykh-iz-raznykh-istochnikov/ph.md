@@ -124,6 +124,8 @@ print_r(clientCode($dadataRuAdapter));
 
 UML диаграмма классов
 
+<figure><img src="../../../../../.gitbook/assets/image (47).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
