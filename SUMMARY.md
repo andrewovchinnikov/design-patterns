@@ -96,6 +96,8 @@
         * [Python](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-staroi-sistemy-logirovaniya-s-novoi/python.md)
       * [Получения сводных данных из разных источников](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/polucheniya-svodnykh-dannykh-iz-raznykh-istochnikov/README.md)
         * [PHP](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/polucheniya-svodnykh-dannykh-iz-raznykh-istochnikov/php.md)
+        * [Go](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/polucheniya-svodnykh-dannykh-iz-raznykh-istochnikov/go.md)
+        * [Python](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/polucheniya-svodnykh-dannykh-iz-raznykh-istochnikov/python.md)
   * [Бридж (Bridge)](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
   * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
   * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
