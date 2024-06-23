@@ -137,14 +137,69 @@
     print_r(clientCode($bitrix24Adapter));
     ```
 
+**UML диаграмма**
+
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
+
+```plant-uml
+@startuml
+interface DataSourceInterface {
+    +getData(): array
+}
+
+class YandexMetrikaDataSource {
+    +fetchData(): array
+}
+
+class RoistatDataSource {
+    +retrieveData(): array
+}
+
+class Bitrix24DataSource {
+    +getBitrixData(): array
+}
+
+class YandexMetrikaAdapter {
+    -yandexMetrikaDataSource: YandexMetrikaDataSource
+    +__construct(YandexMetrikaDataSource)
+    +getData(): array
+}
+
+class RoistatAdapter {
+    -roistatDataSource: RoistatDataSource
+    +__construct(RoistatDataSource)
+    +getData(): array
+}
+
+class Bitrix24Adapter {
+    -bitrix24DataSource: Bitrix24DataSource
+    +__construct(Bitrix24DataSource)
+    +getData(): array
+}
+
+DataSourceInterface <|.. YandexMetrikaAdapter
+DataSourceInterface <|.. RoistatAdapter
+DataSourceInterface <|.. Bitrix24Adapter
+
+YandexMetrikaAdapter --> YandexMetrikaDataSource
+RoistatAdapter --> RoistatDataSource
+Bitrix24Adapter --> Bitrix24DataSource
+@enduml
+```
+
 **Объяснение**
 
 1. **Интерфейс `DataSourceInterface`**:
    * Определяет метод `getData()`, который должен возвращать данные в едином формате.
 2. **Классы источников данных**:
    * `YandexMetrikaDataSource`, `RoistatDataSource`, `Bitrix24DataSource` — каждый из этих классов реализует логику для получения данных из соответствующего источника.
-3. **Адаптеры**:
-   * `YandexMetrikaAdapter`, `RoistatAdapter`, `Bitrix24Adapter` — каждый из этих адаптеров реализует интерфейс `DataSourceInterface` и преобразует данные из источника в единый формат.
+3.  **Адаптеры**:
+
+    * `YandexMetrikaAdapter`,&#x20;
+    * `RoistatAdapter`,&#x20;
+    * `Bitrix24Adapter`&#x20;
+
+    каждый из этих адаптеров реализует интерфейс `DataSourceInterface` и преобразует данные из источника в единый формат.
 4. **Клиентский код**:
    * Функция `clientCode` принимает объект, реализующий `DataSourceInterface`, и вызывает метод `getData()`. Это позволяет клиентскому коду работать с разными источниками данных одинаково, не зависимо от их внутренней реализации.
 
