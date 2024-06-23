@@ -1,4 +1,4 @@
-# GO
+# Go
 
 У вас есть старая система логирования, которая использует свой собственный формат записей. Этот формат может быть, например, текстовым или XML. Новая система, с которой вы хотите интегрироваться, ожидает логи в формате JSON. Вам нужно преобразовать логи из старого формата в новый формат JSON, не изменяя при этом саму старую систему логирования.
 
@@ -67,23 +67,22 @@ func main() {
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (44).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (45).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 interface JsonLoggerInterface {
-    +logToJson($data)
+    +LogToJson(data: string): string
 }
 
 class OldLogger {
-    +logOldFormat($data)
+    +LogOldFormat(data: string): string
 }
 
 class LoggerAdapter {
     -oldLogger: OldLogger
-    +__construct(OldLogger)
-    +logToJson($data)
+    +LogToJson(data: string): string
 }
 
 JsonLoggerInterface <|.. LoggerAdapter
