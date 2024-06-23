@@ -1,0 +1,18 @@
+@startuml
+interface JsonLoggerInterface {
+    +logToJson($data)
+}
+
+class OldLogger {
+    +logOldFormat($data)
+}
+
+class LoggerAdapter {
+    -oldLogger: OldLogger
+    +__construct(OldLogger)
+    +logToJson($data)
+}
+
+JsonLoggerInterface <|.. LoggerAdapter
+LoggerAdapter o-- OldLogger
+@enduml
