@@ -63,6 +63,8 @@ echo $loggerAdapter->logToJson($data);
 
 UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (44).png" alt=""><figcaption><p>UML диаграмма для паттерна "Адаптер"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
