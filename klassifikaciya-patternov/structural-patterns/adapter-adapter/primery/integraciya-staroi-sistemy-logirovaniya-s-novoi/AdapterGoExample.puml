@@ -1,0 +1,17 @@
+@startuml
+interface JsonLoggerInterface {
+    +LogToJson(data: string): string
+}
+
+class OldLogger {
+    +LogOldFormat(data: string): string
+}
+
+class LoggerAdapter {
+    -oldLogger: OldLogger
+    +LogToJson(data: string): string
+}
+
+JsonLoggerInterface <|.. LoggerAdapter
+LoggerAdapter o-- OldLogger
+@enduml
