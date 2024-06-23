@@ -93,6 +93,7 @@
       * [Интеграция старой системы логирования с новой](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-staroi-sistemy-logirovaniya-s-novoi/README.md)
         * [PHP](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-staroi-sistemy-logirovaniya-s-novoi/php.md)
         * [Go](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-staroi-sistemy-logirovaniya-s-novoi/go.md)
+        * [Python](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-staroi-sistemy-logirovaniya-s-novoi/python.md)
   * [Бридж (Bridge)](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
   * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
   * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
