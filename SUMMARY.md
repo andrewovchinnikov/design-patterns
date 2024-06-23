@@ -102,7 +102,7 @@
         * [PHP](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/php.md)
         * [Go](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/go.md)
         * [Python](klassifikaciya-patternov/structural-patterns/adapter-adapter/primery/integraciya-analiticheskikh-sistem/python.md)
-  * [Бридж (Bridge)](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
+  * [Мост (Bridge)](klassifikaciya-patternov/structural-patterns/bridzh-bridge.md)
   * [Компоновщик (Composite)](klassifikaciya-patternov/structural-patterns/komponovshik-composite.md)
   * [Декоратор (Decorator)](klassifikaciya-patternov/structural-patterns/dekorator-decorator.md)
   * [Фасад (Facade)](klassifikaciya-patternov/structural-patterns/fasad-facade.md)
