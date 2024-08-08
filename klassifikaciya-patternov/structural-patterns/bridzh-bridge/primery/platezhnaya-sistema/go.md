@@ -4,6 +4,7 @@
 
 **1. Абстракция платежной системы**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
@@ -13,9 +14,11 @@ type PaymentSystem interface {
     processPayment(amount float64)
 }
 ```
+{% endcode %}
 
 **2. Конкретные реализации платежных систем**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type YandexMoney struct{}
 
@@ -35,9 +38,11 @@ func (d DebitCard) processPayment(amount float64) {
     fmt.Printf("Обработка платежа через Дебетовую карту на сумму %.2f\n", amount)
 }
 ```
+{% endcode %}
 
 **3. Абстракция платежа**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type Payment struct {
     paymentSystem PaymentSystem
@@ -51,9 +56,11 @@ func (p *Payment) makePayment(amount float64) {
     p.paymentSystem.processPayment(amount)
 }
 ```
+{% endcode %}
 
 **4. Конкретные реализации платежей**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type OnlinePayment struct {
     Payment
@@ -73,9 +80,11 @@ func (op *OfflinePayment) makePayment(amount float64) {
     op.Payment.makePayment(amount)
 }
 ```
+{% endcode %}
 
 **5. Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
     // Создаем объекты платежных систем
@@ -100,6 +109,7 @@ func main() {
     onlinePayment.makePayment(150.0)
 }
 ```
+{% endcode %}
 
 #### Объяснение
 
