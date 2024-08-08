@@ -1,226 +1,162 @@
 # Go
 
-Предположим, у нас есть компания, которая управляет запасами товаров в нескольких локациях: на складе и в магазине. Нам нужно разработать систему, которая позволяет управлять запасами независимо от типа локации. Это означает, что мы должны иметь возможность добавлять и удалять товары как на складе, так и в магазине, используя единый интерфейс.
+Представь, что у нас есть система платежей, которая поддерживает несколько платежных систем: Яндекс Деньги, СБП и Дебетовая карта. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы можно было добавлять новые платежные системы без изменения основного кода.
 
-#### Решение с использованием паттерна "Мост"
-
-Паттерн "Мост" позволяет разделить абстракцию и реализацию, что делает их независимыми друг от друга. В нашем случае:
-
-* **Абстракция** (`InventoryManagement`) определяет интерфейс для управления запасами.
-* **Реализация** (`Inventory`) определяет интерфейс для конкретных реализаций управления запасами в разных локациях.
-
-#### Объяснение кода
-
-1. **Интерфейс `Inventory`**:
-   * Определяет методы `Add` и `Remove` для управления запасами.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// Inventory представляет интерфейс для управления запасами
-type Inventory interface {
-    Add(item string, quantity int)
-    Remove(item string, quantity int)
-}
-```
-{% endcode %}
-
-2. **Реализация `WarehouseInventory`**:
-
-* Реализует интерфейс `Inventory`.
-* Метод `Add` добавляет товары на склад.
-* Метод `Remove` удаляет товары со склада.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// WarehouseInventory представляет реализацию для склада
-type WarehouseInventory struct{}
-
-func (w *WarehouseInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (w *WarehouseInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-```
-{% endcode %}
-
-2. **Реализация `StoreInventory`**:
-
-* Реализует интерфейс `Inventory`.
-* Метод `Add` добавляет товары в магазин.
-* Метод `Remove` удаляет товары из магазина.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// StoreInventory представляет реализацию для магазина
-type StoreInventory struct{}
-
-func (s *StoreInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (s *StoreInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-```
-{% endcode %}
-
-3. **Абстракция `InventoryManagement`**:
-
-* Содержит ссылку на объект типа `Inventory`.
-* Метод `SetInventory` позволяет изменить текущую реализацию `Inventory`.
-* Методы `AddItem` и `RemoveItem` делегируют вызовы соответствующим методам реализации.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// InventoryManagement представляет абстракцию для управления запасами
-type InventoryManagement struct {
-    inventory Inventory
-}
-
-func (im *InventoryManagement) SetInventory(inventory Inventory) {
-    im.inventory = inventory
-}
-
-func (im *InventoryManagement) AddItem(item string, quantity int) {
-    im.inventory.Add(item, quantity)
-}
-
-func (im *InventoryManagement) RemoveItem(item string, quantity int) {
-    im.inventory.Remove(item, quantity)
-}
-```
-{% endcode %}
-
-1. **Функция `main`**:
-   * Создает объекты `WarehouseInventory` и `StoreInventory`.
-   * Создает объект `InventoryManagement` и устанавливает начальную реализацию `WarehouseInventory`.
-   * Вызывает методы `AddItem` и `RemoveItem` для управления запасами на складе.
-   * Изменяет реализацию на `StoreInventory` и повторно вызывает методы для управления запасами в магазине.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-func main() {
-    warehouseInventory := &WarehouseInventory{}
-    storeInventory := &StoreInventory{}
-
-    inventoryManager := &InventoryManagement{}
-    inventoryManager.SetInventory(warehouseInventory)
-    inventoryManager.AddItem("Laptop", 10)
-    inventoryManager.RemoveItem("Laptop", 2)
-
-    inventoryManager.SetInventory(storeInventory)
-    inventoryManager.AddItem("Laptop", 5)
-    inventoryManager.RemoveItem("Laptop", 1)
-}
-```
-{% endcode %}
-
-
-
-<details>
-
-<summary>Весь код</summary>
+**1. Абстракция платежной системы**
 
 ```go
 package main
 
 import "fmt"
 
-// Inventory представляет интерфейс для управления запасами
-type Inventory interface {
-    Add(item string, quantity int)
-    Remove(item string, quantity int)
-}
-
-// WarehouseInventory представляет реализацию для склада
-type WarehouseInventory struct{}
-
-func (w *WarehouseInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (w *WarehouseInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-
-// StoreInventory представляет реализацию для магазина
-type StoreInventory struct{}
-
-func (s *StoreInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (s *StoreInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-
-// InventoryManagement представляет абстракцию для управления запасами
-type InventoryManagement struct {
-    inventory Inventory
-}
-
-func (im *InventoryManagement) SetInventory(inventory Inventory) {
-    im.inventory = inventory
-}
-
-func (im *InventoryManagement) AddItem(item string, quantity int) {
-    im.inventory.Add(item, quantity)
-}
-
-func (im *InventoryManagement) RemoveItem(item string, quantity int) {
-    im.inventory.Remove(item, quantity)
-}
-
-func main() {
-    warehouseInventory := &WarehouseInventory{}
-    storeInventory := &StoreInventory{}
-
-    inventoryManager := &InventoryManagement{}
-    inventoryManager.SetInventory(warehouseInventory)
-    inventoryManager.AddItem("Laptop", 10)
-    inventoryManager.RemoveItem("Laptop", 2)
-
-    inventoryManager.SetInventory(storeInventory)
-    inventoryManager.AddItem("Laptop", 5)
-    inventoryManager.RemoveItem("Laptop", 1)
+type PaymentSystem interface {
+    processPayment(amount float64)
 }
 ```
 
-</details>
+**2. Конкретные реализации платежных систем**
+
+```go
+type YandexMoney struct{}
+
+func (y YandexMoney) processPayment(amount float64) {
+    fmt.Printf("Обработка платежа через Яндекс Деньги на сумму %.2f\n", amount)
+}
+
+type SBP struct{}
+
+func (s SBP) processPayment(amount float64) {
+    fmt.Printf("Обработка платежа через СБП на сумму %.2f\n", amount)
+}
+
+type DebitCard struct{}
+
+func (d DebitCard) processPayment(amount float64) {
+    fmt.Printf("Обработка платежа через Дебетовую карту на сумму %.2f\n", amount)
+}
+```
+
+**3. Абстракция платежа**
+
+```go
+type Payment struct {
+    paymentSystem PaymentSystem
+}
+
+func (p *Payment) setPaymentSystem(paymentSystem PaymentSystem) {
+    p.paymentSystem = paymentSystem
+}
+
+func (p *Payment) makePayment(amount float64) {
+    p.paymentSystem.processPayment(amount)
+}
+```
+
+**4. Конкретные реализации платежей**
+
+```go
+type OnlinePayment struct {
+    Payment
+}
+
+func (op *OnlinePayment) makePayment(amount float64) {
+    fmt.Printf("Онлайн платеж на сумму %.2f\n", amount)
+    op.Payment.makePayment(amount)
+}
+
+type OfflinePayment struct {
+    Payment
+}
+
+func (op *OfflinePayment) makePayment(amount float64) {
+    fmt.Printf("Офлайн платеж на сумму %.2f\n", amount)
+    op.Payment.makePayment(amount)
+}
+```
+
+**5. Пример использования**
+
+```go
+func main() {
+    // Создаем объекты платежных систем
+    yandexMoney := YandexMoney{}
+    sbp := SBP{}
+    debitCard := DebitCard{}
+
+    // Создаем объекты платежей
+    onlinePayment := OnlinePayment{}
+    offlinePayment := OfflinePayment{}
+
+    // Устанавливаем платежные системы для платежей
+    onlinePayment.setPaymentSystem(&yandexMoney)
+    offlinePayment.setPaymentSystem(&sbp)
+
+    // Выполняем платежи
+    onlinePayment.makePayment(100.0)
+    offlinePayment.makePayment(200.0)
+
+    // Меняем платежную систему для онлайн платежа
+    onlinePayment.setPaymentSystem(&debitCard)
+    onlinePayment.makePayment(150.0)
+}
+```
+
+#### Объяснение
+
+1. **Абстракция платежной системы**: Мы создаем интерфейс `PaymentSystem`, который определяет метод `processPayment`. Этот метод будет реализован в конкретных платежных системах.
+2. **Конкретные реализации платежных систем**: Мы создаем структуры `YandexMoney`, `SBP` и `DebitCard`, которые реализуют метод `processPayment` по-своему.
+3. **Абстракция платежа**: Мы создаем структуру `Payment`, которая содержит ссылку на объект платежной системы и метод `makePayment`.
+4. **Конкретные реализации платежей**: Мы создаем структуры `OnlinePayment` и `OfflinePayment`, которые реализуют метод `makePayment` по-своему.
+5. **Пример использования**: Мы создаем объекты платежных систем и платежей, устанавливаем платежные системы для платежей и выполняем платежи.
+
+
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (51).png" alt=""><figcaption><p>UML диаграмма дял паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (53).png" alt=""><figcaption><p>UML диаграмма дял паттерна "Мост"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 
-interface Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+interface PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-class WarehouseInventory implements Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+class YandexMoney implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-class StoreInventory implements Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+class SBP implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-class InventoryManagement {
-  - inventory: Inventory
-  + SetInventory(inventory): void
-  + AddItem(item, quantity): void
-  + RemoveItem(item, quantity): void
+class DebitCard implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-InventoryManagement --> Inventory : uses
+abstract class Payment {
+    -paymentSystem: PaymentSystem
+    +setPaymentSystem(paymentSystem: PaymentSystem): void
+    +makePayment(amount: float): void
+}
+
+class OnlinePayment extends Payment {
+    +makePayment(amount: float): void
+}
+
+class OfflinePayment extends Payment {
+    +makePayment(amount: float): void
+}
+
+PaymentSystem <|-- YandexMoney
+PaymentSystem <|-- SBP
+PaymentSystem <|-- DebitCard
+
+Payment <|-- OnlinePayment
+Payment <|-- OfflinePayment
+
+Payment "1" -- "1" PaymentSystem
 
 @enduml
 ```
@@ -228,4 +164,4 @@ InventoryManagement --> Inventory : uses
 
 #### Вывод
 
-Паттерн "Мост" позволяет нам управлять запасами независимо от типа локации, обеспечивая гибкость и расширяемость системы. Мы можем легко добавлять новые типы локаций или изменять существующие, не затрагивая основную логику управления запасами.
+Таким образом, мы можем легко добавлять новые платежные системы, не изменяя основной код платежей. Это и есть суть паттерна "Мост".
