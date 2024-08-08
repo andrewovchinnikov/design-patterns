@@ -1,155 +1,146 @@
 # Python
 
-Предположим, у нас есть компания, которая управляет запасами товаров в нескольких локациях: на складе и в магазине. Нам нужно разработать систему, которая позволяет управлять запасами независимо от типа локации. Это означает, что мы должны иметь возможность добавлять и удалять товары как на складе, так и в магазине, используя единый интерфейс.
+Предположим,что у нас есть система платежей, которая поддерживает несколько платежных систем: Яндекс Деньги, СБП и Дебетовая карта. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы можно было добавлять новые платежные системы без изменения основного кода.
 
 #### Решение с использованием паттерна "Мост"
 
-Паттерн "Мост" позволяет разделить абстракцию и реализацию, что делает их независимыми друг от друга. В нашем случае:
+**1. Абстракция платежной системы**
 
-* **Абстракция** (`InventoryManagement`) определяет интерфейс для управления запасами.
-* **Реализация** (`Inventory`) определяет интерфейс для конкретных реализаций управления запасами в разных локациях.
-
-#### Объяснение кода
-
-1. **Абстракция (`InventoryManagement`)**:
-   * Определяет общий интерфейс для управления запасами.
-   * Содержит ссылку на объект реализации (`Inventory`).
-   * Методы `set_inventory`, `add_item`, `remove_item` делегируют вызовы соответствующим методам реализации.
-
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Абстракция
-class InventoryManagement:
-    def __init__(self, inventory):
-        self._inventory = inventory
+from abc import ABC, abstractmethod
 
-    def set_inventory(self, inventory):
-        self._inventory = inventory
-
-    def add_item(self, item, quantity):
-        self._inventory.add(item, quantity)
-
-    def remove_item(self, item, quantity):
-        self._inventory.remove(item, quantity)
+class PaymentSystem(ABC):
+    @abstractmethod
+    def processPayment(self, amount: float):
+        pass
 ```
-{% endcode %}
 
-1. **Реализация (`Inventory`)**:
-   * Определяет интерфейс для конкретных реализаций.
-   * Методы `add` и `remove` реализуются в конкретных классах.
+**2. Конкретные реализации платежных систем**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Реализация
-class Inventory:
-    def add(self, item, quantity):
-        raise NotImplementedError
+class YandexMoney(PaymentSystem):
+    def processPayment(self, amount: float):
+        print(f"Обработка платежа через Яндекс Деньги на сумму {amount}")
 
-    def remove(self, item, quantity):
-        raise NotImplementedError
+class SBP(PaymentSystem):
+    def processPayment(self, amount: float):
+        print(f"Обработка платежа через СБП на сумму {amount}")
+
+class DebitCard(PaymentSystem):
+    def processPayment(self, amount: float):
+        print(f"Обработка платежа через Дебетовую карту на сумму {amount}")
 ```
-{% endcode %}
 
-1. **Конкретные реализации (`WarehouseInventory`, `StoreInventory`)**:
-   * Реализуют интерфейс `Inventory`.
-   * Определяют специфическую логику для склада и магазина.
+**3. Абстракция платежа**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Конкретная реализация 1
-class WarehouseInventory(Inventory):
-    def add(self, item, quantity):
-        print(f"Добавлен {quantity} {item} на склад.")
+class Payment(ABC):
+    def __init__(self, paymentSystem: PaymentSystem):
+        self.paymentSystem = paymentSystem
 
-    def remove(self, item, quantity):
-        print(f"Removing {quantity} {item} со склада.")
+    def setPaymentSystem(self, paymentSystem: PaymentSystem):
+        self.paymentSystem = paymentSystem
 
-# Конкретная реализация 2
-class StoreInventory(Inventory):
-    def add(self, item, quantity):
-        print(f"Добавлен {quantity} {item} в магазин.")
-
-    def remove(self, item, quantity):
-        print(f"Removing {quantity} {item} из магазина.")
+    @abstractmethod
+    def makePayment(self, amount: float):
+        pass
 ```
-{% endcode %}
 
-1. **Пример использования**:
-   * Создаются объекты конкретных реализаций (`WarehouseInventory`, `StoreInventory`).
-   * Создается объект `InventoryManagement`, который изначально связан с `WarehouseInventory`.
-   * Вызываются методы для добавления и удаления товаров.
-   * Изменяется реализация на `StoreInventory` и повторно вызываются методы.
+**4. Конкретные реализации платежей**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Пример использования
-warehouse_inventory = WarehouseInventory()
-store_inventory = StoreInventory()
+class OnlinePayment(Payment):
+    def makePayment(self, amount: float):
+        print(f"Онлайн платеж на сумму {amount}")
+        self.paymentSystem.processPayment(amount)
 
-inventory_manager = InventoryManagement(warehouse_inventory)
-inventory_manager.add_item("Laptop", 10)
-inventory_manager.remove_item("Laptop", 2)
-
-inventory_manager.set_inventory(store_inventory)
-inventory_manager.add_item("Laptop", 5)
-inventory_manager.remove_item("Laptop", 1)
+class OfflinePayment(Payment):
+    def makePayment(self, amount: float):
+        print(f"Офлайн платеж на сумму {amount}")
+        self.paymentSystem.processPayment(amount)
 ```
-{% endcode %}
+
+**5. Пример использования**
+
+```python
+if __name__ == "__main__":
+    # Создаем объекты платежных систем
+    yandexMoney = YandexMoney()
+    sbp = SBP()
+    debitCard = DebitCard()
+
+    # Создаем объекты платежей
+    onlinePayment = OnlinePayment(yandexMoney)
+    offlinePayment = OfflinePayment(sbp)
+
+    # Выполняем платежи
+    onlinePayment.makePayment(100.0)
+    offlinePayment.makePayment(200.0)
+
+    # Меняем платежную систему для онлайн платежа
+    onlinePayment.setPaymentSystem(debitCard)
+    onlinePayment.makePayment(150.0)
+```
+
+#### Объяснение
+
+1. **Абстракция платежной системы**: Мы создаем абстрактный класс `PaymentSystem`, который определяет метод `processPayment`. Этот метод будет реализован в конкретных платежных системах.
+2. **Конкретные реализации платежных систем**: Мы создаем классы `YandexMoney`, `SBP` и `DebitCard`, которые реализуют метод `processPayment` по-своему.
+3. **Абстракция платежа**: Мы создаем абстрактный класс `Payment`, который содержит ссылку на объект платежной системы и метод `makePayment`.
+4. **Конкретные реализации платежей**: Мы создаем классы `OnlinePayment` и `OfflinePayment`, которые реализуют метод `makePayment` по-своему.
+5. **Пример использования**: Мы создаем объекты платежных систем и платежей, устанавливаем платежные системы для платежей и выполняем плате
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (52).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 
-abstract class InventoryManagement {
-  - inventory: Inventory
-  + set_inventory(Inventory): void
-  + add_item(item, quantity): void
-  + remove_item(item, quantity): void
+interface PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-interface Inventory {
-  + add(item, quantity): void
-  + remove(item, quantity): void
+class YandexMoney implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-class WarehouseInventory implements Inventory {
-  + add(item, quantity): void
-  + remove(item, quantity): void
+class SBP implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-class StoreInventory implements Inventory {
-  + add(item, quantity): void
-  + remove(item, quantity): void
+class DebitCard implements PaymentSystem {
+    +processPayment(amount: float): void
 }
 
-InventoryManagement --> Inventory : uses
+abstract class Payment {
+    -paymentSystem: PaymentSystem
+    +setPaymentSystem(paymentSystem: PaymentSystem): void
+    +makePayment(amount: float): void
+}
+
+class OnlinePayment extends Payment {
+    +makePayment(amount: float): void
+}
+
+class OfflinePayment extends Payment {
+    +makePayment(amount: float): void
+}
+
+PaymentSystem <|-- YandexMoney
+PaymentSystem <|-- SBP
+PaymentSystem <|-- DebitCard
+
+Payment <|-- OnlinePayment
+Payment <|-- OfflinePayment
+
+Payment "1" -- "1" PaymentSystem
 
 @enduml
 ```
 {% endcode %}
 
-#### Описание элементов диаграммы
 
-1. **InventoryManagement**:
-   * Абстрактный класс, определяющий интерфейс для управления запасами.
-   * Содержит ссылку на объект типа `Inventory`.
-   * Методы `set_inventory`, `add_item`, `remove_item`.
-2. **Inventory**:
-   * Интерфейс, определяющий методы для добавления и удаления товаров.
-3. **WarehouseInventory**:
-   * Конкретная реализация интерфейса `Inventory` для склада.
-   * Реализует методы `add` и `remove`.
-4. **StoreInventory**:
-   * Конкретная реализация интерфейса `Inventory` для магазина.
-   * Реализует методы `add` и `remove`.
 
-#### Связи
-
-* `InventoryManagement` содержит ссылку на `Inventory`.
-* `WarehouseInventory` и `StoreInventory` реализуют интерфейс `Inventory`.
-
-Эта диаграмма наглядно демонстрирует, как паттерн "Мост" разделяет абстракцию и реализацию, позволяя управлять запасами независимо от типа локации.
+Таким образом, мы можем легко добавлять новые платежные системы, не изменяя основной код платежей. Это и есть суть паттерна "Мост".
