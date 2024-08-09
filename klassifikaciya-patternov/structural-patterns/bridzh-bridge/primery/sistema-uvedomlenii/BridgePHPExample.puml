@@ -1,0 +1,42 @@
+@startuml
+
+abstract class Notification {
+    +sendNotification(message: String)
+}
+
+class EmailNotification {
+    +sendNotification(message: String)
+}
+
+class SMSNotification {
+    +sendNotification(message: String)
+}
+
+class TelegramNotification {
+    +sendNotification(message: String)
+}
+
+abstract class NotificationSender {
+    -notification: Notification
+    +setNotification(notification: Notification)
+    +send(message: String)
+}
+
+class BasicNotificationSender {
+    +send(message: String)
+}
+
+class AdvancedNotificationSender {
+    +send(message: String)
+}
+
+Notification <|-- EmailNotification
+Notification <|-- SMSNotification
+Notification <|-- TelegramNotification
+
+NotificationSender <|-- BasicNotificationSender
+NotificationSender <|-- AdvancedNotificationSender
+
+NotificationSender --> Notification
+
+@enduml
