@@ -1,146 +1,173 @@
 # Python
 
-Предположим,что у нас есть система платежей, которая поддерживает несколько платежных систем: Яндекс Деньги, СБП и Дебетовая карта. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы можно было добавлять новые платежные системы без изменения основного кода.
+Представьте, что мы — команда разработчиков, которая создает систему для обработки и отображения уведомлений. Наша система должна поддерживать несколько способов отправки уведомлений: электронная почта, СМС и Telegram. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавить новые способы отправки уведомлений без изменения основного кода.
 
-#### Решение с использованием паттерна "Мост"
+Для этого мы решили использовать паттерн "Мост" (Bridge). Этот паттерн позволяет разделить абстракцию и её реализацию так, чтобы они могли изменяться независимо друг от друга. В нашем случае абстракцией будет сам процесс отправки уведомлений, а реализацией — конкретные системы для уведомлений (электронная почта, СМС, Telegram).
 
-**1. Абстракция платежной системы**
+**1.**&#x20;
 
+**Интерфейс уведомлений (Notification)**
+
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class PaymentSystem(ABC):
+class Notification(ABC):
     @abstractmethod
-    def processPayment(self, amount: float):
+    def send_notification(self, message: str):
         pass
 ```
+{% endcode %}
 
-**2. Конкретные реализации платежных систем**
+**Конкретные реализации уведомлений**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class YandexMoney(PaymentSystem):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через Яндекс Деньги на сумму {amount}")
+class EmailNotification(Notification):
+    def send_notification(self, message: str):
+        # Логика отправки уведомления по электронной почте
+        print(f"Sending email: {message}")
 
-class SBP(PaymentSystem):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через СБП на сумму {amount}")
+class SMSNotification(Notification):
+    def send_notification(self, message: str):
+        # Логика отправки уведомления через СМС
+        print(f"Sending SMS: {message}")
 
-class DebitCard(PaymentSystem):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через Дебетовую карту на сумму {amount}")
+class TelegramNotification(Notification):
+    def send_notification(self, message: str):
+        # Логика отправки уведомления через Telegram
+        print(f"Sending Telegram message: {message}")
 ```
+{% endcode %}
 
-**3. Абстракция платежа**
+**Абстрактный класс отправителя уведомлений (NotificationSender)**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Payment(ABC):
-    def __init__(self, paymentSystem: PaymentSystem):
-        self.paymentSystem = paymentSystem
+class NotificationSender(ABC):
+    def __init__(self):
+        self.notification = None
 
-    def setPaymentSystem(self, paymentSystem: PaymentSystem):
-        self.paymentSystem = paymentSystem
+    def set_notification(self, notification: Notification):
+        self.notification = notification
 
     @abstractmethod
-    def makePayment(self, amount: float):
+    def send(self, message: str):
         pass
 ```
+{% endcode %}
 
-**4. Конкретные реализации платежей**
+**Конкретные реализации отправителей уведомлений**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class OnlinePayment(Payment):
-    def makePayment(self, amount: float):
-        print(f"Онлайн платеж на сумму {amount}")
-        self.paymentSystem.processPayment(amount)
+class BasicNotificationSender(NotificationSender):
+    def send(self, message: str):
+        # Логика отправки уведомления с использованием базового отправителя
+        self.notification.send_notification(message)
 
-class OfflinePayment(Payment):
-    def makePayment(self, amount: float):
-        print(f"Офлайн платеж на сумму {amount}")
-        self.paymentSystem.processPayment(amount)
+class AdvancedNotificationSender(NotificationSender):
+    def send(self, message: str):
+        # Логика отправки уведомления с использованием продвинутого отправителя
+        self.notification.send_notification(message)
 ```
+{% endcode %}
 
-**5. Пример использования**
+**Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
+def main():
+    # Создаем объекты уведомлений
+    email_notification = EmailNotification()
+    sms_notification = SMSNotification()
+    telegram_notification = TelegramNotification()
+
+    # Создаем объект отправителя уведомлений
+    basic_sender = BasicNotificationSender()
+
+    # Устанавливаем уведомление и отправляем сообщение
+    basic_sender.set_notification(email_notification)
+    basic_sender.send("Hello via Email!")
+
+    basic_sender.set_notification(sms_notification)
+    basic_sender.send("Hello via SMS!")
+
+    basic_sender.set_notification(telegram_notification)
+    basic_sender.send("Hello via Telegram!")
+
 if __name__ == "__main__":
-    # Создаем объекты платежных систем
-    yandexMoney = YandexMoney()
-    sbp = SBP()
-    debitCard = DebitCard()
-
-    # Создаем объекты платежей
-    onlinePayment = OnlinePayment(yandexMoney)
-    offlinePayment = OfflinePayment(sbp)
-
-    # Выполняем платежи
-    onlinePayment.makePayment(100.0)
-    offlinePayment.makePayment(200.0)
-
-    # Меняем платежную систему для онлайн платежа
-    onlinePayment.setPaymentSystem(debitCard)
-    onlinePayment.makePayment(150.0)
+    main()
 ```
+{% endcode %}
 
-#### Объяснение
+#### Объяснение кода
 
-1. **Абстракция платежной системы**: Мы создаем абстрактный класс `PaymentSystem`, который определяет метод `processPayment`. Этот метод будет реализован в конкретных платежных системах.
-2. **Конкретные реализации платежных систем**: Мы создаем классы `YandexMoney`, `SBP` и `DebitCard`, которые реализуют метод `processPayment` по-своему.
-3. **Абстракция платежа**: Мы создаем абстрактный класс `Payment`, который содержит ссылку на объект платежной системы и метод `makePayment`.
-4. **Конкретные реализации платежей**: Мы создаем классы `OnlinePayment` и `OfflinePayment`, которые реализуют метод `makePayment` по-своему.
-5. **Пример использования**: Мы создаем объекты платежных систем и платежей, устанавливаем платежные системы для платежей и выполняем плате
+1. **Интерфейс `Notification`**:
+   * Это базовый интерфейс для всех типов уведомлений. Он содержит абстрактный метод `send_notification`, который должен быть реализован в конкретных классах уведомлений.
+2. **Конкретные реализации уведомлений**:
+   * `EmailNotification`, `SMSNotification`, `TelegramNotification` — это конкретные классы, которые реализуют метод `send_notification` для отправки уведомлений через электронную почту, СМС и Telegram соответственно.
+3. **Абстрактный класс `NotificationSender`**:
+   * Это базовый класс для всех отправителей уведомлений. Он содержит метод `set_notification` для установки конкретного типа уведомления и абстрактный метод `send` для отправки уведомления.
+4. **Конкретные реализации отправителей уведомлений**:
+   * `BasicNotificationSender` и `AdvancedNotificationSender` — это конкретные классы, которые реализуют метод `send` для отправки уведомлений с использованием базового и продвинутого отправителей соответственно.
+5. **Пример использования**:
+   * Мы создаем объекты уведомлений и отправителя уведомлений. Затем устанавливаем конкретное уведомление для отправителя и отправляем сообщение.
+
+
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 
-interface PaymentSystem {
-    +processPayment(amount: float): void
+interface Notification {
+    +sendNotification(message: String)
 }
 
-class YandexMoney implements PaymentSystem {
-    +processPayment(amount: float): void
+class EmailNotification {
+    +sendNotification(message: String)
 }
 
-class SBP implements PaymentSystem {
-    +processPayment(amount: float): void
+class SMSNotification {
+    +sendNotification(message: String)
 }
 
-class DebitCard implements PaymentSystem {
-    +processPayment(amount: float): void
+class TelegramNotification {
+    +sendNotification(message: String)
 }
 
-abstract class Payment {
-    -paymentSystem: PaymentSystem
-    +setPaymentSystem(paymentSystem: PaymentSystem): void
-    +makePayment(amount: float): void
+abstract class NotificationSender {
+    -notification: Notification
+    +setNotification(notification: Notification)
+    +send(message: String)
 }
 
-class OnlinePayment extends Payment {
-    +makePayment(amount: float): void
+class BasicNotificationSender {
+    +send(message: String)
 }
 
-class OfflinePayment extends Payment {
-    +makePayment(amount: float): void
+class AdvancedNotificationSender {
+    +send(message: String)
 }
 
-PaymentSystem <|-- YandexMoney
-PaymentSystem <|-- SBP
-PaymentSystem <|-- DebitCard
+Notification <|-- EmailNotification
+Notification <|-- SMSNotification
+Notification <|-- TelegramNotification
 
-Payment <|-- OnlinePayment
-Payment <|-- OfflinePayment
+NotificationSender <|-- BasicNotificationSender
+NotificationSender <|-- AdvancedNotificationSender
 
-Payment "1" -- "1" PaymentSystem
+NotificationSender --> Notification
 
 @enduml
+
 ```
 {% endcode %}
 
 
 
-Таким образом, мы можем легко добавлять новые платежные системы, не изменяя основной код платежей. Это и есть суть паттерна "Мост".
+Таким образом, мы можем легко добавлять новые типы уведомлений и отправителей, не изменяя основной код, что делает нашу систему гибкой и расширяемой.
