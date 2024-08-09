@@ -1,8 +1,10 @@
 # Go
 
-Представь, что у нас есть система платежей, которая поддерживает несколько платежных систем: Яндекс Деньги, СБП и Дебетовая карта. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы можно было добавлять новые платежные системы без изменения основного кода.
+Представьте, что мы — команда разработчиков, которая создает систему для обработки и отображения уведомлений. Наша система должна поддерживать несколько способов отправки уведомлений: электронная почта, СМС и Telegram. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавить новые способы отправки уведомлений без изменения основного кода.
 
-**1. Абстракция платежной системы**
+Для этого мы решили использовать паттерн "Мост" (Bridge). Этот паттерн позволяет разделить абстракцию и её реализацию так, чтобы они могли изменяться независимо друг от друга. В нашем случае абстракцией будет сам процесс отправки уведомлений, а реализацией — конкретные системы для уведомлений (электронная почта, СМС, Telegram).
+
+**Интерфейс уведомлений (Notification)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -10,163 +12,158 @@ package main
 
 import "fmt"
 
-type PaymentSystem interface {
-    processPayment(amount float64)
+type Notification interface {
+    sendNotification(message string)
 }
 ```
 {% endcode %}
 
-**2. Конкретные реализации платежных систем**
+**Конкретные реализации уведомлений**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type YandexMoney struct{}
+type EmailNotification struct{}
 
-func (y YandexMoney) processPayment(amount float64) {
-    fmt.Printf("Обработка платежа через Яндекс Деньги на сумму %.2f\n", amount)
+func (e *EmailNotification) sendNotification(message string) {
+    // Логика отправки уведомления по электронной почте
+    fmt.Printf("Sending email: %s\n", message)
 }
 
-type SBP struct{}
+type SMSNotification struct{}
 
-func (s SBP) processPayment(amount float64) {
-    fmt.Printf("Обработка платежа через СБП на сумму %.2f\n", amount)
+func (s *SMSNotification) sendNotification(message string) {
+    // Логика отправки уведомления через СМС
+    fmt.Printf("Sending SMS: %s\n", message)
 }
 
-type DebitCard struct{}
+type TelegramNotification struct{}
 
-func (d DebitCard) processPayment(amount float64) {
-    fmt.Printf("Обработка платежа через Дебетовую карту на сумму %.2f\n", amount)
+func (t *TelegramNotification) sendNotification(message string) {
+    // Логика отправки уведомления через Telegram
+    fmt.Printf("Sending Telegram message: %s\n", message)
 }
 ```
 {% endcode %}
 
-**3. Абстракция платежа**
+**Абстрактный класс отправителя уведомлений (NotificationSender)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Payment struct {
-    paymentSystem PaymentSystem
+type NotificationSender struct {
+    notification Notification
 }
 
-func (p *Payment) setPaymentSystem(paymentSystem PaymentSystem) {
-    p.paymentSystem = paymentSystem
+func (n *NotificationSender) setNotification(notification Notification) {
+    n.notification = notification
 }
 
-func (p *Payment) makePayment(amount float64) {
-    p.paymentSystem.processPayment(amount)
+func (n *NotificationSender) send(message string) {
+    n.notification.sendNotification(message)
 }
 ```
 {% endcode %}
 
-**4. Конкретные реализации платежей**
+**Конкретные реализации отправителей уведомлений**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type OnlinePayment struct {
-    Payment
+type BasicNotificationSender struct {
+    NotificationSender
 }
 
-func (op *OnlinePayment) makePayment(amount float64) {
-    fmt.Printf("Онлайн платеж на сумму %.2f\n", amount)
-    op.Payment.makePayment(amount)
-}
-
-type OfflinePayment struct {
-    Payment
-}
-
-func (op *OfflinePayment) makePayment(amount float64) {
-    fmt.Printf("Офлайн платеж на сумму %.2f\n", amount)
-    op.Payment.makePayment(amount)
+type AdvancedNotificationSender struct {
+    NotificationSender
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем объекты платежных систем
-    yandexMoney := YandexMoney{}
-    sbp := SBP{}
-    debitCard := DebitCard{}
+    // Создаем объекты уведомлений
+    emailNotification := &EmailNotification{}
+    smsNotification := &SMSNotification{}
+    telegramNotification := &TelegramNotification{}
 
-    // Создаем объекты платежей
-    onlinePayment := OnlinePayment{}
-    offlinePayment := OfflinePayment{}
+    // Создаем объект отправителя уведомлений
+    basicSender := &BasicNotificationSender{}
 
-    // Устанавливаем платежные системы для платежей
-    onlinePayment.setPaymentSystem(&yandexMoney)
-    offlinePayment.setPaymentSystem(&sbp)
+    // Устанавливаем уведомление и отправляем сообщение
+    basicSender.setNotification(emailNotification)
+    basicSender.send("Hello via Email!")
 
-    // Выполняем платежи
-    onlinePayment.makePayment(100.0)
-    offlinePayment.makePayment(200.0)
+    basicSender.setNotification(smsNotification)
+    basicSender.send("Hello via SMS!")
 
-    // Меняем платежную систему для онлайн платежа
-    onlinePayment.setPaymentSystem(&debitCard)
-    onlinePayment.makePayment(150.0)
+    basicSender.setNotification(telegramNotification)
+    basicSender.send("Hello via Telegram!")
 }
 ```
 {% endcode %}
 
-#### Объяснение
+#### Объяснение кода
 
-1. **Абстракция платежной системы**: Мы создаем интерфейс `PaymentSystem`, который определяет метод `processPayment`. Этот метод будет реализован в конкретных платежных системах.
-2. **Конкретные реализации платежных систем**: Мы создаем структуры `YandexMoney`, `SBP` и `DebitCard`, которые реализуют метод `processPayment` по-своему.
-3. **Абстракция платежа**: Мы создаем структуру `Payment`, которая содержит ссылку на объект платежной системы и метод `makePayment`.
-4. **Конкретные реализации платежей**: Мы создаем структуры `OnlinePayment` и `OfflinePayment`, которые реализуют метод `makePayment` по-своему.
-5. **Пример использования**: Мы создаем объекты платежных систем и платежей, устанавливаем платежные системы для платежей и выполняем платежи.
+1. **Интерфейс `Notification`**:
+   * Это базовый интерфейс для всех типов уведомлений. Он содержит метод `sendNotification`, который должен быть реализован в конкретных структурах уведомлений.
+2. **Конкретные реализации уведомлений**:
+   * `EmailNotification`, `SMSNotification`, `TelegramNotification` — это конкретные структуры, которые реализуют метод `sendNotification` для отправки уведомлений через электронную почту, СМС и Telegram соответственно.
+3. **Абстрактный класс `NotificationSender`**:
+   * Это базовая структура для всех отправителей уведомлений. Она содержит метод `setNotification` для установки конкретного типа уведомления и метод `send` для отправки уведомления.
+4. **Конкретные реализации отправителей уведомлений**:
+   * `BasicNotificationSender` и `AdvancedNotificationSender` — это конкретные структуры, которые наследуют базовую структуру `NotificationSender`.
+5. **Пример использования**:
+   * Мы создаем объекты уведомлений и отправителя уведомлений. Затем устанавливаем конкретное уведомление для отправителя и отправляем сообщение.
 
 
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (53).png" alt=""><figcaption><p>UML диаграмма дял паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
 
-interface PaymentSystem {
-    +processPayment(amount: float): void
+interface Notification {
+    +sendNotification(message: String)
 }
 
-class YandexMoney implements PaymentSystem {
-    +processPayment(amount: float): void
+class EmailNotification {
+    +sendNotification(message: String)
 }
 
-class SBP implements PaymentSystem {
-    +processPayment(amount: float): void
+class SMSNotification {
+    +sendNotification(message: String)
 }
 
-class DebitCard implements PaymentSystem {
-    +processPayment(amount: float): void
+class TelegramNotification {
+    +sendNotification(message: String)
 }
 
-abstract class Payment {
-    -paymentSystem: PaymentSystem
-    +setPaymentSystem(paymentSystem: PaymentSystem): void
-    +makePayment(amount: float): void
+abstract class NotificationSender {
+    -notification: Notification
+    +setNotification(notification: Notification)
+    +send(message: String)
 }
 
-class OnlinePayment extends Payment {
-    +makePayment(amount: float): void
+class BasicNotificationSender {
+    +send(message: String)
 }
 
-class OfflinePayment extends Payment {
-    +makePayment(amount: float): void
+class AdvancedNotificationSender {
+    +send(message: String)
 }
 
-PaymentSystem <|-- YandexMoney
-PaymentSystem <|-- SBP
-PaymentSystem <|-- DebitCard
+Notification <|-- EmailNotification
+Notification <|-- SMSNotification
+Notification <|-- TelegramNotification
 
-Payment <|-- OnlinePayment
-Payment <|-- OfflinePayment
+NotificationSender <|-- BasicNotificationSender
+NotificationSender <|-- AdvancedNotificationSender
 
-Payment "1" -- "1" PaymentSystem
+NotificationSender --> Notification
 
 @enduml
 ```
