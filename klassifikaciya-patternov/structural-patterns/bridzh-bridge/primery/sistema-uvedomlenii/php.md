@@ -6,15 +6,18 @@
 
 **Абстрактный класс уведомлений (Notification)**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 abstract class Notification {
     // Метод для отправки уведомления
     abstract public function sendNotification(string $message);
 }
 ```
+{% endcode %}
 
 **Конкретные реализации уведомлений**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class EmailNotification extends Notification {
     public function sendNotification(string $message) {
@@ -37,9 +40,11 @@ class TelegramNotification extends Notification {
     }
 }
 ```
+{% endcode %}
 
 **Абстрактный класс отправителя уведомлений (NotificationSender)**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 abstract class NotificationSender {
     protected $notification;
@@ -51,9 +56,11 @@ abstract class NotificationSender {
     abstract public function send(string $message);
 }
 ```
+{% endcode %}
 
 **Конкретные реализации отправителей уведомлений**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 class BasicNotificationSender extends NotificationSender {
     public function send(string $message) {
@@ -69,9 +76,11 @@ class AdvancedNotificationSender extends NotificationSender {
     }
 }
 ```
+{% endcode %}
 
 **Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 // Создаем объекты уведомлений
 $emailNotification = new EmailNotification();
@@ -91,6 +100,7 @@ $basicSender->send("Hello via SMS!");
 $basicSender->setNotification($telegramNotification);
 $basicSender->send("Hello via Telegram!");
 ```
+{% endcode %}
 
 #### Объяснение кода
 
