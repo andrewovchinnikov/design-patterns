@@ -1,146 +1,135 @@
 # Python
 
-Предположим,что у нас есть система платежей, которая поддерживает несколько платежных систем: Яндекс Деньги, СБП и Дебетовая карта. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы можно было добавлять новые платежные системы без изменения основного кода.
+Мы — команда разработчиков, работающая над созданием системы платежей. Наша цель — предоставить пользователям возможность обрабатывать платежи через различные платежные системы, такие как Яндекс Деньги, СБП и Дебетовые карты. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать платежи через разные методы единообразно.
 
-#### Решение с использованием паттерна "Мост"
+**1. Интерфейс PaymentMethod**
 
-**1. Абстракция платежной системы**
-
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class PaymentSystem(ABC):
+class PaymentMethod(ABC):
     @abstractmethod
     def processPayment(self, amount: float):
         pass
 ```
+{% endcode %}
 
-**2. Конкретные реализации платежных систем**
+**2. Класс YandexMoney**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class YandexMoney(PaymentSystem):
+class YandexMoney(PaymentMethod):
     def processPayment(self, amount: float):
-        print(f"Обработка платежа через Яндекс Деньги на сумму {amount}")
+        print(f"Обработка платежа через Яндекс Деньги на сумму {amount:.2f}")
+```
+{% endcode %}
 
-class SBP(PaymentSystem):
+**3. Класс SBP**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class SBP(PaymentMethod):
     def processPayment(self, amount: float):
-        print(f"Обработка платежа через СБП на сумму {amount}")
+        print(f"Обработка платежа через СБП на сумму {amount:.2f}")
+```
+{% endcode %}
 
-class DebitCard(PaymentSystem):
+**4. Класс DebitCard**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class DebitCard(PaymentMethod):
     def processPayment(self, amount: float):
-        print(f"Обработка платежа через Дебетовую карту на сумму {amount}")
+        print(f"Обработка платежа через Дебетовую карту на сумму {amount:.2f}")
 ```
+{% endcode %}
 
-**3. Абстракция платежа**
+**5. Класс CompositePaymentMethod**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Payment(ABC):
-    def __init__(self, paymentSystem: PaymentSystem):
-        self.paymentSystem = paymentSystem
+class CompositePaymentMethod(PaymentMethod):
+    def __init__(self):
+        self.paymentMethods = []
 
-    def setPaymentSystem(self, paymentSystem: PaymentSystem):
-        self.paymentSystem = paymentSystem
+    def addPaymentMethod(self, method: PaymentMethod):
+        self.paymentMethods.append(method)
 
-    @abstractmethod
-    def makePayment(self, amount: float):
-        pass
+    def removePaymentMethod(self, method: PaymentMethod):
+        self.paymentMethods.remove(method)
+
+    def processPayment(self, amount: float):
+        for method in self.paymentMethods:
+            method.processPayment(amount)
 ```
+{% endcode %}
 
-**4. Конкретные реализации платежей**
+**6. Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class OnlinePayment(Payment):
-    def makePayment(self, amount: float):
-        print(f"Онлайн платеж на сумму {amount}")
-        self.paymentSystem.processPayment(amount)
-
-class OfflinePayment(Payment):
-    def makePayment(self, amount: float):
-        print(f"Офлайн платеж на сумму {amount}")
-        self.paymentSystem.processPayment(amount)
-```
-
-**5. Пример использования**
-
-```python
-if __name__ == "__main__":
-    # Создаем объекты платежных систем
+def main():
+    # Создаем объекты платежных методов
     yandexMoney = YandexMoney()
     sbp = SBP()
     debitCard = DebitCard()
 
-    # Создаем объекты платежей
-    onlinePayment = OnlinePayment(yandexMoney)
-    offlinePayment = OfflinePayment(sbp)
+    # Создаем композитный платежный метод
+    compositePayment = CompositePaymentMethod()
+    compositePayment.addPaymentMethod(yandexMoney)
+    compositePayment.addPaymentMethod(sbp)
+    compositePayment.addPaymentMethod(debitCard)
 
-    # Выполняем платежи
-    onlinePayment.makePayment(100.0)
-    offlinePayment.makePayment(200.0)
+    # Обрабатываем платеж через композитный метод
+    compositePayment.processPayment(100.0)
 
-    # Меняем платежную систему для онлайн платежа
-    onlinePayment.setPaymentSystem(debitCard)
-    onlinePayment.makePayment(150.0)
+if __name__ == "__main__":
+    main()
 ```
+{% endcode %}
 
-#### Объяснение
+#### Объяснение кода
 
-1. **Абстракция платежной системы**: Мы создаем абстрактный класс `PaymentSystem`, который определяет метод `processPayment`. Этот метод будет реализован в конкретных платежных системах.
-2. **Конкретные реализации платежных систем**: Мы создаем классы `YandexMoney`, `SBP` и `DebitCard`, которые реализуют метод `processPayment` по-своему.
-3. **Абстракция платежа**: Мы создаем абстрактный класс `Payment`, который содержит ссылку на объект платежной системы и метод `makePayment`.
-4. **Конкретные реализации платежей**: Мы создаем классы `OnlinePayment` и `OfflinePayment`, которые реализуют метод `makePayment` по-своему.
-5. **Пример использования**: Мы создаем объекты платежных систем и платежей, устанавливаем платежные системы для платежей и выполняем плате
+1. **Интерфейс PaymentMethod**: Это базовый интерфейс для всех платежных методов. Он содержит абстрактный метод `processPayment`, который должен быть реализован в подклассах.
+2. **Классы YandexMoney, SBP и DebitCard**: Эти классы реализуют метод `processPayment` для обработки платежей через соответствующие платежные системы.
+3. **Класс CompositePaymentMethod**: Этот класс позволяет объединять несколько платежных методов в один композитный метод. Он содержит список `paymentMethods`, в который можно добавлять и удалять платежные методы. Метод `processPayment` вызывает метод `processPayment` для каждого из добавленных платежных методов.
+4. **Пример использования**: Мы создаем объекты для каждого платежного метода, добавляем их в композитный платежный метод и вызываем метод `processPayment` для обработки платежа через все добавленные методы.
 
 UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
-
-interface PaymentSystem {
+interface PaymentMethod {
     +processPayment(amount: float): void
 }
 
-class YandexMoney implements PaymentSystem {
+class YandexMoney implements PaymentMethod {
     +processPayment(amount: float): void
 }
 
-class SBP implements PaymentSystem {
+class SBP implements PaymentMethod {
     +processPayment(amount: float): void
 }
 
-class DebitCard implements PaymentSystem {
+class DebitCard implements PaymentMethod {
     +processPayment(amount: float): void
 }
 
-abstract class Payment {
-    -paymentSystem: PaymentSystem
-    +setPaymentSystem(paymentSystem: PaymentSystem): void
-    +makePayment(amount: float): void
+class CompositePaymentMethod implements PaymentMethod {
+    -paymentMethods: List<PaymentMethod>
+    +addPaymentMethod(method: PaymentMethod): void
+    +removePaymentMethod(method: PaymentMethod): void
+    +processPayment(amount: float): void
 }
-
-class OnlinePayment extends Payment {
-    +makePayment(amount: float): void
-}
-
-class OfflinePayment extends Payment {
-    +makePayment(amount: float): void
-}
-
-PaymentSystem <|-- YandexMoney
-PaymentSystem <|-- SBP
-PaymentSystem <|-- DebitCard
-
-Payment <|-- OnlinePayment
-Payment <|-- OfflinePayment
-
-Payment "1" -- "1" PaymentSystem
-
 @enduml
+
 ```
 {% endcode %}
 
 
 
-Таким образом, мы можем легко добавлять новые платежные системы, не изменяя основной код платежей. Это и есть суть паттерна "Мост".
+Таким образом, паттерн "Компоновщик" позволяет нам обрабатывать платежи через разные платежные системы единообразно, что упрощает управление и расширение системы платежей.
