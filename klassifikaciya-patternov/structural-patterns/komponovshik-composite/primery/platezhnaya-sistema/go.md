@@ -4,6 +4,7 @@
 
 **1. Интерфейс PaymentMethod**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
@@ -13,9 +14,11 @@ type PaymentMethod interface {
     ProcessPayment(amount float64)
 }
 ```
+{% endcode %}
 
 **2. Структура YandexMoney**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type YandexMoney struct{}
 
@@ -23,9 +26,11 @@ func (ym YandexMoney) ProcessPayment(amount float64) {
     fmt.Printf("Обработка платежа через Яндекс Деньги на сумму %.2f\n", amount)
 }
 ```
+{% endcode %}
 
 **3. Структура SBP**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type SBP struct{}
 
@@ -33,9 +38,11 @@ func (sbp SBP) ProcessPayment(amount float64) {
     fmt.Printf("Обработка платежа через СБП на сумму %.2f\n", amount)
 }
 ```
+{% endcode %}
 
 **4. Структура DebitCard**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type DebitCard struct{}
 
@@ -43,9 +50,11 @@ func (dc DebitCard) ProcessPayment(amount float64) {
     fmt.Printf("Обработка платежа через Дебетовую карту на сумму %.2f\n", amount)
 }
 ```
+{% endcode %}
 
 **5. Структура CompositePaymentMethod**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 type CompositePaymentMethod struct {
     paymentMethods []PaymentMethod
@@ -70,9 +79,11 @@ func (cp CompositePaymentMethod) ProcessPayment(amount float64) {
     }
 }
 ```
+{% endcode %}
 
 **6. Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
     // Создаем объекты платежных методов
@@ -90,6 +101,7 @@ func main() {
     compositePayment.ProcessPayment(100.0)
 }
 ```
+{% endcode %}
 
 #### Объяснение кода
 
