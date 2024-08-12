@@ -8,6 +8,8 @@
 
 #### UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (54).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
