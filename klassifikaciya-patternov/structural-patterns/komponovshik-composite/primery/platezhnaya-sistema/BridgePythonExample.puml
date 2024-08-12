@@ -1,0 +1,24 @@
+@startuml
+interface PaymentMethod {
+    +processPayment(amount: float): void
+}
+
+class YandexMoney implements PaymentMethod {
+    +processPayment(amount: float): void
+}
+
+class SBP implements PaymentMethod {
+    +processPayment(amount: float): void
+}
+
+class DebitCard implements PaymentMethod {
+    +processPayment(amount: float): void
+}
+
+class CompositePaymentMethod implements PaymentMethod {
+    -paymentMethods: List<PaymentMethod>
+    +addPaymentMethod(method: PaymentMethod): void
+    +removePaymentMethod(method: PaymentMethod): void
+    +processPayment(amount: float): void
+}
+@enduml
