@@ -1,194 +1,8 @@
 # Go
 
-Предположим, у нас есть компания, которая управляет запасами товаров в нескольких локациях: на складе и в магазине. Нам нужно разработать систему, которая позволяет управлять запасами независимо от типа локации. Это означает, что мы должны иметь возможность добавлять и удалять товары как на складе, так и в магазине, используя единый интерфейс.
-
-#### Решение с использованием паттерна "Мост"
-
-Паттерн "Мост" позволяет разделить абстракцию и реализацию, что делает их независимыми друг от друга. В нашем случае:
-
-* **Абстракция** (`InventoryManagement`) определяет интерфейс для управления запасами.
-* **Реализация** (`Inventory`) определяет интерфейс для конкретных реализаций управления запасами в разных локациях.
-
-#### Объяснение кода
-
-1. **Интерфейс `Inventory`**:
-   * Определяет методы `Add` и `Remove` для управления запасами.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// Inventory представляет интерфейс для управления запасами
-type Inventory interface {
-    Add(item string, quantity int)
-    Remove(item string, quantity int)
-}
-```
-{% endcode %}
-
-2. **Реализация `WarehouseInventory`**:
-
-* Реализует интерфейс `Inventory`.
-* Метод `Add` добавляет товары на склад.
-* Метод `Remove` удаляет товары со склада.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// WarehouseInventory представляет реализацию для склада
-type WarehouseInventory struct{}
-
-func (w *WarehouseInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (w *WarehouseInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-```
-{% endcode %}
-
-2. **Реализация `StoreInventory`**:
-
-* Реализует интерфейс `Inventory`.
-* Метод `Add` добавляет товары в магазин.
-* Метод `Remove` удаляет товары из магазина.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// StoreInventory представляет реализацию для магазина
-type StoreInventory struct{}
-
-func (s *StoreInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (s *StoreInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-```
-{% endcode %}
-
-3. **Абстракция `InventoryManagement`**:
-
-* Содержит ссылку на объект типа `Inventory`.
-* Метод `SetInventory` позволяет изменить текущую реализацию `Inventory`.
-* Методы `AddItem` и `RemoveItem` делегируют вызовы соответствующим методам реализации.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// InventoryManagement представляет абстракцию для управления запасами
-type InventoryManagement struct {
-    inventory Inventory
-}
-
-func (im *InventoryManagement) SetInventory(inventory Inventory) {
-    im.inventory = inventory
-}
-
-func (im *InventoryManagement) AddItem(item string, quantity int) {
-    im.inventory.Add(item, quantity)
-}
-
-func (im *InventoryManagement) RemoveItem(item string, quantity int) {
-    im.inventory.Remove(item, quantity)
-}
-```
-{% endcode %}
-
-1. **Функция `main`**:
-   * Создает объекты `WarehouseInventory` и `StoreInventory`.
-   * Создает объект `InventoryManagement` и устанавливает начальную реализацию `WarehouseInventory`.
-   * Вызывает методы `AddItem` и `RemoveItem` для управления запасами на складе.
-   * Изменяет реализацию на `StoreInventory` и повторно вызывает методы для управления запасами в магазине.
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-func main() {
-    warehouseInventory := &WarehouseInventory{}
-    storeInventory := &StoreInventory{}
-
-    inventoryManager := &InventoryManagement{}
-    inventoryManager.SetInventory(warehouseInventory)
-    inventoryManager.AddItem("Laptop", 10)
-    inventoryManager.RemoveItem("Laptop", 2)
-
-    inventoryManager.SetInventory(storeInventory)
-    inventoryManager.AddItem("Laptop", 5)
-    inventoryManager.RemoveItem("Laptop", 1)
-}
-```
-{% endcode %}
+Мы — команда разработчиков, работающая над созданием системы управления комментариями для веб-сайта. Наша цель — предоставить пользователям возможность оставлять комментарии и ответы на комментарии. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать комментарии и ответы единообразно.
 
 
-
-<details>
-
-<summary>Весь код</summary>
-
-```go
-package main
-
-import "fmt"
-
-// Inventory представляет интерфейс для управления запасами
-type Inventory interface {
-    Add(item string, quantity int)
-    Remove(item string, quantity int)
-}
-
-// WarehouseInventory представляет реализацию для склада
-type WarehouseInventory struct{}
-
-func (w *WarehouseInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (w *WarehouseInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-
-// StoreInventory представляет реализацию для магазина
-type StoreInventory struct{}
-
-func (s *StoreInventory) Add(item string, quantity int) {
-    fmt.Printf("Добавлен %d %s на склад.\n", quantity, item)
-}
-
-func (s *StoreInventory) Remove(item string, quantity int) {
-    fmt.Printf("Удален %d %s со склада.\n", quantity, item)
-}
-
-// InventoryManagement представляет абстракцию для управления запасами
-type InventoryManagement struct {
-    inventory Inventory
-}
-
-func (im *InventoryManagement) SetInventory(inventory Inventory) {
-    im.inventory = inventory
-}
-
-func (im *InventoryManagement) AddItem(item string, quantity int) {
-    im.inventory.Add(item, quantity)
-}
-
-func (im *InventoryManagement) RemoveItem(item string, quantity int) {
-    im.inventory.Remove(item, quantity)
-}
-
-func main() {
-    warehouseInventory := &WarehouseInventory{}
-    storeInventory := &StoreInventory{}
-
-    inventoryManager := &InventoryManagement{}
-    inventoryManager.SetInventory(warehouseInventory)
-    inventoryManager.AddItem("Laptop", 10)
-    inventoryManager.RemoveItem("Laptop", 2)
-
-    inventoryManager.SetInventory(storeInventory)
-    inventoryManager.AddItem("Laptop", 5)
-    inventoryManager.RemoveItem("Laptop", 1)
-}
-```
-
-</details>
 
 UML диаграмма
 
@@ -197,35 +11,189 @@ UML диаграмма
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
-
-interface Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+interface Comment {
+    +display(): void
 }
 
-class WarehouseInventory implements Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+class SimpleComment implements Comment {
+    -text: String
+    +display(): void
 }
 
-class StoreInventory implements Inventory {
-  + Add(item, quantity): void
-  + Remove(item, quantity): void
+class CompositeComment implements Comment {
+    -comments: List<Comment>
+    +addComment(comment: Comment): void
+    +removeComment(comment: Comment): void
+    +display(): void
 }
-
-class InventoryManagement {
-  - inventory: Inventory
-  + SetInventory(inventory): void
-  + AddItem(item, quantity): void
-  + RemoveItem(item, quantity): void
-}
-
-InventoryManagement --> Inventory : uses
-
 @enduml
+
 ```
 {% endcode %}
 
-#### Вывод
+**1. Интерфейс Comment**
 
-Паттерн "Мост" позволяет нам управлять запасами независимо от типа локации, обеспечивая гибкость и расширяемость системы. Мы можем легко добавлять новые типы локаций или изменять существующие, не затрагивая основную логику управления запасами.
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+import "fmt"
+
+type Comment interface {
+    Display()
+}
+```
+{% endcode %}
+
+**2. Структура SimpleComment**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type SimpleComment struct {
+    Text string
+}
+
+func (sc SimpleComment) Display() {
+    fmt.Printf("Комментарий: %s\n", sc.Text)
+}
+```
+{% endcode %}
+
+**3. Структура CompositeComment**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type CompositeComment struct {
+    Comments []Comment
+}
+
+func (cc *CompositeComment) AddComment(comment Comment) {
+    cc.Comments = append(cc.Comments, comment)
+}
+
+func (cc *CompositeComment) RemoveComment(comment Comment) {
+    for i, c := range cc.Comments {
+        if c == comment {
+            cc.Comments = append(cc.Comments[:i], cc.Comments[i+1:]...)
+            break
+        }
+    }
+}
+
+func (cc CompositeComment) Display() {
+    for _, comment := range cc.Comments {
+        comment.Display()
+    }
+}
+```
+{% endcode %}
+
+**4. Пример использования**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+func main() {
+    // Создаем простые комментарии
+    comment1 := SimpleComment{Text: "Это первый комментарий."}
+    comment2 := SimpleComment{Text: "Это второй комментарий."}
+
+    // Создаем композитный комментарий
+    compositeComment := CompositeComment{}
+    compositeComment.AddComment(comment1)
+    compositeComment.AddComment(comment2)
+
+    // Создаем вложенные комментарии
+    subComment1 := SimpleComment{Text: "Это ответ на первый комментарий."}
+    subComment2 := SimpleComment{Text: "Это ответ на второй комментарий."}
+
+    // Добавляем вложенные комментарии в композитный комментарий
+    compositeComment.AddComment(subComment1)
+    compositeComment.AddComment(subComment2)
+
+    // Отображаем все комментарии
+    compositeComment.Display()
+}
+```
+{% endcode %}
+
+#### Объяснение кода
+
+1.  **Интерфейс Comment**: Это базовый интерфейс для всех комментариев. Он содержит метод `Display`, который должен быть реализован в структурах.
+
+    {% code overflow="wrap" lineNumbers="true" %}
+    ```go
+    type Comment interface {
+        Display()
+    }
+    ```
+    {% endcode %}
+2.  **Структура SimpleComment**: Эта структура представляет простой комментарий. Она содержит текст комментария и реализует метод `Display`, который отображает текст комментария.
+
+    {% code overflow="wrap" lineNumbers="true" %}
+    ```go
+    type SimpleComment struct {
+        Text string
+    }
+
+    func (sc SimpleComment) Display() {
+        fmt.Printf("Комментарий: %s\n", sc.Text)
+    }
+    ```
+    {% endcode %}
+3.  **Структура CompositeComment**: Эта структура представляет композитный комментарий, который может содержать другие комментарии и ответы. Она содержит срез `Comments`, в который можно добавлять и удалять комментарии. Метод `Display` вызывает метод `Display` для каждого из добавленных комментариев.
+
+    {% code overflow="wrap" lineNumbers="true" %}
+    ```go
+    type CompositeComment struct {
+        Comments []Comment
+    }
+
+    func (cc *CompositeComment) AddComment(comment Comment) {
+        cc.Comments = append(cc.Comments, comment)
+    }
+
+    func (cc *CompositeComment) RemoveComment(comment Comment) {
+        for i, c := range cc.Comments {
+            if c == comment {
+                cc.Comments = append(cc.Comments[:i], cc.Comments[i+1:]...)
+                break
+            }
+        }
+    }
+
+    func (cc CompositeComment) Display() {
+        for _, comment := range cc.Comments {
+            comment.Display()
+        }
+    }
+    ```
+    {% endcode %}
+4.  **Пример использования**: Мы создаем простые комментарии и композитный комментарий. Затем добавляем простые комментарии и вложенные комментарии в композитный комментарий и вызываем метод `Display` для отображения всех комментариев.
+
+    {% code overflow="wrap" lineNumbers="true" %}
+    ```go
+    func main() {
+        // Создаем простые комментарии
+        comment1 := SimpleComment{Text: "Это первый комментарий."}
+        comment2 := SimpleComment{Text: "Это второй комментарий."}
+
+        // Создаем композитный комментарий
+        compositeComment := CompositeComment{}
+        compositeComment.AddComment(comment1)
+        compositeComment.AddComment(comment2)
+
+        // Создаем вложенные комментарии
+        subComment1 := SimpleComment{Text: "Это ответ на первый комментарий."}
+        subComment2 := SimpleComment{Text: "Это ответ на второй комментарий."}
+
+        // Добавляем вложенные комментарии в композитный комментарий
+        compositeComment.AddComment(subComment1)
+        compositeComment.AddComment(subComment2)
+
+        // Отображаем все комментарии
+        compositeComment.Display()
+    }
+    ```
+    {% endcode %}
+
+Таким образом, паттерн Компоновщик позволяет нам обрабатывать комментарии и ответы единообразно, что упрощает управление и расширение системы управления комментариями.
