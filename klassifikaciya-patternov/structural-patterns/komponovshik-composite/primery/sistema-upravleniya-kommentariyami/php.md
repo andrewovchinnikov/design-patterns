@@ -4,6 +4,8 @@
 
 #### UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (56).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
