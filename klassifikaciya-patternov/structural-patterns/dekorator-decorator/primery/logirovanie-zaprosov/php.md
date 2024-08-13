@@ -1,209 +1,128 @@
 # PHP
 
-Мы — команда разработчиков, работающая над созданием системы управления комментариями для веб-сайта. Наша цель — предоставить пользователям возможность оставлять комментарии и ответы на комментарии. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать комментарии и ответы единообразно.
+Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
+
+#### Описание паттерна Декоратор
+
+Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
+
+#### Пример кода на PHP
+
+**1. Базовый интерфейс**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+interface RequestHandler {
+    public function handleRequest(string $request): string;
+}
+```
+{% endcode %}
+
+**2. Базовый класс обработки запросов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class BasicRequestHandler implements RequestHandler {
+    public function handleRequest(string $request): string {
+        // Логика обработки запроса
+        return "Обработанный запрос: $request";
+    }
+}
+```
+{% endcode %}
+
+**3. Базовый класс декоратора**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+abstract class RequestHandlerDecorator implements RequestHandler {
+    protected $handler;
+
+    public function __construct(RequestHandler $handler) {
+        $this->handler = $handler;
+    }
+
+    public function handleRequest(string $request): string {
+        return $this->handler->handleRequest($request);
+    }
+}
+```
+{% endcode %}
+
+**4. Декоратор для логирования**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class LoggingRequestHandlerDecorator extends RequestHandlerDecorator {
+    public function handleRequest(string $request): string {
+        // Логирование запроса перед обработкой
+        echo "Логирование запроса: $request\n";
+
+        // Обработка запроса
+        $result = $this->handler->handleRequest($request);
+
+        // Логирование результата после обработки
+        echo "Логирование результата: $result\n";
+
+        return $result;
+    }
+}
+```
+{% endcode %}
+
+**5. Пример использования**
+
+```php
+$basicHandler = new BasicRequestHandler();
+$loggingHandler = new LoggingRequestHandlerDecorator($basicHandler);
+
+$request = "GET /api/data";
+$result = $loggingHandler->handleRequest($request);
+
+echo $result;
+```
+
+#### Объяснение кода
+
+1. **Базовый интерфейс `RequestHandler`**: Определяет метод `handleRequest`, который будет реализован в конкретных классах.
+2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
+3. **Базовый класс декоратора `RequestHandlerDecorator`**: Абстрактный класс, который реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
+4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
+5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `handleRequest` и выводим результат.
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (56).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (60).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Comment {
-    +display(): void
+interface RequestHandler {
+    +handleRequest(request: String): String
 }
 
-class SimpleComment implements Comment {
-    -text: String
-    +display(): void
+class BasicRequestHandler {
+    +handleRequest(request: String): String
 }
 
-class CompositeComment implements Comment {
-    -comments: List<Comment>
-    +addComment(comment: Comment): void
-    +removeComment(comment: Comment): void
-    +display(): void
+abstract class RequestHandlerDecorator {
+    -handler: RequestHandler
+    +RequestHandlerDecorator(handler: RequestHandler)
+    +handleRequest(request: String): String
 }
+
+class LoggingRequestHandlerDecorator {
+    +handleRequest(request: String): String
+}
+
+RequestHandler <|-- BasicRequestHandler
+RequestHandler <|-- RequestHandlerDecorator
+RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
 @enduml
-
 ```
 {% endcode %}
 
+#### Вывод
 
-
-**1. Интерфейс Comment**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-interface Comment {
-    public function display();
-}
-?>
-```
-{% endcode %}
-
-**2. Класс SimpleComment**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class SimpleComment implements Comment {
-    private $text;
-
-    public function __construct($text) {
-        $this->text = $text;
-    }
-
-    public function display() {
-        echo "Комментарий: " . $this->text . "\n";
-    }
-}
-?>
-```
-{% endcode %}
-
-**3. Класс CompositeComment**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class CompositeComment implements Comment {
-    private $comments = [];
-
-    public function addComment(Comment $comment) {
-        $this->comments[] = $comment;
-    }
-
-    public function removeComment(Comment $comment) {
-        $index = array_search($comment, $this->comments);
-        if ($index !== false) {
-            unset($this->comments[$index]);
-        }
-    }
-
-    public function display() {
-        foreach ($this->comments as $comment) {
-            $comment->display();
-        }
-    }
-}
-?>
-```
-{% endcode %}
-
-**4. Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-function main() {
-    // Создаем простые комментарии
-    $comment1 = new SimpleComment("Это первый комментарий.");
-    $comment2 = new SimpleComment("Это второй комментарий.");
-
-    // Создаем композитный комментарий
-    $compositeComment = new CompositeComment();
-    $compositeComment->addComment($comment1);
-    $compositeComment->addComment($comment2);
-
-    // Создаем вложенные комментарии
-    $subComment1 = new SimpleComment("Это ответ на первый комментарий.");
-    $subComment2 = new SimpleComment("Это ответ на второй комментарий.");
-
-    // Добавляем вложенные комментарии в композитный комментарий
-    $compositeComment->addComment($subComment1);
-    $compositeComment->addComment($subComment2);
-
-    // Отображаем все комментарии
-    $compositeComment->display();
-}
-
-main();
-?>
-```
-{% endcode %}
-
-#### Объяснение кода
-
-1.  **Интерфейс Comment**: Это базовый интерфейс для всех комментариев. Он содержит метод `display`, который должен быть реализован в подклассах.
-
-    ```php
-    interface Comment {
-        public function display();
-    }
-    ```
-2.  **Класс SimpleComment**: Этот класс представляет простой комментарий. Он содержит текст комментария и реализует метод `display`, который отображает текст комментария.
-
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```php
-    class SimpleComment implements Comment {
-        private $text;
-
-        public function __construct($text) {
-            $this->text = $text;
-        }
-
-        public function display() {
-            echo "Комментарий: " . $this->text . "\n";
-        }
-    }
-    ```
-    {% endcode %}
-3.  **Класс CompositeComment**: Этот класс представляет композитный комментарий, который может содержать другие комментарии и ответы. Он содержит массив `comments`, в который можно добавлять и удалять комментарии. Метод `display` вызывает метод `display` для каждого из добавленных комментариев.
-
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```php
-    class CompositeComment implements Comment {
-        private $comments = [];
-
-        public function addComment(Comment $comment) {
-            $this->comments[] = $comment;
-        }
-
-        public function removeComment(Comment $comment) {
-            $index = array_search($comment, $this->comments);
-            if ($index !== false) {
-                unset($this->comments[$index]);
-            }
-        }
-
-        public function display() {
-            foreach ($this->comments as $comment) {
-                $comment->display();
-            }
-        }
-    }
-    ```
-    {% endcode %}
-4.  **Пример использования**: Мы создаем простые комментарии и композитный комментарий. Затем добавляем простые комментарии и вложенные комментарии в композитный комментарий и вызываем метод `display` для отображения всех комментариев.
-
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```php
-    function main() {
-        // Создаем простые комментарии
-        $comment1 = new SimpleComment("Это первый комментарий.");
-        $comment2 = new SimpleComment("Это второй комментарий.");
-
-        // Создаем композитный комментарий
-        $compositeComment = new CompositeComment();
-        $compositeComment->addComment($comment1);
-        $compositeComment->addComment($comment2);
-
-        // Создаем вложенные комментарии
-        $subComment1 = new SimpleComment("Это ответ на первый комментарий.");
-        $subComment2 = new SimpleComment("Это ответ на второй комментарий.");
-
-        // Добавляем вложенные комментарии в композитный комментарий
-        $compositeComment->addComment($subComment1);
-        $compositeComment->addComment($subComment2);
-
-        // Отображаем все комментарии
-        $compositeComment->display();
-    }
-
-    main();
-    ```
-    {% endcode %}
-
-Таким образом, паттерн Компоновщик позволяет нам обрабатывать комментарии и ответы единообразно, что упрощает управление и расширение системы управления комментариями.
+Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
