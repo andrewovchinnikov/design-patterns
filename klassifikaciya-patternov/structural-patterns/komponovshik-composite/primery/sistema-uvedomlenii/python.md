@@ -1,173 +1,146 @@
 # Python
 
-Представьте, что мы — команда разработчиков, которая создает систему для обработки и отображения уведомлений. Наша система должна поддерживать несколько способов отправки уведомлений: электронная почта, СМС и Telegram. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавить новые способы отправки уведомлений без изменения основного кода.
+Представьте, что мы — команда разработчиков, работающая над системой управления задачами. Наша цель — создать гибкую и расширяемую систему, которая позволит пользователям создавать задачи, подзадачи и группировать их в проекты. Для этого мы решили использовать паттерн проектирования "Компоновщик" (Composite), который позволяет нам обрабатывать объекты и их композиции единообразно.
 
-Для этого мы решили использовать паттерн "Мост" (Bridge). Этот паттерн позволяет разделить абстракцию и её реализацию так, чтобы они могли изменяться независимо друг от друга. В нашем случае абстракцией будет сам процесс отправки уведомлений, а реализацией — конкретные системы для уведомлений (электронная почта, СМС, Telegram).
+#### Описание паттерна Компоновщик
 
-**1.**&#x20;
+Паттерн Компоновщик позволяет клиентам обрабатывать отдельные объекты и композиции объектов одинаково. Это особенно полезно, когда у нас есть иерархическая структура данных, как в нашем случае с задачами и подзадачами.
 
-**Интерфейс уведомлений (Notification)**
+#### Пример кода на Python
+
+**1. Определение интерфейса компонента**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Notification(ABC):
+class TaskComponent(ABC):
     @abstractmethod
-    def send_notification(self, message: str):
+    def add(self, task):
+        pass
+
+    @abstractmethod
+    def remove(self, task):
+        pass
+
+    @abstractmethod
+    def get_child(self, index):
+        pass
+
+    @abstractmethod
+    def get_name(self):
         pass
 ```
 {% endcode %}
 
-**Конкретные реализации уведомлений**
+**2. Реализация листового компонента (задача)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class EmailNotification(Notification):
-    def send_notification(self, message: str):
-        # Логика отправки уведомления по электронной почте
-        print(f"Sending email: {message}")
+class Task(TaskComponent):
+    def __init__(self, name):
+        self.name = name
 
-class SMSNotification(Notification):
-    def send_notification(self, message: str):
-        # Логика отправки уведомления через СМС
-        print(f"Sending SMS: {message}")
-
-class TelegramNotification(Notification):
-    def send_notification(self, message: str):
-        # Логика отправки уведомления через Telegram
-        print(f"Sending Telegram message: {message}")
-```
-{% endcode %}
-
-**Абстрактный класс отправителя уведомлений (NotificationSender)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class NotificationSender(ABC):
-    def __init__(self):
-        self.notification = None
-
-    def set_notification(self, notification: Notification):
-        self.notification = notification
-
-    @abstractmethod
-    def send(self, message: str):
+    def add(self, task):
+        # Листовой компонент не может иметь детей
         pass
+
+    def remove(self, task):
+        # Листовой компонент не может иметь детей
+        pass
+
+    def get_child(self, index):
+        # Листовой компонент не имеет детей
+        return None
+
+    def get_name(self):
+        return self.name
 ```
 {% endcode %}
 
-**Конкретные реализации отправителей уведомлений**
+**3. Реализация композитного компонента (проект)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class BasicNotificationSender(NotificationSender):
-    def send(self, message: str):
-        # Логика отправки уведомления с использованием базового отправителя
-        self.notification.send_notification(message)
+class Project(TaskComponent):
+    def __init__(self, name):
+        self.name = name
+        self.tasks = []
 
-class AdvancedNotificationSender(NotificationSender):
-    def send(self, message: str):
-        # Логика отправки уведомления с использованием продвинутого отправителя
-        self.notification.send_notification(message)
+    def add(self, task):
+        self.tasks.append(task)
+
+    def remove(self, task):
+        self.tasks.remove(task)
+
+    def get_child(self, index):
+        if index >= 0 and index < len(self.tasks):
+            return self.tasks[index]
+        return None
+
+    def get_name(self):
+        return self.name
 ```
 {% endcode %}
 
-**Пример использования**
+**4. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-def main():
-    # Создаем объекты уведомлений
-    email_notification = EmailNotification()
-    sms_notification = SMSNotification()
-    telegram_notification = TelegramNotification()
-
-    # Создаем объект отправителя уведомлений
-    basic_sender = BasicNotificationSender()
-
-    # Устанавливаем уведомление и отправляем сообщение
-    basic_sender.set_notification(email_notification)
-    basic_sender.send("Hello via Email!")
-
-    basic_sender.set_notification(sms_notification)
-    basic_sender.send("Hello via SMS!")
-
-    basic_sender.set_notification(telegram_notification)
-    basic_sender.send("Hello via Telegram!")
-
 if __name__ == "__main__":
-    main()
+    project = Project("Project 1")
+
+    task1 = Task("Task 1")
+    task2 = Task("Task 2")
+
+    project.add(task1)
+    project.add(task2)
+
+    print(project.get_name())
+    print(project.get_child(0).get_name())
+    print(project.get_child(1).get_name())
 ```
 {% endcode %}
 
-#### Объяснение кода
+#### UML диаграмма
 
-1. **Интерфейс `Notification`**:
-   * Это базовый интерфейс для всех типов уведомлений. Он содержит абстрактный метод `send_notification`, который должен быть реализован в конкретных классах уведомлений.
-2. **Конкретные реализации уведомлений**:
-   * `EmailNotification`, `SMSNotification`, `TelegramNotification` — это конкретные классы, которые реализуют метод `send_notification` для отправки уведомлений через электронную почту, СМС и Telegram соответственно.
-3. **Абстрактный класс `NotificationSender`**:
-   * Это базовый класс для всех отправителей уведомлений. Он содержит метод `set_notification` для установки конкретного типа уведомления и абстрактный метод `send` для отправки уведомления.
-4. **Конкретные реализации отправителей уведомлений**:
-   * `BasicNotificationSender` и `AdvancedNotificationSender` — это конкретные классы, которые реализуют метод `send` для отправки уведомлений с использованием базового и продвинутого отправителей соответственно.
-5. **Пример использования**:
-   * Мы создаем объекты уведомлений и отправителя уведомлений. Затем устанавливаем конкретное уведомление для отправителя и отправляем сообщение.
-
-
-
-UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-
-interface Notification {
-    +sendNotification(message: String)
+interface TaskComponent {
+    +add(TaskComponent task)
+    +remove(TaskComponent task)
+    +get_child(int index)
+    +get_name(): string
 }
 
-class EmailNotification {
-    +sendNotification(message: String)
+class Task {
+    -name: string
+    +__init__(name: string)
+    +add(TaskComponent task)
+    +remove(TaskComponent task)
+    +get_child(int index)
+    +get_name(): string
 }
 
-class SMSNotification {
-    +sendNotification(message: String)
+class Project {
+    -name: string
+    -tasks: TaskComponent[]
+    +__init__(name: string)
+    +add(TaskComponent task)
+    +remove(TaskComponent task)
+    +get_child(int index)
+    +get_name(): string
 }
 
-class TelegramNotification {
-    +sendNotification(message: String)
-}
-
-abstract class NotificationSender {
-    -notification: Notification
-    +setNotification(notification: Notification)
-    +send(message: String)
-}
-
-class BasicNotificationSender {
-    +send(message: String)
-}
-
-class AdvancedNotificationSender {
-    +send(message: String)
-}
-
-Notification <|-- EmailNotification
-Notification <|-- SMSNotification
-Notification <|-- TelegramNotification
-
-NotificationSender <|-- BasicNotificationSender
-NotificationSender <|-- AdvancedNotificationSender
-
-NotificationSender --> Notification
-
+TaskComponent <|-- Task
+TaskComponent <|-- Project
 @enduml
-
 ```
 {% endcode %}
 
+#### Вывод
 
-
-Таким образом, мы можем легко добавлять новые типы уведомлений и отправителей, не изменяя основной код, что делает нашу систему гибкой и расширяемой.
+Паттерн Компоновщик позволяет нам создать гибкую и расширяемую систему управления задачами. Мы можем легко добавлять и удалять задачи и подзадачи, обрабатывая их единообразно. Это делает нашу систему более удобной для пользователей и проще в поддержке и расширении.
