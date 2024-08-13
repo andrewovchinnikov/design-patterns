@@ -1,10 +1,103 @@
 # Go
 
-Представьте, что мы — команда разработчиков, которая создает систему для обработки и отображения уведомлений. Наша система должна поддерживать несколько способов отправки уведомлений: электронная почта, СМС и Telegram. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавить новые способы отправки уведомлений без изменения основного кода.
+Представьте, что мы — команда разработчиков, работающая над системой управления задачами. Наша цель — создать гибкую и расширяемую систему, которая позволит пользователям создавать задачи, подзадачи и группировать их в проекты. Для этого мы решили использовать паттерн проектирования "Компоновщик" (Composite), который позволяет нам обрабатывать объекты и их композиции единообразно.
 
-Для этого мы решили использовать паттерн "Мост" (Bridge). Этот паттерн позволяет разделить абстракцию и её реализацию так, чтобы они могли изменяться независимо друг от друга. В нашем случае абстракцией будет сам процесс отправки уведомлений, а реализацией — конкретные системы для уведомлений (электронная почта, СМС, Telegram).
+#### Описание паттерна Компоновщик
 
-**Интерфейс уведомлений (Notification)**
+Паттерн Компоновщик позволяет клиентам обрабатывать отдельные объекты и композиции объектов одинаково. Это особенно полезно, когда у нас есть иерархическая структура данных, как в нашем случае с задачами и подзадачами.
+
+#### Пример кода на Go
+
+**1. Определение интерфейса компонента**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type TaskComponent interface {
+    Add(TaskComponent)
+    Remove(TaskComponent)
+    GetChild(int) TaskComponent
+    GetName() string
+}
+```
+{% endcode %}
+
+**2. Реализация листового компонента (задача)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Task struct {
+    name string
+}
+
+func (t *Task) Add(TaskComponent) {
+    // Листовой компонент не может иметь детей
+}
+
+func (t *Task) Remove(TaskComponent) {
+    // Листовой компонент не может иметь детей
+}
+
+func (t *Task) GetChild(int) TaskComponent {
+    // Листовой компонент не имеет детей
+    return nil
+}
+
+func (t *Task) GetName() string {
+    return t.name
+}
+
+func NewTask(name string) *Task {
+    return &Task{name: name}
+}
+```
+{% endcode %}
+
+**3. Реализация композитного компонента (проект)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Project struct {
+    name  string
+    tasks []TaskComponent
+}
+
+func (p *Project) Add(task TaskComponent) {
+    p.tasks = append(p.tasks, task)
+}
+
+func (p *Project) Remove(task TaskComponent) {
+    for i, t := range p.tasks {
+        if t == task {
+            p.tasks = append(p.tasks[:i], p.tasks[i+1:]...)
+            break
+        }
+    }
+}
+
+func (p *Project) GetChild(index int) TaskComponent {
+    if index >= 0 && index < len(p.tasks) {
+        return p.tasks[index]
+    }
+    return nil
+}
+
+func (p *Project) GetName() string {
+    return p.name
+}
+
+func NewProject(name string) *Project {
+    return &Project{name: name}
+}
+```
+{% endcode %}
+
+**4. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -12,163 +105,61 @@ package main
 
 import "fmt"
 
-type Notification interface {
-    sendNotification(message string)
-}
-```
-{% endcode %}
-
-**Конкретные реализации уведомлений**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type EmailNotification struct{}
-
-func (e *EmailNotification) sendNotification(message string) {
-    // Логика отправки уведомления по электронной почте
-    fmt.Printf("Sending email: %s\n", message)
-}
-
-type SMSNotification struct{}
-
-func (s *SMSNotification) sendNotification(message string) {
-    // Логика отправки уведомления через СМС
-    fmt.Printf("Sending SMS: %s\n", message)
-}
-
-type TelegramNotification struct{}
-
-func (t *TelegramNotification) sendNotification(message string) {
-    // Логика отправки уведомления через Telegram
-    fmt.Printf("Sending Telegram message: %s\n", message)
-}
-```
-{% endcode %}
-
-**Абстрактный класс отправителя уведомлений (NotificationSender)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type NotificationSender struct {
-    notification Notification
-}
-
-func (n *NotificationSender) setNotification(notification Notification) {
-    n.notification = notification
-}
-
-func (n *NotificationSender) send(message string) {
-    n.notification.sendNotification(message)
-}
-```
-{% endcode %}
-
-**Конкретные реализации отправителей уведомлений**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type BasicNotificationSender struct {
-    NotificationSender
-}
-
-type AdvancedNotificationSender struct {
-    NotificationSender
-}
-```
-{% endcode %}
-
-**Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
 func main() {
-    // Создаем объекты уведомлений
-    emailNotification := &EmailNotification{}
-    smsNotification := &SMSNotification{}
-    telegramNotification := &TelegramNotification{}
+    project := NewProject("Project 1")
 
-    // Создаем объект отправителя уведомлений
-    basicSender := &BasicNotificationSender{}
+    task1 := NewTask("Task 1")
+    task2 := NewTask("Task 2")
 
-    // Устанавливаем уведомление и отправляем сообщение
-    basicSender.setNotification(emailNotification)
-    basicSender.send("Hello via Email!")
+    project.Add(task1)
+    project.Add(task2)
 
-    basicSender.setNotification(smsNotification)
-    basicSender.send("Hello via SMS!")
-
-    basicSender.setNotification(telegramNotification)
-    basicSender.send("Hello via Telegram!")
+    fmt.Println(project.GetName())
+    fmt.Println(project.GetChild(0).GetName())
+    fmt.Println(project.GetChild(1).GetName())
 }
 ```
 {% endcode %}
 
-#### Объяснение кода
+#### UML диаграмма
 
-1. **Интерфейс `Notification`**:
-   * Это базовый интерфейс для всех типов уведомлений. Он содержит метод `sendNotification`, который должен быть реализован в конкретных структурах уведомлений.
-2. **Конкретные реализации уведомлений**:
-   * `EmailNotification`, `SMSNotification`, `TelegramNotification` — это конкретные структуры, которые реализуют метод `sendNotification` для отправки уведомлений через электронную почту, СМС и Telegram соответственно.
-3. **Абстрактный класс `NotificationSender`**:
-   * Это базовая структура для всех отправителей уведомлений. Она содержит метод `setNotification` для установки конкретного типа уведомления и метод `send` для отправки уведомления.
-4. **Конкретные реализации отправителей уведомлений**:
-   * `BasicNotificationSender` и `AdvancedNotificationSender` — это конкретные структуры, которые наследуют базовую структуру `NotificationSender`.
-5. **Пример использования**:
-   * Мы создаем объекты уведомлений и отправителя уведомлений. Затем устанавливаем конкретное уведомление для отправителя и отправляем сообщение.
-
-
-
-UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мост"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (59).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-
-interface Notification {
-    +sendNotification(message: String)
+interface TaskComponent {
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
 }
 
-class EmailNotification {
-    +sendNotification(message: String)
+class Task {
+    -name: string
+    +NewTask(name: string): Task
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
 }
 
-class SMSNotification {
-    +sendNotification(message: String)
+class Project {
+    -name: string
+    -tasks: TaskComponent[]
+    +NewProject(name: string): Project
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
 }
 
-class TelegramNotification {
-    +sendNotification(message: String)
-}
-
-abstract class NotificationSender {
-    -notification: Notification
-    +setNotification(notification: Notification)
-    +send(message: String)
-}
-
-class BasicNotificationSender {
-    +send(message: String)
-}
-
-class AdvancedNotificationSender {
-    +send(message: String)
-}
-
-Notification <|-- EmailNotification
-Notification <|-- SMSNotification
-Notification <|-- TelegramNotification
-
-NotificationSender <|-- BasicNotificationSender
-NotificationSender <|-- AdvancedNotificationSender
-
-NotificationSender --> Notification
-
+TaskComponent <|-- Task
+TaskComponent <|-- Project
 @enduml
 ```
 {% endcode %}
 
 #### Вывод
 
-Таким образом, мы можем легко добавлять новые типы уведомлений и отправителей, не изменяя основной код, что делает нашу систему гибкой и расширяемой.
+Паттерн Компоновщик позволяет нам создать гибкую и расширяемую систему управления задачами. Мы можем легко добавлять и удалять задачи и подзадачи, обрабатывая их единообразно. Это делает нашу систему более удобной для пользователей и проще в поддержке и расширении.
