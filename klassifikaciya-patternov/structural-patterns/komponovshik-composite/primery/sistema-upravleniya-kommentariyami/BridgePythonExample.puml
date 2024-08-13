@@ -1,24 +1,17 @@
 @startuml
-interface PaymentMethod {
-    +processPayment(amount: float): void
+interface Comment {
+    +display(): void
 }
 
-class YandexMoney implements PaymentMethod {
-    +processPayment(amount: float): void
+class SimpleComment implements Comment {
+    -text: String
+    +display(): void
 }
 
-class SBP implements PaymentMethod {
-    +processPayment(amount: float): void
-}
-
-class DebitCard implements PaymentMethod {
-    +processPayment(amount: float): void
-}
-
-class CompositePaymentMethod implements PaymentMethod {
-    -paymentMethods: List<PaymentMethod>
-    +addPaymentMethod(method: PaymentMethod): void
-    +removePaymentMethod(method: PaymentMethod): void
-    +processPayment(amount: float): void
+class CompositeComment implements Comment {
+    -comments: List<Comment>
+    +addComment(comment: Comment): void
+    +removeComment(comment: Comment): void
+    +display(): void
 }
 @enduml
