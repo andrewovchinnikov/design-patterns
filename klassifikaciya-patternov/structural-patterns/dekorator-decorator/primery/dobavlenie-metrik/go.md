@@ -1,103 +1,12 @@
 # Go
 
-Представьте, что мы — команда разработчиков, работающая над системой управления задачами. Наша цель — создать гибкую и расширяемую систему, которая позволит пользователям создавать задачи, подзадачи и группировать их в проекты. Для этого мы решили использовать паттерн проектирования "Компоновщик" (Composite), который позволяет нам обрабатывать объекты и их композиции единообразно.
+Представьте, что мы разрабатываем систему мониторинга для веб-приложения. Наша задача — собирать различные метрики, такие как время отклика, количество запросов и т.д. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые метрики без изменения существующего кода.
 
-#### Описание паттерна Компоновщик
-
-Паттерн Компоновщик позволяет клиентам обрабатывать отдельные объекты и композиции объектов одинаково. Это особенно полезно, когда у нас есть иерархическая структура данных, как в нашем случае с задачами и подзадачами.
+Для этого мы будем использовать паттерн "Декоратор". Этот паттерн позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов.
 
 #### Пример кода на Go
 
-**1. Определение интерфейса компонента**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type TaskComponent interface {
-    Add(TaskComponent)
-    Remove(TaskComponent)
-    GetChild(int) TaskComponent
-    GetName() string
-}
-```
-{% endcode %}
-
-**2. Реализация листового компонента (задача)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Task struct {
-    name string
-}
-
-func (t *Task) Add(TaskComponent) {
-    // Листовой компонент не может иметь детей
-}
-
-func (t *Task) Remove(TaskComponent) {
-    // Листовой компонент не может иметь детей
-}
-
-func (t *Task) GetChild(int) TaskComponent {
-    // Листовой компонент не имеет детей
-    return nil
-}
-
-func (t *Task) GetName() string {
-    return t.name
-}
-
-func NewTask(name string) *Task {
-    return &Task{name: name}
-}
-```
-{% endcode %}
-
-**3. Реализация композитного компонента (проект)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Project struct {
-    name  string
-    tasks []TaskComponent
-}
-
-func (p *Project) Add(task TaskComponent) {
-    p.tasks = append(p.tasks, task)
-}
-
-func (p *Project) Remove(task TaskComponent) {
-    for i, t := range p.tasks {
-        if t == task {
-            p.tasks = append(p.tasks[:i], p.tasks[i+1:]...)
-            break
-        }
-    }
-}
-
-func (p *Project) GetChild(index int) TaskComponent {
-    if index >= 0 && index < len(p.tasks) {
-        return p.tasks[index]
-    }
-    return nil
-}
-
-func (p *Project) GetName() string {
-    return p.name
-}
-
-func NewProject(name string) *Project {
-    return &Project{name: name}
-}
-```
-{% endcode %}
-
-**4. Пример использования**
+**1. Базовый интерфейс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -105,61 +14,121 @@ package main
 
 import "fmt"
 
+type Metric interface {
+    Collect() string
+}
+```
+{% endcode %}
+
+**2. Базовый класс метрики**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type BaseMetric struct{}
+
+func (bm BaseMetric) Collect() string {
+    // Базовая реализация сбора метрик
+    return "Сбор базовых метрик"
+}
+```
+{% endcode %}
+
+**3. Базовый класс декоратора**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type MetricDecorator struct {
+    metric Metric
+}
+
+func (md MetricDecorator) Collect() string {
+    return md.metric.Collect()
+}
+```
+{% endcode %}
+
+**4. Декоратор для сбора времени отклика**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type ResponseTimeDecorator struct {
+    MetricDecorator
+}
+
+func (rt ResponseTimeDecorator) Collect() string {
+    // Логика сбора времени отклика
+    result := rt.MetricDecorator.Collect()
+    return result + " + Время отклика"
+}
+```
+{% endcode %}
+
+**5. Декоратор для сбора количества запросов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type RequestCountDecorator struct {
+    MetricDecorator
+}
+
+func (rc RequestCountDecorator) Collect() string {
+    // Логика сбора количества запросов
+    result := rc.MetricDecorator.Collect()
+    return result + " + Количество запросов"
+}
+```
+{% endcode %}
+
+**6. Использование декораторов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
 func main() {
-    project := NewProject("Project 1")
+    baseMetric := BaseMetric{}
+    responseTimeMetric := ResponseTimeDecorator{MetricDecorator{metric: baseMetric}}
+    requestCountMetric := RequestCountDecorator{MetricDecorator{metric: responseTimeMetric}}
 
-    task1 := NewTask("Task 1")
-    task2 := NewTask("Task 2")
-
-    project.Add(task1)
-    project.Add(task2)
-
-    fmt.Println(project.GetName())
-    fmt.Println(project.GetChild(0).GetName())
-    fmt.Println(project.GetChild(1).GetName())
+    fmt.Println(requestCountMetric.Collect())
+    // Вывод: Сбор базовых метрик + Время отклика + Количество запросов
 }
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (59).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface TaskComponent {
-    +Add(TaskComponent task)
-    +Remove(TaskComponent task)
-    +GetChild(int index)
-    +GetName(): string
+interface Metric {
+    +Collect(): String
 }
 
-class Task {
-    -name: string
-    +NewTask(name: string): Task
-    +Add(TaskComponent task)
-    +Remove(TaskComponent task)
-    +GetChild(int index)
-    +GetName(): string
+class BaseMetric {
+    +Collect(): String
 }
 
-class Project {
-    -name: string
-    -tasks: TaskComponent[]
-    +NewProject(name: string): Project
-    +Add(TaskComponent task)
-    +Remove(TaskComponent task)
-    +GetChild(int index)
-    +GetName(): string
+abstract class MetricDecorator {
+    -metric: Metric
+    +MetricDecorator(metric: Metric)
+    +Collect(): String
 }
 
-TaskComponent <|-- Task
-TaskComponent <|-- Project
+class ResponseTimeDecorator {
+    +Collect(): String
+}
+
+class RequestCountDecorator {
+    +Collect(): String
+}
+
+Metric <|-- BaseMetric
+Metric <|-- MetricDecorator
+MetricDecorator <|-- ResponseTimeDecorator
+MetricDecorator <|-- RequestCountDecorator
 @enduml
 ```
-{% endcode %}
 
 #### Вывод
 
-Паттерн Компоновщик позволяет нам создать гибкую и расширяемую систему управления задачами. Мы можем легко добавлять и удалять задачи и подзадачи, обрабатывая их единообразно. Это делает нашу систему более удобной для пользователей и проще в поддержке и расширении.
+Использование паттерна "Декоратор" позволяет нам гибко и легко добавлять новые метрики в нашу систему мониторинга. Мы можем оборачивать базовые метрики в декораторы, которые добавляют дополнительное поведение, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения в будущем.
