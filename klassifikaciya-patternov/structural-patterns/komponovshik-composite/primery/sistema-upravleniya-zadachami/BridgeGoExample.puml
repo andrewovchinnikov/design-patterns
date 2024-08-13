@@ -1,0 +1,30 @@
+@startuml
+interface TaskComponent {
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
+}
+
+class Task {
+    -name: string
+    +NewTask(name: string): Task
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
+}
+
+class Project {
+    -name: string
+    -tasks: TaskComponent[]
+    +NewProject(name: string): Project
+    +Add(TaskComponent task)
+    +Remove(TaskComponent task)
+    +GetChild(int index)
+    +GetName(): string
+}
+
+TaskComponent <|-- Task
+TaskComponent <|-- Project
+@enduml

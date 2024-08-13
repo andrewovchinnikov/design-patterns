@@ -2,27 +2,27 @@
 interface TaskComponent {
     +add(TaskComponent task)
     +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+    +get_child(int index)
+    +get_name(): string
 }
 
 class Task {
     -name: string
-    +__construct(name: string)
+    +__init__(name: string)
     +add(TaskComponent task)
     +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+    +get_child(int index)
+    +get_name(): string
 }
 
 class Project {
     -name: string
     -tasks: TaskComponent[]
-    +__construct(name: string)
+    +__init__(name: string)
     +add(TaskComponent task)
     +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+    +get_child(int index)
+    +get_name(): string
 }
 
 TaskComponent <|-- Task
