@@ -10,6 +10,7 @@
 
 **1. Определение интерфейса компонента**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
 interface TaskComponent {
@@ -20,9 +21,11 @@ interface TaskComponent {
 }
 ?>
 ```
+{% endcode %}
 
 **2. Реализация листового компонента (задача)**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
 class Task implements TaskComponent {
@@ -51,9 +54,11 @@ class Task implements TaskComponent {
 }
 ?>
 ```
+{% endcode %}
 
 **3. Реализация композитного компонента (проект)**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
 class Project implements TaskComponent {
@@ -88,9 +93,11 @@ class Project implements TaskComponent {
 }
 ?>
 ```
+{% endcode %}
 
 **4. Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
 $project = new Project("Project 1");
@@ -106,9 +113,13 @@ echo $project->getChild(0)->getName() . "\n";
 echo $project->getChild(1)->getName() . "\n";
 ?>
 ```
+{% endcode %}
 
 #### UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (58).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 interface TaskComponent {
@@ -141,6 +152,7 @@ TaskComponent <|-- Task
 TaskComponent <|-- Project
 @enduml
 ```
+{% endcode %}
 
 #### Вывод
 
