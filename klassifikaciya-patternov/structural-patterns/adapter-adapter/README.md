@@ -27,7 +27,7 @@
 
 ### UML диаграмма
 
-<figure><img src="../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма дял паттерна "Адаптер"</p></figcaption></figure>
+<figure><img src="../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма дял паттерна "Адаптер"</p></figcaption></figure>
 
 ```plant-uml
 @startuml
