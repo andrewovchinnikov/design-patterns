@@ -1,184 +1,122 @@
 # Python
 
-Мы — команда разработчиков, работающая над созданием системы управления комментариями для веб-сайта. Наша цель — предоставить пользователям возможность оставлять комментарии и ответы на комментарии. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать комментарии и ответы единообразно.
+Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
 
-#### UML диаграмма
+#### Описание паттерна Декоратор
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-interface Comment {
-    +display(): void
-}
-
-class SimpleComment implements Comment {
-    -text: String
-    +display(): void
-}
-
-class CompositeComment implements Comment {
-    -comments: List<Comment>
-    +addComment(comment: Comment): void
-    +removeComment(comment: Comment): void
-    +display(): void
-}
-@enduml
-```
-{% endcode %}
+Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
 
 #### Пример кода на Python
 
-**1. Интерфейс Comment**
+**1. Базовый интерфейс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Comment(ABC):
+class RequestHandler(ABC):
     @abstractmethod
-    def display(self):
+    def handle_request(self, request: str) -> str:
         pass
 ```
 {% endcode %}
 
-**2. Класс SimpleComment**
+**2. Базовый класс обработки запросов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class SimpleComment(Comment):
-    def __init__(self, text):
-        self.text = text
-
-    def display(self):
-        print(f"Комментарий: {self.text}")
+class BasicRequestHandler(RequestHandler):
+    def handle_request(self, request: str) -> str:
+        # Логика обработки запроса
+        return f"Обработанный запрос: {request}"
 ```
 {% endcode %}
 
-**3. Класс CompositeComment**
+**3. Базовый класс декоратора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class CompositeComment(Comment):
-    def __init__(self):
-        self.comments = []
+class RequestHandlerDecorator(RequestHandler):
+    def __init__(self, handler: RequestHandler):
+        self._handler = handler
 
-    def addComment(self, comment):
-        self.comments.append(comment)
-
-    def removeComment(self, comment):
-        self.comments.remove(comment)
-
-    def display(self):
-        for comment in self.comments:
-            comment.display()
+    def handle_request(self, request: str) -> str:
+        return self._handler.handle_request(request)
 ```
 {% endcode %}
 
-**4. Пример использования**
+**4. Декоратор для логирования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-def main():
-    # Создаем простые комментарии
-    comment1 = SimpleComment("Это первый комментарий.")
-    comment2 = SimpleComment("Это второй комментарий.")
+class LoggingRequestHandlerDecorator(RequestHandlerDecorator):
+    def handle_request(self, request: str) -> str:
+        # Логирование запроса перед обработкой
+        print(f"Логирование запроса: {request}")
 
-    # Создаем композитный комментарий
-    compositeComment = CompositeComment()
-    compositeComment.addComment(comment1)
-    compositeComment.addComment(comment2)
+        # Обработка запроса
+        result = self._handler.handle_request(request)
 
-    # Создаем вложенные комментарии
-    subComment1 = SimpleComment("Это ответ на первый комментарий.")
-    subComment2 = SimpleComment("Это ответ на второй комментарий.")
+        # Логирование результата после обработки
+        print(f"Логирование результата: {result}")
 
-    # Добавляем вложенные комментарии в композитный комментарий
-    compositeComment.addComment(subComment1)
-    compositeComment.addComment(subComment2)
+        return result
+```
+{% endcode %}
 
-    # Отображаем все комментарии
-    compositeComment.display()
+**5. Пример использования**
 
+{% code overflow="wrap" lineNumbers="true" %}
+```python
 if __name__ == "__main__":
-    main()
+    basic_handler = BasicRequestHandler()
+    logging_handler = LoggingRequestHandlerDecorator(basic_handler)
+
+    request = "GET /api/data"
+    result = logging_handler.handle_request(request)
+
+    print(result)
 ```
 {% endcode %}
 
 #### Объяснение кода
 
-1.  **Интерфейс Comment**: Это базовый интерфейс для всех комментариев. Он содержит абстрактный метод `display`, который должен быть реализован в подклассах.
+1. **Базовый интерфейс `RequestHandler`**: Определяет метод `handle_request`, который будет реализован в конкретных классах.
+2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
+3. **Базовый класс декоратора `RequestHandlerDecorator`**: Класс, который реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
+4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
+5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `handle_request` и выводим результат.
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```python
-    from abc import ABC, abstractmethod
+#### UML диаграмма
 
-    class Comment(ABC):
-        @abstractmethod
-        def display(self):
-            pass
-    ```
-    {% endcode %}
-2.  **Класс SimpleComment**: Этот класс представляет простой комментарий. Он содержит текст комментария и реализует метод `display`, который отображает текст комментария.
+<figure><img src="../../../../../.gitbook/assets/image (61).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```python
-    class SimpleComment(Comment):
-        def __init__(self, text):
-            self.text = text
+```plantuml
+@startuml
+interface RequestHandler {
+    +handle_request(request: String): String
+}
 
-        def display(self):
-            print(f"Комментарий: {self.text}")
-    ```
-    {% endcode %}
-3.  **Класс CompositeComment**: Этот класс представляет композитный комментарий, который может содержать другие комментарии и ответы. Он содержит список `comments`, в который можно добавлять и удалять комментарии. Метод `display` вызывает метод `display` для каждого из добавленных комментариев.
+class BasicRequestHandler {
+    +handle_request(request: String): String
+}
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```python
-    class CompositeComment(Comment):
-        def __init__(self):
-            self.comments = []
+class RequestHandlerDecorator {
+    -handler: RequestHandler
+    +RequestHandlerDecorator(handler: RequestHandler)
+    +handle_request(request: String): String
+}
 
-        def addComment(self, comment):
-            self.comments.append(comment)
+class LoggingRequestHandlerDecorator {
+    +handle_request(request: String): String
+}
 
-        def removeComment(self, comment):
-            self.comments.remove(comment)
+RequestHandler <|-- BasicRequestHandler
+RequestHandler <|-- RequestHandlerDecorator
+RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+@enduml
+```
 
-        def display(self):
-            for comment in self.comments:
-                comment.display()
-    ```
-    {% endcode %}
-4.  **Пример использования**: Мы создаем простые комментарии и композитный комментарий. Затем добавляем простые комментарии и вложенные комментарии в композитный комментарий и вызываем метод `display` для отображения всех комментариев.
+#### Вывод
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```python
-    def main():
-        # Создаем простые комментарии
-        comment1 = SimpleComment("Это первый комментарий.")
-        comment2 = SimpleComment("Это второй комментарий.")
-
-        # Создаем композитный комментарий
-        compositeComment = CompositeComment()
-        compositeComment.addComment(comment1)
-        compositeComment.addComment(comment2)
-
-        # Создаем вложенные комментарии
-        subComment1 = SimpleComment("Это ответ на первый комментарий.")
-        subComment2 = SimpleComment("Это ответ на второй комментарий.")
-
-        # Добавляем вложенные комментарии в композитный комментарий
-        compositeComment.addComment(subComment1)
-        compositeComment.addComment(subComment2)
-
-        # Отображаем все комментарии
-        compositeComment.display()
-
-    if __name__ == "__main__":
-        main()
-    ```
-    {% endcode %}
-
-Таким образом, паттерн Компоновщик позволяет нам обрабатывать комментарии и ответы единообразно, что упрощает управление и расширение системы управления комментариями.
+Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
