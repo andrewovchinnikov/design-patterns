@@ -1,135 +1,122 @@
 # Python
 
-Мы — команда разработчиков, работающая над созданием системы платежей. Наша цель — предоставить пользователям возможность обрабатывать платежи через различные платежные системы, такие как Яндекс Деньги, СБП и Дебетовые карты. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать платежи через разные методы единообразно.
+Мы — команда разработчиков, работающая над веб-приложением для интернет-магазина. Наша цель — создать систему обработки ошибок, которая будет эффективно управлять различными ситуациями, такими как добавление товара в корзину, оформление заказа и другие операции. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы обработки ошибок без изменения существующего кода.
 
-**1. Интерфейс PaymentMethod**
+#### Описание паттерна Декоратор
+
+Паттерн Декоратор позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов. Это особенно полезно, когда нужно добавить новые функциональности к объектам без изменения их кода.
+
+#### Пример кода на Python
+
+**Базовый интерфейс и класс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-from abc import ABC, abstractmethod
-
-class PaymentMethod(ABC):
-    @abstractmethod
-    def processPayment(self, amount: float):
+# Базовый интерфейс для обработки ошибок
+class ErrorHandler:
+    def handle_error(self, error_message: str) -> str:
         pass
+
+# Базовый класс, реализующий интерфейс ErrorHandler
+class SimpleErrorHandler(ErrorHandler):
+    def handle_error(self, error_message: str) -> str:
+        return "Ошибка: " + error_message
 ```
 {% endcode %}
 
-**2. Класс YandexMoney**
+**Декораторы**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class YandexMoney(PaymentMethod):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через Яндекс Деньги на сумму {amount:.2f}")
+# Базовый класс декоратора
+class ErrorHandlerDecorator(ErrorHandler):
+    def __init__(self, error_handler: ErrorHandler):
+        self._error_handler = error_handler
+
+    def handle_error(self, error_message: str) -> str:
+        return self._error_handler.handle_error(error_message)
+
+# Декоратор для логирования ошибок
+class LoggingErrorHandlerDecorator(ErrorHandlerDecorator):
+    def handle_error(self, error_message: str) -> str:
+        # Логируем ошибку
+        with open('error.log', 'a') as file:
+            file.write(error_message + '\n')
+        # Передаем обработку ошибки дальше
+        return self._error_handler.handle_error(error_message)
+
+# Декоратор для отправки уведомлений об ошибках
+class NotificationErrorHandlerDecorator(ErrorHandlerDecorator):
+    def handle_error(self, error_message: str) -> str:
+        # Отправляем уведомление об ошибке
+        print("Уведомление:", error_message)
+        # Передаем обработку ошибки дальше
+        return self._error_handler.handle_error(error_message)
 ```
 {% endcode %}
 
-**3. Класс SBP**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class SBP(PaymentMethod):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через СБП на сумму {amount:.2f}")
-```
-{% endcode %}
-
-**4. Класс DebitCard**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class DebitCard(PaymentMethod):
-    def processPayment(self, amount: float):
-        print(f"Обработка платежа через Дебетовую карту на сумму {amount:.2f}")
-```
-{% endcode %}
-
-**5. Класс CompositePaymentMethod**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class CompositePaymentMethod(PaymentMethod):
-    def __init__(self):
-        self.paymentMethods = []
-
-    def addPaymentMethod(self, method: PaymentMethod):
-        self.paymentMethods.append(method)
-
-    def removePaymentMethod(self, method: PaymentMethod):
-        self.paymentMethods.remove(method)
-
-    def processPayment(self, amount: float):
-        for method in self.paymentMethods:
-            method.processPayment(amount)
-```
-{% endcode %}
-
-**6. Пример использования**
+**Использование декораторов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 def main():
-    # Создаем объекты платежных методов
-    yandexMoney = YandexMoney()
-    sbp = SBP()
-    debitCard = DebitCard()
+    # Создаем базовый обработчик ошибок
+    simple_error_handler = SimpleErrorHandler()
 
-    # Создаем композитный платежный метод
-    compositePayment = CompositePaymentMethod()
-    compositePayment.addPaymentMethod(yandexMoney)
-    compositePayment.addPaymentMethod(sbp)
-    compositePayment.addPaymentMethod(debitCard)
+    # Оборачиваем его в декоратор для логирования
+    logging_error_handler = LoggingErrorHandlerDecorator(simple_error_handler)
 
-    # Обрабатываем платеж через композитный метод
-    compositePayment.processPayment(100.0)
+    # Оборачиваем его в декоратор для уведомлений
+    notification_error_handler = NotificationErrorHandlerDecorator(logging_error_handler)
+
+    # Обрабатываем ошибку
+    error_message = "Не удалось добавить товар в корзину"
+    result = notification_error_handler.handle_error(error_message)
+
+    print(result)
 
 if __name__ == "__main__":
     main()
 ```
 {% endcode %}
 
-#### Объяснение кода
+#### UML диаграмма
 
-1. **Интерфейс PaymentMethod**: Это базовый интерфейс для всех платежных методов. Он содержит абстрактный метод `processPayment`, который должен быть реализован в подклассах.
-2. **Классы YandexMoney, SBP и DebitCard**: Эти классы реализуют метод `processPayment` для обработки платежей через соответствующие платежные системы.
-3. **Класс CompositePaymentMethod**: Этот класс позволяет объединять несколько платежных методов в один композитный метод. Он содержит список `paymentMethods`, в который можно добавлять и удалять платежные методы. Метод `processPayment` вызывает метод `processPayment` для каждого из добавленных платежных методов.
-4. **Пример использования**: Мы создаем объекты для каждого платежного метода, добавляем их в композитный платежный метод и вызываем метод `processPayment` для обработки платежа через все добавленные методы.
-
-UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface PaymentMethod {
-    +processPayment(amount: float): void
+interface ErrorHandler {
+    +handle_error(error_message: String): String
 }
 
-class YandexMoney implements PaymentMethod {
-    +processPayment(amount: float): void
+class SimpleErrorHandler {
+    +handle_error(error_message: String): String
 }
 
-class SBP implements PaymentMethod {
-    +processPayment(amount: float): void
+abstract class ErrorHandlerDecorator {
+    -_error_handler: ErrorHandler
+    +__init__(error_handler: ErrorHandler)
+    +handle_error(error_message: String): String
 }
 
-class DebitCard implements PaymentMethod {
-    +processPayment(amount: float): void
+class LoggingErrorHandlerDecorator {
+    +handle_error(error_message: String): String
 }
 
-class CompositePaymentMethod implements PaymentMethod {
-    -paymentMethods: List<PaymentMethod>
-    +addPaymentMethod(method: PaymentMethod): void
-    +removePaymentMethod(method: PaymentMethod): void
-    +processPayment(amount: float): void
+class NotificationErrorHandlerDecorator {
+    +handle_error(error_message: String): String
 }
+
+ErrorHandler <|-- SimpleErrorHandler
+ErrorHandler <|-- ErrorHandlerDecorator
+ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
+ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
 @enduml
-
 ```
 {% endcode %}
 
+#### Вывод
 
-
-Таким образом, паттерн "Компоновщик" позволяет нам обрабатывать платежи через разные платежные системы единообразно, что упрощает управление и расширение системы платежей.
+Использование паттерна Декоратор позволяет нам гибко и легко добавлять новые функциональности для обработки ошибок без изменения существующего кода. В данном кейсе мы создали базовый обработчик ошибок и добавили к нему декораторы для логирования и отправки уведомлений. Это позволяет нам легко расширять систему в будущем, добавляя новые типы обработки ошибок.
