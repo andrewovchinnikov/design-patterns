@@ -1,0 +1,23 @@
+@startuml
+interface RequestHandler {
+    +handleRequest(request: String): String
+}
+
+class BasicRequestHandler {
+    +handleRequest(request: String): String
+}
+
+abstract class RequestHandlerDecorator {
+    -handler: RequestHandler
+    +RequestHandlerDecorator(handler: RequestHandler)
+    +handleRequest(request: String): String
+}
+
+class LoggingRequestHandlerDecorator {
+    +handleRequest(request: String): String
+}
+
+RequestHandler <|-- BasicRequestHandler
+RequestHandler <|-- RequestHandlerDecorator
+RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+@enduml
