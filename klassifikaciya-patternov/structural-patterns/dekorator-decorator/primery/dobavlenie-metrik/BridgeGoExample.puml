@@ -1,0 +1,28 @@
+@startuml
+interface Metric {
+    +Collect(): String
+}
+
+class BaseMetric {
+    +Collect(): String
+}
+
+abstract class MetricDecorator {
+    -metric: Metric
+    +MetricDecorator(metric: Metric)
+    +Collect(): String
+}
+
+class ResponseTimeDecorator {
+    +Collect(): String
+}
+
+class RequestCountDecorator {
+    +Collect(): String
+}
+
+Metric <|-- BaseMetric
+Metric <|-- MetricDecorator
+MetricDecorator <|-- ResponseTimeDecorator
+MetricDecorator <|-- RequestCountDecorator
+@enduml

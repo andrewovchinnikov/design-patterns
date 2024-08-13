@@ -1,0 +1,27 @@
+@startuml
+interface ErrorHandler {
+    +HandleError(errorMessage: String): String
+}
+
+class SimpleErrorHandler {
+    +HandleError(errorMessage: String): String
+}
+
+abstract class ErrorHandlerDecorator {
+    -errorHandler: ErrorHandler
+    +HandleError(errorMessage: String): String
+}
+
+class LoggingErrorHandlerDecorator {
+    +HandleError(errorMessage: String): String
+}
+
+class NotificationErrorHandlerDecorator {
+    +HandleError(errorMessage: String): String
+}
+
+ErrorHandler <|-- SimpleErrorHandler
+ErrorHandler <|-- ErrorHandlerDecorator
+ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
+ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
+@enduml
