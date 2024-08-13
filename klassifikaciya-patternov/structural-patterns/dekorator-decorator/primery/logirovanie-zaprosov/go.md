@@ -1,37 +1,14 @@
 # Go
 
-Мы — команда разработчиков, работающая над созданием системы управления комментариями для веб-сайта. Наша цель — предоставить пользователям возможность оставлять комментарии и ответы на комментарии. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать комментарии и ответы единообразно.
+Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
 
+#### Описание паттерна Декоратор
 
+Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
 
-UML диаграмма
+#### Пример кода на Go
 
-<figure><img src="../../../../../.gitbook/assets/image (57).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
-@startuml
-interface Comment {
-    +display(): void
-}
-
-class SimpleComment implements Comment {
-    -text: String
-    +display(): void
-}
-
-class CompositeComment implements Comment {
-    -comments: List<Comment>
-    +addComment(comment: Comment): void
-    +removeComment(comment: Comment): void
-    +display(): void
-}
-@enduml
-
-```
-{% endcode %}
-
-**1. Интерфейс Comment**
+**1. Базовый интерфейс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -39,161 +16,115 @@ package main
 
 import "fmt"
 
-type Comment interface {
-    Display()
+type RequestHandler interface {
+    HandleRequest(request string) string
 }
 ```
 {% endcode %}
 
-**2. Структура SimpleComment**
+**2. Базовый класс обработки запросов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type SimpleComment struct {
-    Text string
-}
+type BasicRequestHandler struct{}
 
-func (sc SimpleComment) Display() {
-    fmt.Printf("Комментарий: %s\n", sc.Text)
+func (h *BasicRequestHandler) HandleRequest(request string) string {
+    // Логика обработки запроса
+    return "Обработанный запрос: " + request
 }
 ```
 {% endcode %}
 
-**3. Структура CompositeComment**
+**3. Базовый класс декоратора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type CompositeComment struct {
-    Comments []Comment
+type RequestHandlerDecorator struct {
+    handler RequestHandler
 }
 
-func (cc *CompositeComment) AddComment(comment Comment) {
-    cc.Comments = append(cc.Comments, comment)
-}
-
-func (cc *CompositeComment) RemoveComment(comment Comment) {
-    for i, c := range cc.Comments {
-        if c == comment {
-            cc.Comments = append(cc.Comments[:i], cc.Comments[i+1:]...)
-            break
-        }
-    }
-}
-
-func (cc CompositeComment) Display() {
-    for _, comment := range cc.Comments {
-        comment.Display()
-    }
+func (d *RequestHandlerDecorator) HandleRequest(request string) string {
+    return d.handler.HandleRequest(request)
 }
 ```
 {% endcode %}
 
-**4. Пример использования**
+**4. Декоратор для логирования**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type LoggingRequestHandlerDecorator struct {
+    RequestHandlerDecorator
+}
+
+func (d *LoggingRequestHandlerDecorator) HandleRequest(request string) string {
+    // Логирование запроса перед обработкой
+    fmt.Println("Логирование запроса:", request)
+
+    // Обработка запроса
+    result := d.handler.HandleRequest(request)
+
+    // Логирование результата после обработки
+    fmt.Println("Логирование результата:", result)
+
+    return result
+}
+```
+{% endcode %}
+
+**5. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем простые комментарии
-    comment1 := SimpleComment{Text: "Это первый комментарий."}
-    comment2 := SimpleComment{Text: "Это второй комментарий."}
+    basicHandler := &BasicRequestHandler{}
+    loggingHandler := &LoggingRequestHandlerDecorator{RequestHandlerDecorator{handler: basicHandler}}
 
-    // Создаем композитный комментарий
-    compositeComment := CompositeComment{}
-    compositeComment.AddComment(comment1)
-    compositeComment.AddComment(comment2)
+    request := "GET /api/data"
+    result := loggingHandler.HandleRequest(request)
 
-    // Создаем вложенные комментарии
-    subComment1 := SimpleComment{Text: "Это ответ на первый комментарий."}
-    subComment2 := SimpleComment{Text: "Это ответ на второй комментарий."}
-
-    // Добавляем вложенные комментарии в композитный комментарий
-    compositeComment.AddComment(subComment1)
-    compositeComment.AddComment(subComment2)
-
-    // Отображаем все комментарии
-    compositeComment.Display()
+    fmt.Println(result)
 }
 ```
 {% endcode %}
 
 #### Объяснение кода
 
-1.  **Интерфейс Comment**: Это базовый интерфейс для всех комментариев. Он содержит метод `Display`, который должен быть реализован в структурах.
+1. **Базовый интерфейс `RequestHandler`**: Определяет метод `HandleRequest`, который будет реализован в конкретных структурах.
+2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
+3. **Базовый класс декоратора `RequestHandlerDecorator`**: Структура, которая реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
+4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
+5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `HandleRequest` и выводим результат.
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```go
-    type Comment interface {
-        Display()
-    }
-    ```
-    {% endcode %}
-2.  **Структура SimpleComment**: Эта структура представляет простой комментарий. Она содержит текст комментария и реализует метод `Display`, который отображает текст комментария.
+#### UML диаграмма
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```go
-    type SimpleComment struct {
-        Text string
-    }
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
-    func (sc SimpleComment) Display() {
-        fmt.Printf("Комментарий: %s\n", sc.Text)
-    }
-    ```
-    {% endcode %}
-3.  **Структура CompositeComment**: Эта структура представляет композитный комментарий, который может содержать другие комментарии и ответы. Она содержит срез `Comments`, в который можно добавлять и удалять комментарии. Метод `Display` вызывает метод `Display` для каждого из добавленных комментариев.
+```plantuml
+@startuml
+interface RequestHandler {
+    +HandleRequest(request: String): String
+}
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```go
-    type CompositeComment struct {
-        Comments []Comment
-    }
+class BasicRequestHandler {
+    +HandleRequest(request: String): String
+}
 
-    func (cc *CompositeComment) AddComment(comment Comment) {
-        cc.Comments = append(cc.Comments, comment)
-    }
+class RequestHandlerDecorator {
+    -handler: RequestHandler
+    +HandleRequest(request: String): String
+}
 
-    func (cc *CompositeComment) RemoveComment(comment Comment) {
-        for i, c := range cc.Comments {
-            if c == comment {
-                cc.Comments = append(cc.Comments[:i], cc.Comments[i+1:]...)
-                break
-            }
-        }
-    }
+class LoggingRequestHandlerDecorator {
+    +HandleRequest(request: String): String
+}
 
-    func (cc CompositeComment) Display() {
-        for _, comment := range cc.Comments {
-            comment.Display()
-        }
-    }
-    ```
-    {% endcode %}
-4.  **Пример использования**: Мы создаем простые комментарии и композитный комментарий. Затем добавляем простые комментарии и вложенные комментарии в композитный комментарий и вызываем метод `Display` для отображения всех комментариев.
+RequestHandler <|-- BasicRequestHandler
+RequestHandler <|-- RequestHandlerDecorator
+RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+@enduml
+```
 
-    {% code overflow="wrap" lineNumbers="true" %}
-    ```go
-    func main() {
-        // Создаем простые комментарии
-        comment1 := SimpleComment{Text: "Это первый комментарий."}
-        comment2 := SimpleComment{Text: "Это второй комментарий."}
+#### Вывод
 
-        // Создаем композитный комментарий
-        compositeComment := CompositeComment{}
-        compositeComment.AddComment(comment1)
-        compositeComment.AddComment(comment2)
-
-        // Создаем вложенные комментарии
-        subComment1 := SimpleComment{Text: "Это ответ на первый комментарий."}
-        subComment2 := SimpleComment{Text: "Это ответ на второй комментарий."}
-
-        // Добавляем вложенные комментарии в композитный комментарий
-        compositeComment.AddComment(subComment1)
-        compositeComment.AddComment(subComment2)
-
-        // Отображаем все комментарии
-        compositeComment.Display()
-    }
-    ```
-    {% endcode %}
-
-Таким образом, паттерн Компоновщик позволяет нам обрабатывать комментарии и ответы единообразно, что упрощает управление и расширение системы управления комментариями.
+Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
