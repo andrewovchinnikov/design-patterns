@@ -1,151 +1,156 @@
 # Go
 
-Мы — команда разработчиков, работающая над созданием системы платежей. Наша цель — предоставить пользователям возможность обрабатывать платежи через различные платежные системы, такие как Яндекс Деньги, СБП и Дебетовые карты. Для этого мы используем паттерн Компоновщик, который позволяет нам обрабатывать платежи через разные методы единообразно.
+Мы — команда разработчиков, работающая над веб-приложением для интернет-магазина. Наша цель — создать систему обработки ошибок, которая будет эффективно управлять различными ситуациями, такими как добавление товара в корзину, оформление заказа и другие операции. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы обработки ошибок без изменения существующего кода.
 
-**1. Интерфейс PaymentMethod**
+#### Описание паттерна Декоратор
+
+Паттерн Декоратор позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов. Это особенно полезно, когда нужно добавить новые функциональности к объектам без изменения их кода.
+
+#### Пример кода на Go
+
+**Базовый интерфейс и класс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
-type PaymentMethod interface {
-    ProcessPayment(amount float64)
+// Базовый интерфейс для обработки ошибок
+type ErrorHandler interface {
+	HandleError(errorMessage string) string
+}
+
+// Базовый класс, реализующий интерфейс ErrorHandler
+type SimpleErrorHandler struct{}
+
+func (h *SimpleErrorHandler) HandleError(errorMessage string) string {
+	return "Ошибка: " + errorMessage
 }
 ```
 {% endcode %}
 
-**2. Структура YandexMoney**
+**Декораторы**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type YandexMoney struct{}
+package main
 
-func (ym YandexMoney) ProcessPayment(amount float64) {
-    fmt.Printf("Обработка платежа через Яндекс Деньги на сумму %.2f\n", amount)
+import (
+	"fmt"
+	"os"
+)
+
+// Базовый класс декоратора
+type ErrorHandlerDecorator struct {
+	errorHandler ErrorHandler
+}
+
+func (d *ErrorHandlerDecorator) HandleError(errorMessage string) string {
+	return d.errorHandler.HandleError(errorMessage)
+}
+
+// Декоратор для логирования ошибок
+type LoggingErrorHandlerDecorator struct {
+	ErrorHandlerDecorator
+}
+
+func (d *LoggingErrorHandlerDecorator) HandleError(errorMessage string) string {
+	// Логируем ошибку
+	file, err := os.OpenFile("error.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		fmt.Println("Ошибка при открытии файла лога:", err)
+	}
+	defer file.Close()
+	file.WriteString(errorMessage + "\n")
+
+	// Передаем обработку ошибки дальше
+	return d.errorHandler.HandleError(errorMessage)
+}
+
+// Декоратор для отправки уведомлений об ошибках
+type NotificationErrorHandlerDecorator struct {
+	ErrorHandlerDecorator
+}
+
+func (d *NotificationErrorHandlerDecorator) HandleError(errorMessage string) string {
+	// Отправляем уведомление об ошибке
+	fmt.Println("Уведомление:", errorMessage)
+
+	// Передаем обработку ошибки дальше
+	return d.errorHandler.HandleError(errorMessage)
 }
 ```
 {% endcode %}
 
-**3. Структура SBP**
+**Использование декораторов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type SBP struct{}
+package main
 
-func (sbp SBP) ProcessPayment(amount float64) {
-    fmt.Printf("Обработка платежа через СБП на сумму %.2f\n", amount)
-}
-```
-{% endcode %}
-
-**4. Структура DebitCard**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type DebitCard struct{}
-
-func (dc DebitCard) ProcessPayment(amount float64) {
-    fmt.Printf("Обработка платежа через Дебетовую карту на сумму %.2f\n", amount)
-}
-```
-{% endcode %}
-
-**5. Структура CompositePaymentMethod**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type CompositePaymentMethod struct {
-    paymentMethods []PaymentMethod
-}
-
-func (cp *CompositePaymentMethod) AddPaymentMethod(method PaymentMethod) {
-    cp.paymentMethods = append(cp.paymentMethods, method)
-}
-
-func (cp *CompositePaymentMethod) RemovePaymentMethod(method PaymentMethod) {
-    for i, m := range cp.paymentMethods {
-        if m == method {
-            cp.paymentMethods = append(cp.paymentMethods[:i], cp.paymentMethods[i+1:]...)
-            break
-        }
-    }
-}
-
-func (cp CompositePaymentMethod) ProcessPayment(amount float64) {
-    for _, method := range cp.paymentMethods {
-        method.ProcessPayment(amount)
-    }
-}
-```
-{% endcode %}
-
-**6. Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
 func main() {
-    // Создаем объекты платежных методов
-    yandexMoney := YandexMoney{}
-    sbp := SBP{}
-    debitCard := DebitCard{}
+	// Создаем базовый обработчик ошибок
+	simpleErrorHandler := &SimpleErrorHandler{}
 
-    // Создаем композитный платежный метод
-    compositePayment := CompositePaymentMethod{}
-    compositePayment.AddPaymentMethod(yandexMoney)
-    compositePayment.AddPaymentMethod(sbp)
-    compositePayment.AddPaymentMethod(debitCard)
+	// Оборачиваем его в декоратор для логирования
+	loggingErrorHandler := &LoggingErrorHandlerDecorator{
+		ErrorHandlerDecorator{errorHandler: simpleErrorHandler},
+	}
 
-    // Обрабатываем платеж через композитный метод
-    compositePayment.ProcessPayment(100.0)
+	// Оборачиваем его в декоратор для уведомлений
+	notificationErrorHandler := &NotificationErrorHandlerDecorator{
+		ErrorHandlerDecorator{errorHandler: loggingErrorHandler},
+	}
+
+	// Обрабатываем ошибку
+	errorMessage := "Не удалось добавить товар в корзину"
+	result := notificationErrorHandler.HandleError(errorMessage)
+
+	fmt.Println(result)
 }
 ```
 {% endcode %}
 
-#### Объяснение кода
+#### UML диаграмма
 
-1. **Интерфейс PaymentMethod**: Это базовый интерфейс для всех платежных методов. Он содержит метод `ProcessPayment`, который должен быть реализован в структурах.
-2. **Структуры YandexMoney, SBP и DebitCard**: Эти структуры реализуют метод `ProcessPayment` для обработки платежей через соответствующие платежные системы.
-3. **Структура CompositePaymentMethod**: Эта структура позволяет объединять несколько платежных методов в один композитный метод. Она содержит срез `paymentMethods`, в который можно добавлять и удалять платежные методы. Метод `ProcessPayment` вызывает метод `ProcessPayment` для каждого из добавленных платежных методов.
-4. **Пример использования**: Мы создаем объекты для каждого платежного метода, добавляем их в композитный платежный метод и вызываем метод `ProcessPayment` для обработки платежа через все добавленные методы.
-
-
-
-UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (55).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface PaymentMethod {
-    +processPayment(amount: float): void
+interface ErrorHandler {
+    +HandleError(errorMessage: String): String
 }
 
-class YandexMoney implements PaymentMethod {
-    +processPayment(amount: float): void
+class SimpleErrorHandler {
+    +HandleError(errorMessage: String): String
 }
 
-class SBP implements PaymentMethod {
-    +processPayment(amount: float): void
+abstract class ErrorHandlerDecorator {
+    -errorHandler: ErrorHandler
+    +HandleError(errorMessage: String): String
 }
 
-class DebitCard implements PaymentMethod {
-    +processPayment(amount: float): void
+class LoggingErrorHandlerDecorator {
+    +HandleError(errorMessage: String): String
 }
 
-class CompositePaymentMethod implements PaymentMethod {
-    -paymentMethods: List<PaymentMethod>
-    +addPaymentMethod(method: PaymentMethod): void
-    +removePaymentMethod(method: PaymentMethod): void
-    +processPayment(amount: float): void
+class NotificationErrorHandlerDecorator {
+    +HandleError(errorMessage: String): String
 }
+
+ErrorHandler <|-- SimpleErrorHandler
+ErrorHandler <|-- ErrorHandlerDecorator
+ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
+ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
 @enduml
-
 ```
 {% endcode %}
 
 #### Вывод
 
-Таким образом, паттерн Компоновщик позволяет нам обрабатывать платежи через разные платежные системы единообразно, что упрощает управление и расширение системы платежей.
+Использование паттерна Декоратор позволяет нам гибко и легко добавлять новые функциональности для обработки ошибок без изменения существующего кода. В данном кейсе мы создали базовый обработчик ошибок и добавили к нему декораторы для логирования и отправки уведомлений. Это позволяет нам легко расширять систему в будущем, добавляя новые типы обработки ошибок.

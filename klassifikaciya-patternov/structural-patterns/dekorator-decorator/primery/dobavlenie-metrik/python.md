@@ -1,146 +1,123 @@
 # Python
 
-Представьте, что мы — команда разработчиков, работающая над системой управления задачами. Наша цель — создать гибкую и расширяемую систему, которая позволит пользователям создавать задачи, подзадачи и группировать их в проекты. Для этого мы решили использовать паттерн проектирования "Компоновщик" (Composite), который позволяет нам обрабатывать объекты и их композиции единообразно.
+Представьте, что мы разрабатываем систему мониторинга для веб-приложения. Наша задача — собирать различные метрики, такие как время отклика, количество запросов и т.д. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые метрики без изменения существующего кода.
 
-#### Описание паттерна Компоновщик
-
-Паттерн Компоновщик позволяет клиентам обрабатывать отдельные объекты и композиции объектов одинаково. Это особенно полезно, когда у нас есть иерархическая структура данных, как в нашем случае с задачами и подзадачами.
+Для этого мы будем использовать паттерн "Декоратор". Этот паттерн позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов.
 
 #### Пример кода на Python
 
-**1. Определение интерфейса компонента**
+**1. Базовый интерфейс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class TaskComponent(ABC):
+class Metric(ABC):
     @abstractmethod
-    def add(self, task):
-        pass
-
-    @abstractmethod
-    def remove(self, task):
-        pass
-
-    @abstractmethod
-    def get_child(self, index):
-        pass
-
-    @abstractmethod
-    def get_name(self):
+    def collect(self):
         pass
 ```
 {% endcode %}
 
-**2. Реализация листового компонента (задача)**
+**2. Базовый класс метрики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Task(TaskComponent):
-    def __init__(self, name):
-        self.name = name
-
-    def add(self, task):
-        # Листовой компонент не может иметь детей
-        pass
-
-    def remove(self, task):
-        # Листовой компонент не может иметь детей
-        pass
-
-    def get_child(self, index):
-        # Листовой компонент не имеет детей
-        return None
-
-    def get_name(self):
-        return self.name
+class BaseMetric(Metric):
+    def collect(self):
+        # Базовая реализация сбора метрик
+        return "Сбор базовых метрик"
 ```
 {% endcode %}
 
-**3. Реализация композитного компонента (проект)**
+**3. Базовый класс декоратора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Project(TaskComponent):
-    def __init__(self, name):
-        self.name = name
-        self.tasks = []
+class MetricDecorator(Metric):
+    def __init__(self, metric: Metric):
+        self._metric = metric
 
-    def add(self, task):
-        self.tasks.append(task)
-
-    def remove(self, task):
-        self.tasks.remove(task)
-
-    def get_child(self, index):
-        if index >= 0 and index < len(self.tasks):
-            return self.tasks[index]
-        return None
-
-    def get_name(self):
-        return self.name
+    def collect(self):
+        return self._metric.collect()
 ```
 {% endcode %}
 
-**4. Пример использования**
+**4. Декоратор для сбора времени отклика**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class ResponseTimeDecorator(MetricDecorator):
+    def collect(self):
+        # Логика сбора времени отклика
+        result = self._metric.collect()
+        return result + " + Время отклика"
+```
+{% endcode %}
+
+**5. Декоратор для сбора количества запросов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class RequestCountDecorator(MetricDecorator):
+    def collect(self):
+        # Логика сбора количества запросов
+        result = self._metric.collect()
+        return result + " + Количество запросов"
+```
+{% endcode %}
+
+**6. Использование декораторов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    project = Project("Project 1")
+    base_metric = BaseMetric()
+    response_time_metric = ResponseTimeDecorator(base_metric)
+    request_count_metric = RequestCountDecorator(response_time_metric)
 
-    task1 = Task("Task 1")
-    task2 = Task("Task 2")
-
-    project.add(task1)
-    project.add(task2)
-
-    print(project.get_name())
-    print(project.get_child(0).get_name())
-    print(project.get_child(1).get_name())
+    print(request_count_metric.collect())
+    # Вывод: Сбор базовых метрик + Время отклика + Количество запросов
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface TaskComponent {
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +get_child(int index)
-    +get_name(): string
+interface Metric {
+    +collect(): String
 }
 
-class Task {
-    -name: string
-    +__init__(name: string)
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +get_child(int index)
-    +get_name(): string
+class BaseMetric {
+    +collect(): String
 }
 
-class Project {
-    -name: string
-    -tasks: TaskComponent[]
-    +__init__(name: string)
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +get_child(int index)
-    +get_name(): string
+abstract class MetricDecorator {
+    -metric: Metric
+    +MetricDecorator(metric: Metric)
+    +collect(): String
 }
 
-TaskComponent <|-- Task
-TaskComponent <|-- Project
+class ResponseTimeDecorator {
+    +collect(): String
+}
+
+class RequestCountDecorator {
+    +collect(): String
+}
+
+Metric <|-- BaseMetric
+Metric <|-- MetricDecorator
+MetricDecorator <|-- ResponseTimeDecorator
+MetricDecorator <|-- RequestCountDecorator
 @enduml
 ```
 {% endcode %}
 
 #### Вывод
 
-Паттерн Компоновщик позволяет нам создать гибкую и расширяемую систему управления задачами. Мы можем легко добавлять и удалять задачи и подзадачи, обрабатывая их единообразно. Это делает нашу систему более удобной для пользователей и проще в поддержке и расширении.
+Использование паттерна "Декоратор" позволяет нам гибко и легко добавлять новые метрики в нашу систему мониторинга. Мы можем оборачивать базовые метрики в декораторы, которые добавляют дополнительное поведение, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения в будущем.

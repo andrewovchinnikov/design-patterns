@@ -1,159 +1,136 @@
 # PHP
 
-Представьте, что мы — команда разработчиков, работающая над системой управления задачами. Наша цель — создать гибкую и расширяемую систему, которая позволит пользователям создавать задачи, подзадачи и группировать их в проекты. Для этого мы решили использовать паттерн проектирования "Компоновщик" (Composite), который позволяет нам обрабатывать объекты и их композиции единообразно.
+Представьте, что мы разрабатываем систему мониторинга для веб-приложения. Наша задача — собирать различные метрики, такие как время отклика, количество запросов и т.д. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые метрики без изменения существующего кода.
 
-#### Описание паттерна Компоновщик
-
-Паттерн Компоновщик позволяет клиентам обрабатывать отдельные объекты и композиции объектов одинаково. Это особенно полезно, когда у нас есть иерархическая структура данных, как в нашем случае с задачами и подзадачами.
+Для этого мы будем использовать паттерн "Декоратор". Этот паттерн позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов.
 
 #### Пример кода на PHP
 
-**1. Определение интерфейса компонента**
+**1. Базовый интерфейс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-interface TaskComponent {
-    public function add(TaskComponent $task);
-    public function remove(TaskComponent $task);
-    public function getChild(int $index);
-    public function getName(): string;
+interface Metric {
+    public function collect();
 }
-?>
 ```
 {% endcode %}
 
-**2. Реализация листового компонента (задача)**
+**2. Базовый класс метрики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class Task implements TaskComponent {
-    private string $name;
-
-    public function __construct(string $name) {
-        $this->name = $name;
-    }
-
-    public function add(TaskComponent $task) {
-        // Листовой компонент не может иметь детей
-    }
-
-    public function remove(TaskComponent $task) {
-        // Листовой компонент не может иметь детей
-    }
-
-    public function getChild(int $index) {
-        // Листовой компонент не имеет детей
-        return null;
-    }
-
-    public function getName(): string {
-        return $this->name;
+class BaseMetric implements Metric {
+    public function collect() {
+        // Базовая реализация сбора метрик
+        return "Сбор базовых метрик";
     }
 }
-?>
 ```
 {% endcode %}
 
-**3. Реализация композитного компонента (проект)**
+**3. Базовый класс декоратора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class Project implements TaskComponent {
-    private string $name;
-    private array $tasks = [];
+abstract class MetricDecorator implements Metric {
+    protected $metric;
 
-    public function __construct(string $name) {
-        $this->name = $name;
+    public function __construct(Metric $metric) {
+        $this->metric = $metric;
     }
 
-    public function add(TaskComponent $task) {
-        $this->tasks[] = $task;
-    }
-
-    public function remove(TaskComponent $task) {
-        $index = array_search($task, $this->tasks);
-        if ($index !== false) {
-            unset($this->tasks[$index]);
-        }
-    }
-
-    public function getChild(int $index) {
-        if (isset($this->tasks[$index])) {
-            return $this->tasks[$index];
-        }
-        return null;
-    }
-
-    public function getName(): string {
-        return $this->name;
+    public function collect() {
+        return $this->metric->collect();
     }
 }
-?>
 ```
 {% endcode %}
 
-**4. Пример использования**
+**4. Декоратор для сбора времени отклика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-$project = new Project("Project 1");
+class ResponseTimeDecorator extends MetricDecorator {
+    public function collect() {
+        // Логика сбора времени отклика
+        $result = $this->metric->collect();
+        return $result . " + Время отклика";
+    }
+}
+```
+{% endcode %}
 
-$task1 = new Task("Task 1");
-$task2 = new Task("Task 2");
+**5. Декоратор для сбора количества запросов**
 
-$project->add($task1);
-$project->add($task2);
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+class RequestCountDecorator extends MetricDecorator {
+    public function collect() {
+        // Логика сбора количества запросов
+        $result = $this->metric->collect();
+        return $result . " + Количество запросов";
+    }
+}
+```
+{% endcode %}
 
-echo $project->getName() . "\n";
-echo $project->getChild(0)->getName() . "\n";
-echo $project->getChild(1)->getName() . "\n";
-?>
+**6. Использование декораторов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+$baseMetric = new BaseMetric();
+$responseTimeMetric = new ResponseTimeDecorator($baseMetric);
+$requestCountMetric = new RequestCountDecorator($responseTimeMetric);
+
+echo $requestCountMetric->collect();
+// Вывод: Сбор базовых метрик + Время отклика + Количество запросов
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (58).png" alt=""><figcaption><p>UML диаграмма для паттерна "Компоновщик"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface TaskComponent {
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+interface Metric {
+    +collect(): String
 }
 
-class Task {
-    -name: string
-    +__construct(name: string)
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+class BaseMetric {
+    +collect(): String
 }
 
-class Project {
-    -name: string
-    -tasks: TaskComponent[]
-    +__construct(name: string)
-    +add(TaskComponent task)
-    +remove(TaskComponent task)
-    +getChild(int index)
-    +getName(): string
+abstract class MetricDecorator {
+    -metric: Metric
+    +MetricDecorator(metric: Metric)
+    +collect(): String
 }
 
-TaskComponent <|-- Task
-TaskComponent <|-- Project
+class ResponseTimeDecorator {
+    +collect(): String
+}
+
+class RequestCountDecorator {
+    +collect(): String
+}
+
+Metric <|-- BaseMetric
+Metric <|-- MetricDecorator
+MetricDecorator <|-- ResponseTimeDecorator
+MetricDecorator <|-- RequestCountDecorator
 @enduml
 ```
 {% endcode %}
 
 #### Вывод
 
-Паттерн Компоновщик позволяет нам создать гибкую и расширяемую систему управления задачами. Мы можем легко добавлять и удалять задачи и подзадачи, обрабатывая их единообразно. Это делает нашу систему более удобной для пользователей и проще в поддержке и расширении.
+Использование паттерна "Декоратор" позволяет нам гибко и легко добавлять новые метрики в нашу систему мониторинга. Мы можем оборачивать базовые метрики в декораторы, которые добавляют дополнительное поведение, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения в будущем.
