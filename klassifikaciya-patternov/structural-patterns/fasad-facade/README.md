@@ -6,6 +6,8 @@
 
 ### **UML Диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+
 ```plaintext
 @startuml
 class Facade {
