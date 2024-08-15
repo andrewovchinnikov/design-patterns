@@ -118,6 +118,8 @@ if ($user) {
 
 #### UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (64).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
