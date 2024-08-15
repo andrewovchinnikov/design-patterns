@@ -1,134 +1,160 @@
 # PHP
 
-Мы — команда разработчиков, работающая над веб-приложением для интернет-магазина. Наша цель — создать систему обработки ошибок, которая будет эффективно управлять различными ситуациями, такими как добавление товара в корзину, оформление заказа и другие операции. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы обработки ошибок без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов. Это особенно полезно, когда нужно добавить новые функциональности к объектам без изменения их кода.
+Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
 
 #### Пример кода на PHP
 
-**Базовый интерфейс и класс**
+**1. Классы для управления аутентификацией и авторизацией**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-// Базовый интерфейс для обработки ошибок
-interface ErrorHandler {
-    public function handleError(string $errorMessage): string;
-}
+// Класс для управления пользователями
+class User {
+    private $username;
+    private $password;
+    private $role;
 
-// Базовый класс, реализующий интерфейс ErrorHandler
-class SimpleErrorHandler implements ErrorHandler {
-    public function handleError(string $errorMessage): string {
-        return "Ошибка: " . $errorMessage;
+    public function __construct($username, $password, $role) {
+        $this->username = $username;
+        $this->password = $password;
+        $this->role = $role;
+    }
+
+    public function getUsername() {
+        return $this->username;
+    }
+
+    public function getPassword() {
+        return $this->password;
+    }
+
+    public function getRole() {
+        return $this->role;
     }
 }
-?>
+
+// Класс для аутентификации пользователей
+class Authentication {
+    public function authenticate($username, $password) {
+        // Простая проверка аутентификации
+        $users = [
+            'admin' => new User('admin', 'admin123', 'admin'),
+            'user' => new User('user', 'user123', 'user')
+        ];
+
+        if (isset($users[$username]) && $users[$username]->getPassword() === $password) {
+            return $users[$username];
+        }
+
+        return null;
+    }
+}
+
+// Класс для авторизации пользователей
+class Authorization {
+    public function authorize($user, $requiredRole) {
+        return $user->getRole() === $requiredRole;
+    }
+}
 ```
 {% endcode %}
 
-**Декораторы**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-// Базовый класс декоратора
-abstract class ErrorHandlerDecorator implements ErrorHandler {
-    protected $errorHandler;
+// Класс Фасада для управления аутентификацией и авторизацией
+class AuthFacade {
+    private $authentication;
+    private $authorization;
 
-    public function __construct(ErrorHandler $errorHandler) {
-        $this->errorHandler = $errorHandler;
+    public function __construct() {
+        $this->authentication = new Authentication();
+        $this->authorization = new Authorization();
     }
 
-    public function handleError(string $errorMessage): string {
-        return $this->errorHandler->handleError($errorMessage);
+    // Метод для аутентификации пользователя
+    public function login($username, $password) {
+        $user = $this->authentication->authenticate($username, $password);
+        if ($user) {
+            return $user;
+        }
+        return null;
     }
-}
 
-// Декоратор для логирования ошибок
-class LoggingErrorHandlerDecorator extends ErrorHandlerDecorator {
-    public function handleError(string $errorMessage): string {
-        // Логируем ошибку
-        file_put_contents('error.log', $errorMessage . PHP_EOL, FILE_APPEND);
-        // Передаем обработку ошибки дальше
-        return $this->errorHandler->handleError($errorMessage);
-    }
-}
-
-// Декоратор для отправки уведомлений об ошибках
-class NotificationErrorHandlerDecorator extends ErrorHandlerDecorator {
-    public function handleError(string $errorMessage): string {
-        // Отправляем уведомление об ошибке
-        echo "Уведомление: " . $errorMessage . PHP_EOL;
-        // Передаем обработку ошибки дальше
-        return $this->errorHandler->handleError($errorMessage);
+    // Метод для авторизации пользователя
+    public function checkAccess($user, $requiredRole) {
+        return $this->authorization->authorize($user, $requiredRole);
     }
 }
-?>
 ```
 {% endcode %}
 
-**Использование декораторов**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-// Создаем базовый обработчик ошибок
-$simpleErrorHandler = new SimpleErrorHandler();
+// Пример использования Фасада
+$authFacade = new AuthFacade();
 
-// Оборачиваем его в декоратор для логирования
-$loggingErrorHandler = new LoggingErrorHandlerDecorator($simpleErrorHandler);
+// Аутентификация пользователя
+$user = $authFacade->login('admin', 'admin123');
+if ($user) {
+    echo "User authenticated: " . $user->getUsername() . "\n";
 
-// Оборачиваем его в декоратор для уведомлений
-$notificationErrorHandler = new NotificationErrorHandlerDecorator($loggingErrorHandler);
-
-// Обрабатываем ошибку
-$errorMessage = "Не удалось добавить товар в корзину";
-$result = $notificationErrorHandler->handleError($errorMessage);
-
-echo $result;
-?>
+    // Авторизация пользователя
+    if ($authFacade->checkAccess($user, 'admin')) {
+        echo "User has admin access.\n";
+    } else {
+        echo "User does not have admin access.\n";
+    }
+} else {
+    echo "Authentication failed.\n";
+}
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
-
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface ErrorHandler {
-    +handleError(errorMessage: String): String
+
+class User {
+    -username: string
+    -password: string
+    -role: string
+    +__construct(username: string, password: string, role: string)
+    +getUsername(): string
+    +getPassword(): string
+    +getRole(): string
 }
 
-class SimpleErrorHandler {
-    +handleError(errorMessage: String): String
+class Authentication {
+    +authenticate(username: string, password: string): User
 }
 
-abstract class ErrorHandlerDecorator {
-    -errorHandler: ErrorHandler
-    +__construct(errorHandler: ErrorHandler)
-    +handleError(errorMessage: String): String
+class Authorization {
+    +authorize(user: User, requiredRole: string): bool
 }
 
-class LoggingErrorHandlerDecorator {
-    +handleError(errorMessage: String): String
+class AuthFacade {
+    -authentication: Authentication
+    -authorization: Authorization
+    +__construct()
+    +login(username: string, password: string): User
+    +checkAccess(user: User, requiredRole: string): bool
 }
 
-class NotificationErrorHandlerDecorator {
-    +handleError(errorMessage: String): String
-}
+AuthFacade --> Authentication
+AuthFacade --> Authorization
 
-ErrorHandler <|-- SimpleErrorHandler
-ErrorHandler <|-- ErrorHandlerDecorator
-ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
-ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Использование паттерна Декоратор позволяет нам гибко и легко добавлять новые функциональности для обработки ошибок без изменения существующего кода. В данном кейсе мы создали базовый обработчик ошибок и добавили к нему декораторы для логирования и отправки уведомлений. Это позволяет нам легко расширять систему в будущем, добавляя новые типы обработки ошибок.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.
