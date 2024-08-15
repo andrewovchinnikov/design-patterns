@@ -1,0 +1,29 @@
+@startuml
+
+class UserService {
+    +get_user(user_id: int): dict
+}
+
+class OrderService {
+    +get_order(order_id: int): dict
+}
+
+class ProductService {
+    +get_product(product_id: int): dict
+}
+
+class MicroserviceFacade {
+    -user_service: UserService
+    -order_service: OrderService
+    -product_service: ProductService
+    +__init__()
+    +get_user(user_id: int): dict
+    +get_order(order_id: int): dict
+    +get_product(product_id: int): dict
+}
+
+MicroserviceFacade --> UserService
+MicroserviceFacade --> OrderService
+MicroserviceFacade --> ProductService
+
+@enduml

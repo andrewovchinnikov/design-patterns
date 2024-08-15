@@ -1,0 +1,29 @@
+@startuml
+
+class UserService {
+    +getUser(userId: int): array
+}
+
+class OrderService {
+    +getOrder(orderId: int): array
+}
+
+class ProductService {
+    +getProduct(productId: int): array
+}
+
+class MicroserviceFacade {
+    -userService: UserService
+    -orderService: OrderService
+    -productService: ProductService
+    +__construct()
+    +getUser(userId: int): array
+    +getOrder(orderId: int): array
+    +getProduct(productId: int): array
+}
+
+MicroserviceFacade --> UserService
+MicroserviceFacade --> OrderService
+MicroserviceFacade --> ProductService
+
+@enduml

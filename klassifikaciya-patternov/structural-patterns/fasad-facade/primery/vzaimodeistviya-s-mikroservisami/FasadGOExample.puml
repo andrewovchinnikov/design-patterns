@@ -1,0 +1,29 @@
+@startuml
+
+class UserService {
+    +GetUser(userId: int): map[string]interface{}
+}
+
+class OrderService {
+    +GetOrder(orderId: int): map[string]interface{}
+}
+
+class ProductService {
+    +GetProduct(productId: int): map[string]interface{}
+}
+
+class MicroserviceFacade {
+    -userService: UserService
+    -orderService: OrderService
+    -productService: ProductService
+    +NewMicroserviceFacade(): MicroserviceFacade
+    +GetUser(userId: int): map[string]interface{}
+    +GetOrder(orderId: int): map[string]interface{}
+    +GetProduct(productId: int): map[string]interface{}
+}
+
+MicroserviceFacade --> UserService
+MicroserviceFacade --> OrderService
+MicroserviceFacade --> ProductService
+
+@enduml
