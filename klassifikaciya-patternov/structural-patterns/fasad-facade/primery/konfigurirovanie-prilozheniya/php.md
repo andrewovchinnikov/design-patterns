@@ -133,6 +133,8 @@ print_r($loggingConfig);
 
 #### UML диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (62).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml

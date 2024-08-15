@@ -1,130 +1,201 @@
 # Go
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
+Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
 
 #### Пример кода на Go
 
-**1. Базовый интерфейс**
+**1. Классы для управления конфигурациями**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+// Класс для управления настройками базы данных
+type DatabaseConfig struct {
+    Host     string
+    Username string
+    Password string
+    Database string
+}
+
+func NewDatabaseConfig(host, username, password, database string) *DatabaseConfig {
+    return &DatabaseConfig{
+        Host:     host,
+        Username: username,
+        Password: password,
+        Database: database,
+    }
+}
+
+func (dc *DatabaseConfig) GetConfig() map[string]string {
+    return map[string]string{
+        "host":     dc.Host,
+        "username": dc.Username,
+        "password": dc.Password,
+        "database": dc.Database,
+    }
+}
+
+// Класс для управления настройками кэширования
+type CacheConfig struct {
+    Driver string
+    Host   string
+    Port   int
+}
+
+func NewCacheConfig(driver, host string, port int) *CacheConfig {
+    return &CacheConfig{
+        Driver: driver,
+        Host:   host,
+        Port:   port,
+    }
+}
+
+func (cc *CacheConfig) GetConfig() map[string]interface{} {
+    return map[string]interface{}{
+        "driver": cc.Driver,
+        "host":   cc.Host,
+        "port":   cc.Port,
+    }
+}
+
+// Класс для управления настройками логирования
+type LoggingConfig struct {
+    Level string
+    File  string
+}
+
+func NewLoggingConfig(level, file string) *LoggingConfig {
+    return &LoggingConfig{
+        Level: level,
+        File:  file,
+    }
+}
+
+func (lc *LoggingConfig) GetConfig() map[string]string {
+    return map[string]string{
+        "level": lc.Level,
+        "file":  lc.File,
+    }
+}
+```
+{% endcode %}
+
+**2. Класс Фасада**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+// Класс Фасада для управления всеми конфигурациями
+type ConfigFacade struct {
+    databaseConfig *DatabaseConfig
+    cacheConfig    *CacheConfig
+    loggingConfig  *LoggingConfig
+}
+
+func NewConfigFacade() *ConfigFacade {
+    return &ConfigFacade{
+        databaseConfig: NewDatabaseConfig("localhost", "root", "password", "mydb"),
+        cacheConfig:    NewCacheConfig("redis", "localhost", 6379),
+        loggingConfig:  NewLoggingConfig("info", "/var/log/app.log"),
+    }
+}
+
+// Метод для получения конфигурации базы данных
+func (cf *ConfigFacade) GetDatabaseConfig() map[string]string {
+    return cf.databaseConfig.GetConfig()
+}
+
+// Метод для получения конфигурации кэширования
+func (cf *ConfigFacade) GetCacheConfig() map[string]interface{} {
+    return cf.cacheConfig.GetConfig()
+}
+
+// Метод для получения конфигурации логирования
+func (cf *ConfigFacade) GetLoggingConfig() map[string]string {
+    return cf.loggingConfig.GetConfig()
+}
+```
+{% endcode %}
+
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import "fmt"
+import (
+    "fmt"
+)
 
-type RequestHandler interface {
-    HandleRequest(request string) string
-}
-```
-{% endcode %}
-
-**2. Базовый класс обработки запросов**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type BasicRequestHandler struct{}
-
-func (h *BasicRequestHandler) HandleRequest(request string) string {
-    // Логика обработки запроса
-    return "Обработанный запрос: " + request
-}
-```
-{% endcode %}
-
-**3. Базовый класс декоратора**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type RequestHandlerDecorator struct {
-    handler RequestHandler
-}
-
-func (d *RequestHandlerDecorator) HandleRequest(request string) string {
-    return d.handler.HandleRequest(request)
-}
-```
-{% endcode %}
-
-**4. Декоратор для логирования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type LoggingRequestHandlerDecorator struct {
-    RequestHandlerDecorator
-}
-
-func (d *LoggingRequestHandlerDecorator) HandleRequest(request string) string {
-    // Логирование запроса перед обработкой
-    fmt.Println("Логирование запроса:", request)
-
-    // Обработка запроса
-    result := d.handler.HandleRequest(request)
-
-    // Логирование результата после обработки
-    fmt.Println("Логирование результата:", result)
-
-    return result
-}
-```
-{% endcode %}
-
-**5. Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
 func main() {
-    basicHandler := &BasicRequestHandler{}
-    loggingHandler := &LoggingRequestHandlerDecorator{RequestHandlerDecorator{handler: basicHandler}}
+    // Пример использования Фасада
+    configFacade := NewConfigFacade()
 
-    request := "GET /api/data"
-    result := loggingHandler.HandleRequest(request)
+    // Получение конфигурации базы данных
+    dbConfig := configFacade.GetDatabaseConfig()
+    fmt.Println("Database Config:", dbConfig)
 
-    fmt.Println(result)
+    // Получение конфигурации кэширования
+    cacheConfig := configFacade.GetCacheConfig()
+    fmt.Println("Cache Config:", cacheConfig)
+
+    // Получение конфигурации логирования
+    loggingConfig := configFacade.GetLoggingConfig()
+    fmt.Println("Logging Config:", loggingConfig)
 }
 ```
 {% endcode %}
-
-#### Объяснение кода
-
-1. **Базовый интерфейс `RequestHandler`**: Определяет метод `HandleRequest`, который будет реализован в конкретных структурах.
-2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
-3. **Базовый класс декоратора `RequestHandlerDecorator`**: Структура, которая реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
-4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
-5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `HandleRequest` и выводим результат.
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (63).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface RequestHandler {
-    +HandleRequest(request: String): String
+
+class DatabaseConfig {
+    -Host: string
+    -Username: string
+    -Password: string
+    -Database: string
+    +NewDatabaseConfig(host: string, username: string, password: string, database: string): DatabaseConfig
+    +GetConfig(): map[string]string
 }
 
-class BasicRequestHandler {
-    +HandleRequest(request: String): String
+class CacheConfig {
+    -Driver: string
+    -Host: string
+    -Port: int
+    +NewCacheConfig(driver: string, host: string, port: int): CacheConfig
+    +GetConfig(): map[string]interface{}
 }
 
-class RequestHandlerDecorator {
-    -handler: RequestHandler
-    +HandleRequest(request: String): String
+class LoggingConfig {
+    -Level: string
+    -File: string
+    +NewLoggingConfig(level: string, file: string): LoggingConfig
+    +GetConfig(): map[string]string
 }
 
-class LoggingRequestHandlerDecorator {
-    +HandleRequest(request: String): String
+class ConfigFacade {
+    -databaseConfig: DatabaseConfig
+    -cacheConfig: CacheConfig
+    -loggingConfig: LoggingConfig
+    +NewConfigFacade(): ConfigFacade
+    +GetDatabaseConfig(): map[string]string
+    +GetCacheConfig(): map[string]interface{}
+    +GetLoggingConfig(): map[string]string
 }
 
-RequestHandler <|-- BasicRequestHandler
-RequestHandler <|-- RequestHandlerDecorator
-RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+ConfigFacade --> DatabaseConfig
+ConfigFacade --> CacheConfig
+ConfigFacade --> LoggingConfig
+
 @enduml
 ```
+{% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.

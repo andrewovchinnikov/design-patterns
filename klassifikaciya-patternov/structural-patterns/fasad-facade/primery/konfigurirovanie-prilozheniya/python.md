@@ -1,122 +1,157 @@
 # Python
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
+Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
 
 #### Пример кода на Python
 
-**1. Базовый интерфейс**
+**1. Классы для управления конфигурациями**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-from abc import ABC, abstractmethod
+# Класс для управления настройками базы данных
+class DatabaseConfig:
+    def __init__(self, host, username, password, database):
+        self.host = host
+        self.username = username
+        self.password = password
+        self.database = database
 
-class RequestHandler(ABC):
-    @abstractmethod
-    def handle_request(self, request: str) -> str:
-        pass
+    def get_config(self):
+        return {
+            'host': self.host,
+            'username': self.username,
+            'password': self.password,
+            'database': self.database
+        }
+
+# Класс для управления настройками кэширования
+class CacheConfig:
+    def __init__(self, driver, host, port):
+        self.driver = driver
+        self.host = host
+        self.port = port
+
+    def get_config(self):
+        return {
+            'driver': self.driver,
+            'host': self.host,
+            'port': self.port
+        }
+
+# Класс для управления настройками логирования
+class LoggingConfig:
+    def __init__(self, level, file):
+        self.level = level
+        self.file = file
+
+    def get_config(self):
+        return {
+            'level': self.level,
+            'file': self.file
+        }
 ```
 {% endcode %}
 
-**2. Базовый класс обработки запросов**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class BasicRequestHandler(RequestHandler):
-    def handle_request(self, request: str) -> str:
-        # Логика обработки запроса
-        return f"Обработанный запрос: {request}"
+# Класс Фасада для управления всеми конфигурациями
+class ConfigFacade:
+    def __init__(self):
+        # Инициализация конфигураций с дефолтными значениями
+        self.database_config = DatabaseConfig('localhost', 'root', 'password', 'mydb')
+        self.cache_config = CacheConfig('redis', 'localhost', 6379)
+        self.logging_config = LoggingConfig('info', '/var/log/app.log')
+
+    # Метод для получения конфигурации базы данных
+    def get_database_config(self):
+        return self.database_config.get_config()
+
+    # Метод для получения конфигурации кэширования
+    def get_cache_config(self):
+        return self.cache_config.get_config()
+
+    # Метод для получения конфигурации логирования
+    def get_logging_config(self):
+        return self.logging_config.get_config()
 ```
 {% endcode %}
 
-**3. Базовый класс декоратора**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class RequestHandlerDecorator(RequestHandler):
-    def __init__(self, handler: RequestHandler):
-        self._handler = handler
-
-    def handle_request(self, request: str) -> str:
-        return self._handler.handle_request(request)
-```
-{% endcode %}
-
-**4. Декоратор для логирования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class LoggingRequestHandlerDecorator(RequestHandlerDecorator):
-    def handle_request(self, request: str) -> str:
-        # Логирование запроса перед обработкой
-        print(f"Логирование запроса: {request}")
-
-        # Обработка запроса
-        result = self._handler.handle_request(request)
-
-        # Логирование результата после обработки
-        print(f"Логирование результата: {result}")
-
-        return result
-```
-{% endcode %}
-
-**5. Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
+# Пример использования Фасада
 if __name__ == "__main__":
-    basic_handler = BasicRequestHandler()
-    logging_handler = LoggingRequestHandlerDecorator(basic_handler)
+    config_facade = ConfigFacade()
 
-    request = "GET /api/data"
-    result = logging_handler.handle_request(request)
+    # Получение конфигурации базы данных
+    db_config = config_facade.get_database_config()
+    print("Database Config:", db_config)
 
-    print(result)
+    # Получение конфигурации кэширования
+    cache_config = config_facade.get_cache_config()
+    print("Cache Config:", cache_config)
+
+    # Получение конфигурации логирования
+    logging_config = config_facade.get_logging_config()
+    print("Logging Config:", logging_config)
 ```
 {% endcode %}
-
-#### Объяснение кода
-
-1. **Базовый интерфейс `RequestHandler`**: Определяет метод `handle_request`, который будет реализован в конкретных классах.
-2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
-3. **Базовый класс декоратора `RequestHandlerDecorator`**: Класс, который реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
-4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
-5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `handle_request` и выводим результат.
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (61).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface RequestHandler {
-    +handle_request(request: String): String
+
+class DatabaseConfig {
+    -host: string
+    -username: string
+    -password: string
+    -database: string
+    +__init__(host: string, username: string, password: string, database: string)
+    +get_config(): dict
 }
 
-class BasicRequestHandler {
-    +handle_request(request: String): String
+class CacheConfig {
+    -driver: string
+    -host: string
+    -port: int
+    +__init__(driver: string, host: string, port: int)
+    +get_config(): dict
 }
 
-class RequestHandlerDecorator {
-    -handler: RequestHandler
-    +RequestHandlerDecorator(handler: RequestHandler)
-    +handle_request(request: String): String
+class LoggingConfig {
+    -level: string
+    -file: string
+    +__init__(level: string, file: string)
+    +get_config(): dict
 }
 
-class LoggingRequestHandlerDecorator {
-    +handle_request(request: String): String
+class ConfigFacade {
+    -database_config: DatabaseConfig
+    -cache_config: CacheConfig
+    -logging_config: LoggingConfig
+    +__init__()
+    +get_database_config(): dict
+    +get_cache_config(): dict
+    +get_logging_config(): dict
 }
 
-RequestHandler <|-- BasicRequestHandler
-RequestHandler <|-- RequestHandlerDecorator
-RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+ConfigFacade --> DatabaseConfig
+ConfigFacade --> CacheConfig
+ConfigFacade --> LoggingConfig
+
 @enduml
 ```
+{% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.
