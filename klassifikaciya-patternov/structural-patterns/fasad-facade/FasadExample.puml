@@ -1,0 +1,21 @@
+@startuml
+class Facade {
+    +operation()
+}
+
+class SubsystemA {
+    +operationA()
+}
+
+class SubsystemB {
+    +operationB()
+}
+
+class SubsystemC {
+    +operationC()
+}
+
+Facade --> SubsystemA
+Facade --> SubsystemB
+Facade --> SubsystemC
+@enduml

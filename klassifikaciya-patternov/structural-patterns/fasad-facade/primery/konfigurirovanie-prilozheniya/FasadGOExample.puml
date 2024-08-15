@@ -1,0 +1,41 @@
+@startuml
+
+class DatabaseConfig {
+    -Host: string
+    -Username: string
+    -Password: string
+    -Database: string
+    +NewDatabaseConfig(host: string, username: string, password: string, database: string): DatabaseConfig
+    +GetConfig(): map[string]string
+}
+
+class CacheConfig {
+    -Driver: string
+    -Host: string
+    -Port: int
+    +NewCacheConfig(driver: string, host: string, port: int): CacheConfig
+    +GetConfig(): map[string]interface{}
+}
+
+class LoggingConfig {
+    -Level: string
+    -File: string
+    +NewLoggingConfig(level: string, file: string): LoggingConfig
+    +GetConfig(): map[string]string
+}
+
+class ConfigFacade {
+    -databaseConfig: DatabaseConfig
+    -cacheConfig: CacheConfig
+    -loggingConfig: LoggingConfig
+    +NewConfigFacade(): ConfigFacade
+    +GetDatabaseConfig(): map[string]string
+    +GetCacheConfig(): map[string]interface{}
+    +GetLoggingConfig(): map[string]string
+}
+
+ConfigFacade --> DatabaseConfig
+ConfigFacade --> CacheConfig
+ConfigFacade --> LoggingConfig
+
+@enduml
