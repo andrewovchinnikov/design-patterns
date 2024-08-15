@@ -1,156 +1,168 @@
 # Go
 
-Мы — команда разработчиков, работающая над веб-приложением для интернет-магазина. Наша цель — создать систему обработки ошибок, которая будет эффективно управлять различными ситуациями, такими как добавление товара в корзину, оформление заказа и другие операции. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы обработки ошибок без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов. Это особенно полезно, когда нужно добавить новые функциональности к объектам без изменения их кода.
+Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
 
 #### Пример кода на Go
 
-**Базовый интерфейс и класс**
+**1. Классы для управления аутентификацией и авторизацией**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import (
-	"fmt"
-	"os"
-)
+import "fmt"
 
-// Базовый интерфейс для обработки ошибок
-type ErrorHandler interface {
-	HandleError(errorMessage string) string
+// Класс для управления пользователями
+type User struct {
+    Username string
+    Password string
+    Role     string
 }
 
-// Базовый класс, реализующий интерфейс ErrorHandler
-type SimpleErrorHandler struct{}
+func NewUser(username, password, role string) *User {
+    return &User{
+        Username: username,
+        Password: password,
+        Role:     role,
+    }
+}
 
-func (h *SimpleErrorHandler) HandleError(errorMessage string) string {
-	return "Ошибка: " + errorMessage
+func (u *User) GetUsername() string {
+    return u.Username
+}
+
+func (u *User) GetPassword() string {
+    return u.Password
+}
+
+func (u *User) GetRole() string {
+    return u.Role
+}
+
+// Класс для аутентификации пользователей
+type Authentication struct{}
+
+func (a *Authentication) Authenticate(username, password string) *User {
+    // Простая проверка аутентификации
+    users := map[string]*User{
+        "admin": NewUser("admin", "admin123", "admin"),
+        "user":  NewUser("user", "user123", "user"),
+    }
+
+    if user, ok := users[username]; ok && user.GetPassword() == password {
+        return user
+    }
+
+    return nil
+}
+
+// Класс для авторизации пользователей
+type Authorization struct{}
+
+func (a *Authorization) Authorize(user *User, requiredRole string) bool {
+    return user.GetRole() == requiredRole
 }
 ```
 {% endcode %}
 
-**Декораторы**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-import (
-	"fmt"
-	"os"
-)
-
-// Базовый класс декоратора
-type ErrorHandlerDecorator struct {
-	errorHandler ErrorHandler
+// Класс Фасада для управления аутентификацией и авторизацией
+type AuthFacade struct {
+    authentication *Authentication
+    authorization  *Authorization
 }
 
-func (d *ErrorHandlerDecorator) HandleError(errorMessage string) string {
-	return d.errorHandler.HandleError(errorMessage)
+func NewAuthFacade() *AuthFacade {
+    return &AuthFacade{
+        authentication: &Authentication{},
+        authorization:  &Authorization{},
+    }
 }
 
-// Декоратор для логирования ошибок
-type LoggingErrorHandlerDecorator struct {
-	ErrorHandlerDecorator
+// Метод для аутентификации пользователя
+func (af *AuthFacade) Login(username, password string) *User {
+    return af.authentication.Authenticate(username, password)
 }
 
-func (d *LoggingErrorHandlerDecorator) HandleError(errorMessage string) string {
-	// Логируем ошибку
-	file, err := os.OpenFile("error.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-	if err != nil {
-		fmt.Println("Ошибка при открытии файла лога:", err)
-	}
-	defer file.Close()
-	file.WriteString(errorMessage + "\n")
-
-	// Передаем обработку ошибки дальше
-	return d.errorHandler.HandleError(errorMessage)
-}
-
-// Декоратор для отправки уведомлений об ошибках
-type NotificationErrorHandlerDecorator struct {
-	ErrorHandlerDecorator
-}
-
-func (d *NotificationErrorHandlerDecorator) HandleError(errorMessage string) string {
-	// Отправляем уведомление об ошибке
-	fmt.Println("Уведомление:", errorMessage)
-
-	// Передаем обработку ошибки дальше
-	return d.errorHandler.HandleError(errorMessage)
+// Метод для авторизации пользователя
+func (af *AuthFacade) CheckAccess(user *User, requiredRole string) bool {
+    return af.authorization.Authorize(user, requiredRole)
 }
 ```
 {% endcode %}
 
-**Использование декораторов**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
 func main() {
-	// Создаем базовый обработчик ошибок
-	simpleErrorHandler := &SimpleErrorHandler{}
+    // Пример использования Фасада
+    authFacade := NewAuthFacade()
 
-	// Оборачиваем его в декоратор для логирования
-	loggingErrorHandler := &LoggingErrorHandlerDecorator{
-		ErrorHandlerDecorator{errorHandler: simpleErrorHandler},
-	}
+    // Аутентификация пользователя
+    user := authFacade.Login("admin", "admin123")
+    if user != nil {
+        fmt.Println("User authenticated:", user.GetUsername())
 
-	// Оборачиваем его в декоратор для уведомлений
-	notificationErrorHandler := &NotificationErrorHandlerDecorator{
-		ErrorHandlerDecorator{errorHandler: loggingErrorHandler},
-	}
-
-	// Обрабатываем ошибку
-	errorMessage := "Не удалось добавить товар в корзину"
-	result := notificationErrorHandler.HandleError(errorMessage)
-
-	fmt.Println(result)
+        // Авторизация пользователя
+        if authFacade.CheckAccess(user, "admin") {
+            fmt.Println("User has admin access.")
+        } else {
+            fmt.Println("User does not have admin access.")
+        }
+    } else {
+        fmt.Println("Authentication failed.")
+    }
 }
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (65).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface ErrorHandler {
-    +HandleError(errorMessage: String): String
+
+class User {
+    -Username: string
+    -Password: string
+    -Role: string
+    +NewUser(username: string, password: string, role: string): User
+    +GetUsername(): string
+    +GetPassword(): string
+    +GetRole(): string
 }
 
-class SimpleErrorHandler {
-    +HandleError(errorMessage: String): String
+class Authentication {
+    +Authenticate(username: string, password: string): User
 }
 
-abstract class ErrorHandlerDecorator {
-    -errorHandler: ErrorHandler
-    +HandleError(errorMessage: String): String
+class Authorization {
+    +Authorize(user: User, requiredRole: string): bool
 }
 
-class LoggingErrorHandlerDecorator {
-    +HandleError(errorMessage: String): String
+class AuthFacade {
+    -authentication: Authentication
+    -authorization: Authorization
+    +NewAuthFacade(): AuthFacade
+    +Login(username: string, password: string): User
+    +CheckAccess(user: User, requiredRole: string): bool
 }
 
-class NotificationErrorHandlerDecorator {
-    +HandleError(errorMessage: String): String
-}
+AuthFacade --> Authentication
+AuthFacade --> Authorization
 
-ErrorHandler <|-- SimpleErrorHandler
-ErrorHandler <|-- ErrorHandlerDecorator
-ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
-ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Использование паттерна Декоратор позволяет нам гибко и легко добавлять новые функциональности для обработки ошибок без изменения существующего кода. В данном кейсе мы создали базовый обработчик ошибок и добавили к нему декораторы для логирования и отправки уведомлений. Это позволяет нам легко расширять систему в будущем, добавляя новые типы обработки ошибок.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.

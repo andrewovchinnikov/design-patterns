@@ -1,122 +1,136 @@
 # Python
 
-Мы — команда разработчиков, работающая над веб-приложением для интернет-магазина. Наша цель — создать систему обработки ошибок, которая будет эффективно управлять различными ситуациями, такими как добавление товара в корзину, оформление заказа и другие операции. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы обработки ошибок без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов. Это особенно полезно, когда нужно добавить новые функциональности к объектам без изменения их кода.
+Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
 
 #### Пример кода на Python
 
-**Базовый интерфейс и класс**
+**1. Классы для управления аутентификацией и авторизацией**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Базовый интерфейс для обработки ошибок
-class ErrorHandler:
-    def handle_error(self, error_message: str) -> str:
-        pass
+# Класс для управления пользователями
+class User:
+    def __init__(self, username, password, role):
+        self.username = username
+        self.password = password
+        self.role = role
 
-# Базовый класс, реализующий интерфейс ErrorHandler
-class SimpleErrorHandler(ErrorHandler):
-    def handle_error(self, error_message: str) -> str:
-        return "Ошибка: " + error_message
+    def get_username(self):
+        return self.username
+
+    def get_password(self):
+        return self.password
+
+    def get_role(self):
+        return self.role
+
+# Класс для аутентификации пользователей
+class Authentication:
+    def authenticate(self, username, password):
+        # Простая проверка аутентификации
+        users = {
+            'admin': User('admin', 'admin123', 'admin'),
+            'user': User('user', 'user123', 'user')
+        }
+
+        if username in users and users[username].get_password() == password:
+            return users[username]
+
+        return None
+
+# Класс для авторизации пользователей
+class Authorization:
+    def authorize(self, user, required_role):
+        return user.get_role() == required_role
 ```
 {% endcode %}
 
-**Декораторы**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Базовый класс декоратора
-class ErrorHandlerDecorator(ErrorHandler):
-    def __init__(self, error_handler: ErrorHandler):
-        self._error_handler = error_handler
+# Класс Фасада для управления аутентификацией и авторизацией
+class AuthFacade:
+    def __init__(self):
+        self.authentication = Authentication()
+        self.authorization = Authorization()
 
-    def handle_error(self, error_message: str) -> str:
-        return self._error_handler.handle_error(error_message)
+    # Метод для аутентификации пользователя
+    def login(self, username, password):
+        return self.authentication.authenticate(username, password)
 
-# Декоратор для логирования ошибок
-class LoggingErrorHandlerDecorator(ErrorHandlerDecorator):
-    def handle_error(self, error_message: str) -> str:
-        # Логируем ошибку
-        with open('error.log', 'a') as file:
-            file.write(error_message + '\n')
-        # Передаем обработку ошибки дальше
-        return self._error_handler.handle_error(error_message)
-
-# Декоратор для отправки уведомлений об ошибках
-class NotificationErrorHandlerDecorator(ErrorHandlerDecorator):
-    def handle_error(self, error_message: str) -> str:
-        # Отправляем уведомление об ошибке
-        print("Уведомление:", error_message)
-        # Передаем обработку ошибки дальше
-        return self._error_handler.handle_error(error_message)
+    # Метод для авторизации пользователя
+    def check_access(self, user, required_role):
+        return self.authorization.authorize(user, required_role)
 ```
 {% endcode %}
 
-**Использование декораторов**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-def main():
-    # Создаем базовый обработчик ошибок
-    simple_error_handler = SimpleErrorHandler()
-
-    # Оборачиваем его в декоратор для логирования
-    logging_error_handler = LoggingErrorHandlerDecorator(simple_error_handler)
-
-    # Оборачиваем его в декоратор для уведомлений
-    notification_error_handler = NotificationErrorHandlerDecorator(logging_error_handler)
-
-    # Обрабатываем ошибку
-    error_message = "Не удалось добавить товар в корзину"
-    result = notification_error_handler.handle_error(error_message)
-
-    print(result)
-
+# Пример использования Фасада
 if __name__ == "__main__":
-    main()
+    auth_facade = AuthFacade()
+
+    # Аутентификация пользователя
+    user = auth_facade.login('admin', 'admin123')
+    if user:
+        print("User authenticated:", user.get_username())
+
+        # Авторизация пользователя
+        if auth_facade.check_access(user, 'admin'):
+            print("User has admin access.")
+        else:
+            print("User does not have admin access.")
+    else:
+        print("Authentication failed.")
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface ErrorHandler {
-    +handle_error(error_message: String): String
+
+class User {
+    -username: string
+    -password: string
+    -role: string
+    +__init__(username: string, password: string, role: string)
+    +get_username(): string
+    +get_password(): string
+    +get_role(): string
 }
 
-class SimpleErrorHandler {
-    +handle_error(error_message: String): String
+class Authentication {
+    +authenticate(username: string, password: string): User
 }
 
-abstract class ErrorHandlerDecorator {
-    -_error_handler: ErrorHandler
-    +__init__(error_handler: ErrorHandler)
-    +handle_error(error_message: String): String
+class Authorization {
+    +authorize(user: User, required_role: string): bool
 }
 
-class LoggingErrorHandlerDecorator {
-    +handle_error(error_message: String): String
+class AuthFacade {
+    -authentication: Authentication
+    -authorization: Authorization
+    +__init__()
+    +login(username: string, password: string): User
+    +check_access(user: User, required_role: string): bool
 }
 
-class NotificationErrorHandlerDecorator {
-    +handle_error(error_message: String): String
-}
+AuthFacade --> Authentication
+AuthFacade --> Authorization
 
-ErrorHandler <|-- SimpleErrorHandler
-ErrorHandler <|-- ErrorHandlerDecorator
-ErrorHandlerDecorator <|-- LoggingErrorHandlerDecorator
-ErrorHandlerDecorator <|-- NotificationErrorHandlerDecorator
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Использование паттерна Декоратор позволяет нам гибко и легко добавлять новые функциональности для обработки ошибок без изменения существующего кода. В данном кейсе мы создали базовый обработчик ошибок и добавили к нему декораторы для логирования и отправки уведомлений. Это позволяет нам легко расширять систему в будущем, добавляя новые типы обработки ошибок.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.
