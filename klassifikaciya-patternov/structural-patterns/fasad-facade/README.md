@@ -8,7 +8,8 @@
 
 <figure><img src="../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
-```plaintext
+{% code overflow="wrap" lineNumbers="true" %}
+```plant-uml
 @startuml
 class Facade {
     +operation()
@@ -31,6 +32,7 @@ Facade --> SubsystemB
 Facade --> SubsystemC
 @enduml
 ```
+{% endcode %}
 
 ### **Описание элементов**
 
