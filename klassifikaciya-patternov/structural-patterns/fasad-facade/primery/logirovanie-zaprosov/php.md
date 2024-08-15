@@ -1,128 +1,184 @@
 # PHP
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложения. Наша задача — реализовать систему логирования запросов, чтобы мы могли отслеживать, какие запросы приходят к нашему серверу, и как они обрабатываются. Это поможет нам в отладке и мониторинге.
+Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
 
-#### Описание паттерна Декоратор
-
-Паттерн Декоратор позволяет динамически добавлять новое поведение объекту, оборачивая его в объект класса декоратора. Это особенно полезно, когда мы хотим расширить функциональность объекта без изменения его кода.
+Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
 
 #### Пример кода на PHP
 
-**1. Базовый интерфейс**
+**1. Классы для управления конфигурациями**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface RequestHandler {
-    public function handleRequest(string $request): string;
+// Класс для управления настройками базы данных
+class DatabaseConfig {
+    private $host;
+    private $username;
+    private $password;
+    private $database;
+
+    public function __construct($host, $username, $password, $database) {
+        $this->host = $host;
+        $this->username = $username;
+        $this->password = $password;
+        $this->database = $database;
+    }
+
+    public function getConfig() {
+        return [
+            'host' => $this->host,
+            'username' => $this->username,
+            'password' => $this->password,
+            'database' => $this->database
+        ];
+    }
 }
-```
-{% endcode %}
 
-**2. Базовый класс обработки запросов**
+// Класс для управления настройками кэширования
+class CacheConfig {
+    private $driver;
+    private $host;
+    private $port;
 
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class BasicRequestHandler implements RequestHandler {
-    public function handleRequest(string $request): string {
-        // Логика обработки запроса
-        return "Обработанный запрос: $request";
+    public function __construct($driver, $host, $port) {
+        $this->driver = $driver;
+        $this->host = $host;
+        $this->port = $port;
+    }
+
+    public function getConfig() {
+        return [
+            'driver' => $this->driver,
+            'host' => $this->host,
+            'port' => $this->port
+        ];
+    }
+}
+
+// Класс для управления настройками логирования
+class LoggingConfig {
+    private $level;
+    private $file;
+
+    public function __construct($level, $file) {
+        $this->level = $level;
+        $this->file = $file;
+    }
+
+    public function getConfig() {
+        return [
+            'level' => $this->level,
+            'file' => $this->file
+        ];
     }
 }
 ```
 {% endcode %}
 
-**3. Базовый класс декоратора**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-abstract class RequestHandlerDecorator implements RequestHandler {
-    protected $handler;
+// Класс Фасада для управления всеми конфигурациями
+class ConfigFacade {
+    private $databaseConfig;
+    private $cacheConfig;
+    private $loggingConfig;
 
-    public function __construct(RequestHandler $handler) {
-        $this->handler = $handler;
+    public function __construct() {
+        // Инициализация конфигураций с дефолтными значениями
+        $this->databaseConfig = new DatabaseConfig('localhost', 'root', 'password', 'mydb');
+        $this->cacheConfig = new CacheConfig('redis', 'localhost', 6379);
+        $this->loggingConfig = new LoggingConfig('info', '/var/log/app.log');
     }
 
-    public function handleRequest(string $request): string {
-        return $this->handler->handleRequest($request);
+    // Метод для получения конфигурации базы данных
+    public function getDatabaseConfig() {
+        return $this->databaseConfig->getConfig();
+    }
+
+    // Метод для получения конфигурации кэширования
+    public function getCacheConfig() {
+        return $this->cacheConfig->getConfig();
+    }
+
+    // Метод для получения конфигурации логирования
+    public function getLoggingConfig() {
+        return $this->loggingConfig->getConfig();
     }
 }
 ```
 {% endcode %}
 
-**4. Декоратор для логирования**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class LoggingRequestHandlerDecorator extends RequestHandlerDecorator {
-    public function handleRequest(string $request): string {
-        // Логирование запроса перед обработкой
-        echo "Логирование запроса: $request\n";
+// Пример использования Фасада
+$configFacade = new ConfigFacade();
 
-        // Обработка запроса
-        $result = $this->handler->handleRequest($request);
+// Получение конфигурации базы данных
+$dbConfig = $configFacade->getDatabaseConfig();
+print_r($dbConfig);
 
-        // Логирование результата после обработки
-        echo "Логирование результата: $result\n";
+// Получение конфигурации кэширования
+$cacheConfig = $configFacade->getCacheConfig();
+print_r($cacheConfig);
 
-        return $result;
-    }
-}
+// Получение конфигурации логирования
+$loggingConfig = $configFacade->getLoggingConfig();
+print_r($loggingConfig);
 ```
 {% endcode %}
-
-**5. Пример использования**
-
-```php
-$basicHandler = new BasicRequestHandler();
-$loggingHandler = new LoggingRequestHandlerDecorator($basicHandler);
-
-$request = "GET /api/data";
-$result = $loggingHandler->handleRequest($request);
-
-echo $result;
-```
-
-#### Объяснение кода
-
-1. **Базовый интерфейс `RequestHandler`**: Определяет метод `handleRequest`, который будет реализован в конкретных классах.
-2. **Базовый класс `BasicRequestHandler`**: Реализует интерфейс `RequestHandler` и содержит базовую логику обработки запросов.
-3. **Базовый класс декоратора `RequestHandlerDecorator`**: Абстрактный класс, который реализует интерфейс `RequestHandler` и принимает объект `RequestHandler` в конструкторе.
-4. **Декоратор для логирования `LoggingRequestHandlerDecorator`**: Наследует `RequestHandlerDecorator` и добавляет логирование перед и после обработки запроса.
-5. **Пример использования**: Создаем объект базового обработчика и оборачиваем его в декоратор для логирования. Затем вызываем метод `handleRequest` и выводим результат.
 
 #### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (60).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface RequestHandler {
-    +handleRequest(request: String): String
+
+class DatabaseConfig {
+    -host: string
+    -username: string
+    -password: string
+    -database: string
+    +__construct(host: string, username: string, password: string, database: string)
+    +getConfig(): array
 }
 
-class BasicRequestHandler {
-    +handleRequest(request: String): String
+class CacheConfig {
+    -driver: string
+    -host: string
+    -port: int
+    +__construct(driver: string, host: string, port: int)
+    +getConfig(): array
 }
 
-abstract class RequestHandlerDecorator {
-    -handler: RequestHandler
-    +RequestHandlerDecorator(handler: RequestHandler)
-    +handleRequest(request: String): String
+class LoggingConfig {
+    -level: string
+    -file: string
+    +__construct(level: string, file: string)
+    +getConfig(): array
 }
 
-class LoggingRequestHandlerDecorator {
-    +handleRequest(request: String): String
+class ConfigFacade {
+    -databaseConfig: DatabaseConfig
+    -cacheConfig: CacheConfig
+    -loggingConfig: LoggingConfig
+    +__construct()
+    +getDatabaseConfig(): array
+    +getCacheConfig(): array
+    +getLoggingConfig(): array
 }
 
-RequestHandler <|-- BasicRequestHandler
-RequestHandler <|-- RequestHandlerDecorator
-RequestHandlerDecorator <|-- LoggingRequestHandlerDecorator
+ConfigFacade --> DatabaseConfig
+ConfigFacade --> CacheConfig
+ConfigFacade --> LoggingConfig
+
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Паттерн Декоратор позволяет гибко расширять функциональность объектов без изменения их кода. В нашем кейсе мы использовали этот паттерн для добавления логирования к обработке запросов. Это позволяет нам легко добавлять или убирать логирование, не изменяя основной код обработки запросов. Такой подход делает систему более гибкой и удобной для поддержки.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.
