@@ -104,7 +104,7 @@ if __name__ == "__main__":
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml

@@ -1,12 +1,12 @@
 # Go
 
-Представьте, что мы разрабатываем систему мониторинга для веб-приложения. Наша задача — собирать различные метрики, такие как время отклика, количество запросов и т.д. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые метрики без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающая над сложным веб-приложением, которое взаимодействует с несколькими микросервисами. Наше приложение должно отправлять запросы к различным микросервисам для получения данных, обработки заказов, управления пользователями и других задач. Каждый микросервис имеет свой собственный API и способ взаимодействия, что делает систему сложной для понимания и использования.
 
-Для этого мы будем использовать паттерн "Декоратор". Этот паттерн позволяет динамически добавлять новое поведение объектам, оборачивая их в объекты классов декораторов.
+Наша задача — упростить взаимодействие с микросервисами, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для взаимодействия с микросервисами.
 
 #### Пример кода на Go
 
-**1. Базовый интерфейс**
+**1. Классы для взаимодействия с микросервисами**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -14,121 +14,141 @@ package main
 
 import "fmt"
 
-type Metric interface {
-    Collect() string
+// Класс для взаимодействия с микросервисом пользователей
+type UserService struct{}
+
+func (us *UserService) GetUser(userId int) map[string]interface{} {
+    // Логика для получения данных пользователя из микросервиса
+    return map[string]interface{}{
+        "id":    userId,
+        "name":  "John Doe",
+        "email": "john.doe@example.com",
+    }
+}
+
+// Класс для взаимодействия с микросервисом заказов
+type OrderService struct{}
+
+func (os *OrderService) GetOrder(orderId int) map[string]interface{} {
+    // Логика для получения данных заказа из микросервиса
+    return map[string]interface{}{
+        "id":     orderId,
+        "status": "completed",
+        "total":  100.00,
+    }
+}
+
+// Класс для взаимодействия с микросервисом продуктов
+type ProductService struct{}
+
+func (ps *ProductService) GetProduct(productId int) map[string]interface{} {
+    // Логика для получения данных продукта из микросервиса
+    return map[string]interface{}{
+        "id":    productId,
+        "name":  "Product Name",
+        "price": 50.00,
+    }
 }
 ```
 {% endcode %}
 
-**2. Базовый класс метрики**
+**2. Класс Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type BaseMetric struct{}
+// Класс Фасада для взаимодействия с микросервисами
+type MicroserviceFacade struct {
+    userService   *UserService
+    orderService  *OrderService
+    productService *ProductService
+}
 
-func (bm BaseMetric) Collect() string {
-    // Базовая реализация сбора метрик
-    return "Сбор базовых метрик"
+func NewMicroserviceFacade() *MicroserviceFacade {
+    return &MicroserviceFacade{
+        userService:   &UserService{},
+        orderService:  &OrderService{},
+        productService: &ProductService{},
+    }
+}
+
+// Метод для получения данных пользователя
+func (mf *MicroserviceFacade) GetUser(userId int) map[string]interface{} {
+    return mf.userService.GetUser(userId)
+}
+
+// Метод для получения данных заказа
+func (mf *MicroserviceFacade) GetOrder(orderId int) map[string]interface{} {
+    return mf.orderService.GetOrder(orderId)
+}
+
+// Метод для получения данных продукта
+func (mf *MicroserviceFacade) GetProduct(productId int) map[string]interface{} {
+    return mf.productService.GetProduct(productId)
 }
 ```
 {% endcode %}
 
-**3. Базовый класс декоратора**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type MetricDecorator struct {
-    metric Metric
-}
-
-func (md MetricDecorator) Collect() string {
-    return md.metric.Collect()
-}
-```
-{% endcode %}
-
-**4. Декоратор для сбора времени отклика**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type ResponseTimeDecorator struct {
-    MetricDecorator
-}
-
-func (rt ResponseTimeDecorator) Collect() string {
-    // Логика сбора времени отклика
-    result := rt.MetricDecorator.Collect()
-    return result + " + Время отклика"
-}
-```
-{% endcode %}
-
-**5. Декоратор для сбора количества запросов**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type RequestCountDecorator struct {
-    MetricDecorator
-}
-
-func (rc RequestCountDecorator) Collect() string {
-    // Логика сбора количества запросов
-    result := rc.MetricDecorator.Collect()
-    return result + " + Количество запросов"
-}
-```
-{% endcode %}
-
-**6. Использование декораторов**
+**3. Использование Фасада**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    baseMetric := BaseMetric{}
-    responseTimeMetric := ResponseTimeDecorator{MetricDecorator{metric: baseMetric}}
-    requestCountMetric := RequestCountDecorator{MetricDecorator{metric: responseTimeMetric}}
+    // Пример использования Фасада
+    microserviceFacade := NewMicroserviceFacade()
 
-    fmt.Println(requestCountMetric.Collect())
-    // Вывод: Сбор базовых метрик + Время отклика + Количество запросов
+    // Получение данных пользователя
+    user := microserviceFacade.GetUser(1)
+    fmt.Println("User:", user)
+
+    // Получение данных заказа
+    order := microserviceFacade.GetOrder(1)
+    fmt.Println("Order:", order)
+
+    // Получение данных продукта
+    product := microserviceFacade.GetProduct(1)
+    fmt.Println("Product:", product)
 }
 ```
 {% endcode %}
 
 #### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Декоратор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Metric {
-    +Collect(): String
+
+class UserService {
+    +GetUser(userId: int): map[string]interface{}
 }
 
-class BaseMetric {
-    +Collect(): String
+class OrderService {
+    +GetOrder(orderId: int): map[string]interface{}
 }
 
-abstract class MetricDecorator {
-    -metric: Metric
-    +MetricDecorator(metric: Metric)
-    +Collect(): String
+class ProductService {
+    +GetProduct(productId: int): map[string]interface{}
 }
 
-class ResponseTimeDecorator {
-    +Collect(): String
+class MicroserviceFacade {
+    -userService: UserService
+    -orderService: OrderService
+    -productService: ProductService
+    +NewMicroserviceFacade(): MicroserviceFacade
+    +GetUser(userId: int): map[string]interface{}
+    +GetOrder(orderId: int): map[string]interface{}
+    +GetProduct(productId: int): map[string]interface{}
 }
 
-class RequestCountDecorator {
-    +Collect(): String
-}
+MicroserviceFacade --> UserService
+MicroserviceFacade --> OrderService
+MicroserviceFacade --> ProductService
 
-Metric <|-- BaseMetric
-Metric <|-- MetricDecorator
-MetricDecorator <|-- ResponseTimeDecorator
-MetricDecorator <|-- RequestCountDecorator
 @enduml
 ```
+{% endcode %}
 
-#### Вывод
+#### Вывод для кейса
 
-Использование паттерна "Декоратор" позволяет нам гибко и легко добавлять новые метрики в нашу систему мониторинга. Мы можем оборачивать базовые метрики в декораторы, которые добавляют дополнительное поведение, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения в будущем.
+Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для взаимодействия с микросервисами в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из микросервисов. Это упрощает работу с системой микросервисов и делает код более читаемым и поддерживаемым.
