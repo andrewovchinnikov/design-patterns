@@ -1,0 +1,32 @@
+@startuml
+
+class User {
+    -username: string
+    -password: string
+    -role: string
+    +__construct(username: string, password: string, role: string)
+    +getUsername(): string
+    +getPassword(): string
+    +getRole(): string
+}
+
+class Authentication {
+    +authenticate(username: string, password: string): User
+}
+
+class Authorization {
+    +authorize(user: User, requiredRole: string): bool
+}
+
+class AuthFacade {
+    -authentication: Authentication
+    -authorization: Authorization
+    +__construct()
+    +login(username: string, password: string): User
+    +checkAccess(user: User, requiredRole: string): bool
+}
+
+AuthFacade --> Authentication
+AuthFacade --> Authorization
+
+@enduml
