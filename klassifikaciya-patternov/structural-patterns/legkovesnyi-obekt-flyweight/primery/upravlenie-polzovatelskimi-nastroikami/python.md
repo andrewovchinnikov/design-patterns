@@ -1,136 +1,125 @@
 # Python
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления пользовательскими настройками. Наше приложение позволяет пользователям настраивать различные параметры, такие как темы оформления, язык интерфейса и уведомления. Мы хотим оптимизировать работу с пользовательскими настройками, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, пользовательские настройки могут иметь одинаковые параметры, такие как тема оформления (светлая, темная) и язык интерфейса (русский, английский). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новые настройки для пользователя.
 
 #### Пример кода на Python
 
-**1. Классы для управления аутентификацией и авторизацией**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс для управления пользователями
-class User:
-    def __init__(self, username, password, role):
-        self.username = username
-        self.password = password
-        self.role = role
+from abc import ABC, abstractmethod
 
-    def get_username(self):
-        return self.username
-
-    def get_password(self):
-        return self.password
-
-    def get_role(self):
-        return self.role
-
-# Класс для аутентификации пользователей
-class Authentication:
-    def authenticate(self, username, password):
-        # Простая проверка аутентификации
-        users = {
-            'admin': User('admin', 'admin123', 'admin'),
-            'user': User('user', 'user123', 'user')
-        }
-
-        if username in users and users[username].get_password() == password:
-            return users[username]
-
-        return None
-
-# Класс для авторизации пользователей
-class Authorization:
-    def authorize(self, user, required_role):
-        return user.get_role() == required_role
+class UserSettingsFlyweight(ABC):
+    @abstractmethod
+    def render(self, extrinsic_state):
+        pass
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс Фасада для управления аутентификацией и авторизацией
-class AuthFacade:
+class ConcreteUserSettingsFlyweight(UserSettingsFlyweight):
+    def __init__(self, theme, language):
+        self.theme = theme
+        self.language = language
+
+    def render(self, extrinsic_state):
+        # Внешнее состояние включает уникальные данные пользователя, такие как имя пользователя и дата настройки
+        username = extrinsic_state['username']
+        date = extrinsic_state['date']
+
+        # Рендеринг настроек пользователя
+        print(f"Пользователь: {username}")
+        print(f"Тема: {self.theme}")
+        print(f"Язык: {self.language}")
+        print(f"Дата настройки: {date}\n")
+```
+{% endcode %}
+
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class UserSettingsFlyweightFactory:
     def __init__(self):
-        self.authentication = Authentication()
-        self.authorization = Authorization()
+        self.flyweights = {}
 
-    # Метод для аутентификации пользователя
-    def login(self, username, password):
-        return self.authentication.authenticate(username, password)
-
-    # Метод для авторизации пользователя
-    def check_access(self, user, required_role):
-        return self.authorization.authorize(user, required_role)
+    def get_flyweight(self, theme, language):
+        key = f"{theme}_{language}"
+        if key not in self.flyweights:
+            self.flyweights[key] = ConcreteUserSettingsFlyweight(theme, language)
+        return self.flyweights[key]
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Пример использования Фасада
+def main():
+    # Создаем фабрику легковесных объектов
+    factory = UserSettingsFlyweightFactory()
+
+    # Создаем пользовательские настройки с использованием легковесных объектов
+    settings = [
+        {"username": "Иван", "theme": "Светлая", "language": "Русский", "date": "2023-10-01"},
+        {"username": "Мария", "theme": "Темная", "language": "Английский", "date": "2023-10-05"},
+        {"username": "Алексей", "theme": "Светлая", "language": "Русский", "date": "2023-10-03"}
+    ]
+
+    for setting in settings:
+        flyweight = factory.get_flyweight(setting["theme"], setting["language"])
+        flyweight.render({
+            "username": setting["username"],
+            "date": setting["date"]
+        })
+
 if __name__ == "__main__":
-    auth_facade = AuthFacade()
-
-    # Аутентификация пользователя
-    user = auth_facade.login('admin', 'admin123')
-    if user:
-        print("User authenticated:", user.get_username())
-
-        # Авторизация пользователя
-        if auth_facade.check_access(user, 'admin'):
-            print("User has admin access.")
-        else:
-            print("User does not have admin access.")
-    else:
-        print("Authentication failed.")
+    main()
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (73).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class User {
-    -username: string
-    -password: string
-    -role: string
-    +__init__(username: string, password: string, role: string)
-    +get_username(): string
-    +get_password(): string
-    +get_role(): string
+interface UserSettingsFlyweight {
+    +render(extrinsic_state: dict)
 }
 
-class Authentication {
-    +authenticate(username: string, password: string): User
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    -theme: string
+    -language: string
+    +__init__(theme: string, language: string)
+    +render(extrinsic_state: dict)
 }
 
-class Authorization {
-    +authorize(user: User, required_role: string): bool
-}
-
-class AuthFacade {
-    -authentication: Authentication
-    -authorization: Authorization
+class UserSettingsFlyweightFactory {
+    -flyweights: dict
     +__init__()
-    +login(username: string, password: string): User
-    +check_access(user: User, required_role: string): bool
+    +get_flyweight(theme: string, language: string): UserSettingsFlyweight
 }
 
-AuthFacade --> Authentication
-AuthFacade --> Authorization
-
+UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
+UserSettingsFlyweightFactory --> UserSettingsFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с пользовательскими настройками в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров настроек. Это особенно полезно, когда у нас много пользователей с одинаковыми или похожими настройками.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
