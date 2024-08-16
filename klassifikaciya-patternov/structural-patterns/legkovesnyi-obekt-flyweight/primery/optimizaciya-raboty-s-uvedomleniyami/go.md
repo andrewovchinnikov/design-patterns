@@ -1,12 +1,14 @@
 # Go
 
-Представьте, что мы — команда разработчиков, работающая над сложным веб-приложением, которое взаимодействует с несколькими микросервисами. Наше приложение должно отправлять запросы к различным микросервисам для получения данных, обработки заказов, управления пользователями и других задач. Каждый микросервис имеет свой собственный API и способ взаимодействия, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления уведомлениями. Наше приложение позволяет пользователям создавать, редактировать и удалять уведомления, а также просматривать их в реальном времени. Мы хотим оптимизировать работу с уведомлениями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с микросервисами, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для взаимодействия с микросервисами.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, уведомления могут иметь одинаковые параметры, такие как тип уведомления (информация, предупреждение, ошибка) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое уведомление.
 
 #### Пример кода на Go
 
-**1. Классы для взаимодействия с микросервисами**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -14,141 +16,120 @@ package main
 
 import "fmt"
 
-// Класс для взаимодействия с микросервисом пользователей
-type UserService struct{}
-
-func (us *UserService) GetUser(userId int) map[string]interface{} {
-    // Логика для получения данных пользователя из микросервиса
-    return map[string]interface{}{
-        "id":    userId,
-        "name":  "John Doe",
-        "email": "john.doe@example.com",
-    }
-}
-
-// Класс для взаимодействия с микросервисом заказов
-type OrderService struct{}
-
-func (os *OrderService) GetOrder(orderId int) map[string]interface{} {
-    // Логика для получения данных заказа из микросервиса
-    return map[string]interface{}{
-        "id":     orderId,
-        "status": "completed",
-        "total":  100.00,
-    }
-}
-
-// Класс для взаимодействия с микросервисом продуктов
-type ProductService struct{}
-
-func (ps *ProductService) GetProduct(productId int) map[string]interface{} {
-    // Логика для получения данных продукта из микросервиса
-    return map[string]interface{}{
-        "id":    productId,
-        "name":  "Product Name",
-        "price": 50.00,
-    }
+type NotificationFlyweight interface {
+    Render(extrinsicState map[string]string)
 }
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-// Класс Фасада для взаимодействия с микросервисами
-type MicroserviceFacade struct {
-    userService   *UserService
-    orderService  *OrderService
-    productService *ProductService
+type ConcreteNotificationFlyweight struct {
+    Type     string
+    Priority string
 }
 
-func NewMicroserviceFacade() *MicroserviceFacade {
-    return &MicroserviceFacade{
-        userService:   &UserService{},
-        orderService:  &OrderService{},
-        productService: &ProductService{},
-    }
-}
+func (c *ConcreteNotificationFlyweight) Render(extrinsicState map[string]string) {
+    // Внешнее состояние включает уникальные данные уведомления, такие как сообщение и дата
+    message := extrinsicState["message"]
+    date := extrinsicState["date"]
 
-// Метод для получения данных пользователя
-func (mf *MicroserviceFacade) GetUser(userId int) map[string]interface{} {
-    return mf.userService.GetUser(userId)
-}
-
-// Метод для получения данных заказа
-func (mf *MicroserviceFacade) GetOrder(orderId int) map[string]interface{} {
-    return mf.orderService.GetOrder(orderId)
-}
-
-// Метод для получения данных продукта
-func (mf *MicroserviceFacade) GetProduct(productId int) map[string]interface{} {
-    return mf.productService.GetProduct(productId)
+    // Рендеринг уведомления
+    fmt.Printf("Сообщение: %s\n", message)
+    fmt.Printf("Тип: %s\n", c.Type)
+    fmt.Printf("Приоритет: %s\n", c.Priority)
+    fmt.Printf("Дата: %s\n\n", date)
 }
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type NotificationFlyweightFactory struct {
+    flyweights map[string]NotificationFlyweight
+}
+
+func NewNotificationFlyweightFactory() *NotificationFlyweightFactory {
+    return &NotificationFlyweightFactory{
+        flyweights: make(map[string]NotificationFlyweight),
+    }
+}
+
+func (f *NotificationFlyweightFactory) GetFlyweight(typeName, priority string) NotificationFlyweight {
+    key := typeName + "_" + priority
+    if flyweight, exists := f.flyweights[key]; exists {
+        return flyweight
+    }
+    flyweight := &ConcreteNotificationFlyweight{Type: typeName, Priority: priority}
+    f.flyweights[key] = flyweight
+    return flyweight
+}
+```
+{% endcode %}
+
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Пример использования Фасада
-    microserviceFacade := NewMicroserviceFacade()
+    // Создаем фабрику легковесных объектов
+    factory := NewNotificationFlyweightFactory()
 
-    // Получение данных пользователя
-    user := microserviceFacade.GetUser(1)
-    fmt.Println("User:", user)
+    // Создаем уведомления с использованием легковесных объектов
+    notifications := []map[string]string{
+        {"message": "Встреча с командой", "type": "Информация", "priority": "Высокий", "date": "2023-10-01"},
+        {"message": "Дедлайн проекта", "type": "Предупреждение", "priority": "Средний", "date": "2023-10-05"},
+        {"message": "Ошибка сервера", "type": "Ошибка", "priority": "Высокий", "date": "2023-10-03"},
+    }
 
-    // Получение данных заказа
-    order := microserviceFacade.GetOrder(1)
-    fmt.Println("Order:", order)
-
-    // Получение данных продукта
-    product := microserviceFacade.GetProduct(1)
-    fmt.Println("Product:", product)
+    for _, notification := range notifications {
+        flyweight := factory.GetFlyweight(notification["type"], notification["priority"])
+        flyweight.Render(map[string]string{
+            "message": notification["message"],
+            "date":    notification["date"],
+        })
+    }
 }
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class UserService {
-    +GetUser(userId: int): map[string]interface{}
+interface NotificationFlyweight {
+    +Render(extrinsicState: map[string]string)
 }
 
-class OrderService {
-    +GetOrder(orderId: int): map[string]interface{}
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    -Type: string
+    -Priority: string
+    +Render(extrinsicState: map[string]string)
 }
 
-class ProductService {
-    +GetProduct(productId: int): map[string]interface{}
+class NotificationFlyweightFactory {
+    -flyweights: map[string]NotificationFlyweight
+    +NewNotificationFlyweightFactory(): NotificationFlyweightFactory
+    +GetFlyweight(typeName: string, priority: string): NotificationFlyweight
 }
 
-class MicroserviceFacade {
-    -userService: UserService
-    -orderService: OrderService
-    -productService: ProductService
-    +NewMicroserviceFacade(): MicroserviceFacade
-    +GetUser(userId: int): map[string]interface{}
-    +GetOrder(orderId: int): map[string]interface{}
-    +GetProduct(productId: int): map[string]interface{}
-}
-
-MicroserviceFacade --> UserService
-MicroserviceFacade --> OrderService
-MicroserviceFacade --> ProductService
-
+NotificationFlyweight <|-- ConcreteNotificationFlyweight
+NotificationFlyweightFactory --> NotificationFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для взаимодействия с микросервисами в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из микросервисов. Это упрощает работу с системой микросервисов и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с уведомлениями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров уведомлений. Это особенно полезно, когда у нас много уведомлений с одинаковыми или похожими состояниями.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!

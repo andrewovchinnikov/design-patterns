@@ -1,186 +1,126 @@
 # PHP
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления событиями. Наше приложение позволяет пользователям создавать, редактировать и удалять события, а также просматривать их в календаре. Мы хотим оптимизировать работу с событиями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, события могут иметь одинаковые параметры, такие как тип события (встреча, дедлайн и т.д.) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое событие.
 
 #### Пример кода на PHP
 
-**1. Классы для управления конфигурациями**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс для управления настройками базы данных
-class DatabaseConfig {
-    private $host;
-    private $username;
-    private $password;
-    private $database;
-
-    public function __construct($host, $username, $password, $database) {
-        $this->host = $host;
-        $this->username = $username;
-        $this->password = $password;
-        $this->database = $database;
-    }
-
-    public function getConfig() {
-        return [
-            'host' => $this->host,
-            'username' => $this->username,
-            'password' => $this->password,
-            'database' => $this->database
-        ];
-    }
+interface EventFlyweight {
+    public function render(array $extrinsicState);
 }
+```
+{% endcode %}
 
-// Класс для управления настройками кэширования
-class CacheConfig {
-    private $driver;
-    private $host;
-    private $port;
+**2. Реализация конкретного легковесного объекта**
 
-    public function __construct($driver, $host, $port) {
-        $this->driver = $driver;
-        $this->host = $host;
-        $this->port = $port;
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class ConcreteEventFlyweight implements EventFlyweight {
+    private $type;
+    private $priority;
+
+    public function __construct($type, $priority) {
+        $this->type = $type;
+        $this->priority = $priority;
     }
 
-    public function getConfig() {
-        return [
-            'driver' => $this->driver,
-            'host' => $this->host,
-            'port' => $this->port
-        ];
-    }
-}
+    public function render(array $extrinsicState) {
+        // Внешнее состояние включает уникальные данные события, такие как название и дата
+        $name = $extrinsicState['name'];
+        $date = $extrinsicState['date'];
 
-// Класс для управления настройками логирования
-class LoggingConfig {
-    private $level;
-    private $file;
-
-    public function __construct($level, $file) {
-        $this->level = $level;
-        $this->file = $file;
-    }
-
-    public function getConfig() {
-        return [
-            'level' => $this->level,
-            'file' => $this->file
-        ];
+        // Рендеринг события
+        echo "Событие: $name<br>";
+        echo "Тип: $this->type<br>";
+        echo "Приоритет: $this->priority<br>";
+        echo "Дата: $date<br><br>";
     }
 }
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**3. Фабрика легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс Фасада для управления всеми конфигурациями
-class ConfigFacade {
-    private $databaseConfig;
-    private $cacheConfig;
-    private $loggingConfig;
+class EventFlyweightFactory {
+    private $flyweights = [];
 
-    public function __construct() {
-        // Инициализация конфигураций с дефолтными значениями
-        $this->databaseConfig = new DatabaseConfig('localhost', 'root', 'password', 'mydb');
-        $this->cacheConfig = new CacheConfig('redis', 'localhost', 6379);
-        $this->loggingConfig = new LoggingConfig('info', '/var/log/app.log');
-    }
-
-    // Метод для получения конфигурации базы данных
-    public function getDatabaseConfig() {
-        return $this->databaseConfig->getConfig();
-    }
-
-    // Метод для получения конфигурации кэширования
-    public function getCacheConfig() {
-        return $this->cacheConfig->getConfig();
-    }
-
-    // Метод для получения конфигурации логирования
-    public function getLoggingConfig() {
-        return $this->loggingConfig->getConfig();
+    public function getFlyweight($type, $priority) {
+        $key = $type . '_' . $priority;
+        if (!isset($this->flyweights[$key])) {
+            $this->flyweights[$key] = new ConcreteEventFlyweight($type, $priority);
+        }
+        return $this->flyweights[$key];
     }
 }
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Пример использования Фасада
-$configFacade = new ConfigFacade();
+// Создаем фабрику легковесных объектов
+$factory = new EventFlyweightFactory();
 
-// Получение конфигурации базы данных
-$dbConfig = $configFacade->getDatabaseConfig();
-print_r($dbConfig);
+// Создаем события с использованием легковесных объектов
+$events = [
+    ['name' => 'Встреча с командой', 'type' => 'Встреча', 'priority' => 'Высокий', 'date' => '2023-10-01'],
+    ['name' => 'Дедлайн проекта', 'type' => 'Дедлайн', 'priority' => 'Средний', 'date' => '2023-10-05'],
+    ['name' => 'Обед с друзьями', 'type' => 'Встреча', 'priority' => 'Низкий', 'date' => '2023-10-03']
+];
 
-// Получение конфигурации кэширования
-$cacheConfig = $configFacade->getCacheConfig();
-print_r($cacheConfig);
-
-// Получение конфигурации логирования
-$loggingConfig = $configFacade->getLoggingConfig();
-print_r($loggingConfig);
+foreach ($events as $event) {
+    $flyweight = $factory->getFlyweight($event['type'], $event['priority']);
+    $flyweight->render([
+        'name' => $event['name'],
+        'date' => $event['date']
+    ]);
+}
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (62).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (68).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class DatabaseConfig {
-    -host: string
-    -username: string
-    -password: string
-    -database: string
-    +__construct(host: string, username: string, password: string, database: string)
-    +getConfig(): array
+interface EventFlyweight {
+    +render(extrinsicState: array)
 }
 
-class CacheConfig {
-    -driver: string
-    -host: string
-    -port: int
-    +__construct(driver: string, host: string, port: int)
-    +getConfig(): array
+class ConcreteEventFlyweight implements EventFlyweight {
+    -type: string
+    -priority: string
+    +__construct(type: string, priority: string)
+    +render(extrinsicState: array)
 }
 
-class LoggingConfig {
-    -level: string
-    -file: string
-    +__construct(level: string, file: string)
-    +getConfig(): array
+class EventFlyweightFactory {
+    -flyweights: array
+    +getFlyweight(type: string, priority: string): EventFlyweight
 }
 
-class ConfigFacade {
-    -databaseConfig: DatabaseConfig
-    -cacheConfig: CacheConfig
-    -loggingConfig: LoggingConfig
-    +__construct()
-    +getDatabaseConfig(): array
-    +getCacheConfig(): array
-    +getLoggingConfig(): array
-}
-
-ConfigFacade --> DatabaseConfig
-ConfigFacade --> CacheConfig
-ConfigFacade --> LoggingConfig
-
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с событиями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров событий. Это особенно полезно, когда у нас много событий с одинаковыми или похожими состояниями.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!

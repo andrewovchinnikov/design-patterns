@@ -12,7 +12,9 @@
 
 ### **UML Диаграмма**
 
-```plaintext
+<figure><img src="../../.gitbook/assets/image (67).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+
+```plant-uml
 @startuml
 interface Flyweight {
     +operation(extrinsicState: UniqueState)

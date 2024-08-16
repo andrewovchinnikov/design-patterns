@@ -1,132 +1,125 @@
 # Python
 
-Представьте, что мы — команда разработчиков, работающая над сложным веб-приложением, которое взаимодействует с несколькими микросервисами. Наше приложение должно отправлять запросы к различным микросервисам для получения данных, обработки заказов, управления пользователями и других задач. Каждый микросервис имеет свой собственный API и способ взаимодействия, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления уведомлениями. Наше приложение позволяет пользователям создавать, редактировать и удалять уведомления, а также просматривать их в реальном времени. Мы хотим оптимизировать работу с уведомлениями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с микросервисами, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для взаимодействия с микросервисами.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, уведомления могут иметь одинаковые параметры, такие как тип уведомления (информация, предупреждение, ошибка) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое уведомление.
 
 #### Пример кода на Python
 
-**1. Классы для взаимодействия с микросервисами**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс для взаимодействия с микросервисом пользователей
-class UserService:
-    def get_user(self, user_id):
-        # Логика для получения данных пользователя из микросервиса
-        return {
-            'id': user_id,
-            'name': 'John Doe',
-            'email': 'john.doe@example.com'
-        }
+from abc import ABC, abstractmethod
 
-# Класс для взаимодействия с микросервисом заказов
-class OrderService:
-    def get_order(self, order_id):
-        # Логика для получения данных заказа из микросервиса
-        return {
-            'id': order_id,
-            'status': 'completed',
-            'total': 100.00
-        }
-
-# Класс для взаимодействия с микросервисом продуктов
-class ProductService:
-    def get_product(self, product_id):
-        # Логика для получения данных продукта из микросервиса
-        return {
-            'id': product_id,
-            'name': 'Product Name',
-            'price': 50.00
-        }
+class NotificationFlyweight(ABC):
+    @abstractmethod
+    def render(self, extrinsic_state):
+        pass
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс Фасада для взаимодействия с микросервисами
-class MicroserviceFacade:
+class ConcreteNotificationFlyweight(NotificationFlyweight):
+    def __init__(self, type, priority):
+        self.type = type
+        self.priority = priority
+
+    def render(self, extrinsic_state):
+        # Внешнее состояние включает уникальные данные уведомления, такие как сообщение и дата
+        message = extrinsic_state['message']
+        date = extrinsic_state['date']
+
+        # Рендеринг уведомления
+        print(f"Сообщение: {message}")
+        print(f"Тип: {self.type}")
+        print(f"Приоритет: {self.priority}")
+        print(f"Дата: {date}\n")
+```
+{% endcode %}
+
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class NotificationFlyweightFactory:
     def __init__(self):
-        self.user_service = UserService()
-        self.order_service = OrderService()
-        self.product_service = ProductService()
+        self.flyweights = {}
 
-    # Метод для получения данных пользователя
-    def get_user(self, user_id):
-        return self.user_service.get_user(user_id)
-
-    # Метод для получения данных заказа
-    def get_order(self, order_id):
-        return self.order_service.get_order(order_id)
-
-    # Метод для получения данных продукта
-    def get_product(self, product_id):
-        return self.product_service.get_product(product_id)
+    def get_flyweight(self, type, priority):
+        key = f"{type}_{priority}"
+        if key not in self.flyweights:
+            self.flyweights[key] = ConcreteNotificationFlyweight(type, priority)
+        return self.flyweights[key]
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Пример использования Фасада
+def main():
+    # Создаем фабрику легковесных объектов
+    factory = NotificationFlyweightFactory()
+
+    # Создаем уведомления с использованием легковесных объектов
+    notifications = [
+        {"message": "Встреча с командой", "type": "Информация", "priority": "Высокий", "date": "2023-10-01"},
+        {"message": "Дедлайн проекта", "type": "Предупреждение", "priority": "Средний", "date": "2023-10-05"},
+        {"message": "Ошибка сервера", "type": "Ошибка", "priority": "Высокий", "date": "2023-10-03"}
+    ]
+
+    for notification in notifications:
+        flyweight = factory.get_flyweight(notification["type"], notification["priority"])
+        flyweight.render({
+            "message": notification["message"],
+            "date": notification["date"]
+        })
+
 if __name__ == "__main__":
-    microservice_facade = MicroserviceFacade()
-
-    # Получение данных пользователя
-    user = microservice_facade.get_user(1)
-    print("User:", user)
-
-    # Получение данных заказа
-    order = microservice_facade.get_order(1)
-    print("Order:", order)
-
-    # Получение данных продукта
-    product = microservice_facade.get_product(1)
-    print("Product:", product)
+    main()
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (66).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (74).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class UserService {
-    +get_user(user_id: int): dict
+interface NotificationFlyweight {
+    +render(extrinsic_state: dict)
 }
 
-class OrderService {
-    +get_order(order_id: int): dict
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    -type: string
+    -priority: string
+    +__init__(type: string, priority: string)
+    +render(extrinsic_state: dict)
 }
 
-class ProductService {
-    +get_product(product_id: int): dict
-}
-
-class MicroserviceFacade {
-    -user_service: UserService
-    -order_service: OrderService
-    -product_service: ProductService
+class NotificationFlyweightFactory {
+    -flyweights: dict
     +__init__()
-    +get_user(user_id: int): dict
-    +get_order(order_id: int): dict
-    +get_product(product_id: int): dict
+    +get_flyweight(type: string, priority: string): NotificationFlyweight
 }
 
-MicroserviceFacade --> UserService
-MicroserviceFacade --> OrderService
-MicroserviceFacade --> ProductService
-
+NotificationFlyweight <|-- ConcreteNotificationFlyweight
+NotificationFlyweightFactory --> NotificationFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для взаимодействия с микросервисами в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из микросервисов. Это упрощает работу с системой микросервисов и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с уведомлениями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров уведомлений. Это особенно полезно, когда у нас много уведомлений с одинаковыми или похожими состояниями.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!

@@ -1,201 +1,135 @@
 # Go
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления событиями. Наше приложение позволяет пользователям создавать, редактировать и удалять события, а также просматривать их в календаре. Мы хотим оптимизировать работу с событиями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, события могут иметь одинаковые параметры, такие как тип события (встреча, дедлайн и т.д.) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое событие.
 
 #### Пример кода на Go
 
-**1. Классы для управления конфигурациями**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// Класс для управления настройками базы данных
-type DatabaseConfig struct {
-    Host     string
-    Username string
-    Password string
-    Database string
-}
-
-func NewDatabaseConfig(host, username, password, database string) *DatabaseConfig {
-    return &DatabaseConfig{
-        Host:     host,
-        Username: username,
-        Password: password,
-        Database: database,
-    }
-}
-
-func (dc *DatabaseConfig) GetConfig() map[string]string {
-    return map[string]string{
-        "host":     dc.Host,
-        "username": dc.Username,
-        "password": dc.Password,
-        "database": dc.Database,
-    }
-}
-
-// Класс для управления настройками кэширования
-type CacheConfig struct {
-    Driver string
-    Host   string
-    Port   int
-}
-
-func NewCacheConfig(driver, host string, port int) *CacheConfig {
-    return &CacheConfig{
-        Driver: driver,
-        Host:   host,
-        Port:   port,
-    }
-}
-
-func (cc *CacheConfig) GetConfig() map[string]interface{} {
-    return map[string]interface{}{
-        "driver": cc.Driver,
-        "host":   cc.Host,
-        "port":   cc.Port,
-    }
-}
-
-// Класс для управления настройками логирования
-type LoggingConfig struct {
-    Level string
-    File  string
-}
-
-func NewLoggingConfig(level, file string) *LoggingConfig {
-    return &LoggingConfig{
-        Level: level,
-        File:  file,
-    }
-}
-
-func (lc *LoggingConfig) GetConfig() map[string]string {
-    return map[string]string{
-        "level": lc.Level,
-        "file":  lc.File,
-    }
-}
-```
-{% endcode %}
-
-**2. Класс Фасада**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// Класс Фасада для управления всеми конфигурациями
-type ConfigFacade struct {
-    databaseConfig *DatabaseConfig
-    cacheConfig    *CacheConfig
-    loggingConfig  *LoggingConfig
-}
-
-func NewConfigFacade() *ConfigFacade {
-    return &ConfigFacade{
-        databaseConfig: NewDatabaseConfig("localhost", "root", "password", "mydb"),
-        cacheConfig:    NewCacheConfig("redis", "localhost", 6379),
-        loggingConfig:  NewLoggingConfig("info", "/var/log/app.log"),
-    }
-}
-
-// Метод для получения конфигурации базы данных
-func (cf *ConfigFacade) GetDatabaseConfig() map[string]string {
-    return cf.databaseConfig.GetConfig()
-}
-
-// Метод для получения конфигурации кэширования
-func (cf *ConfigFacade) GetCacheConfig() map[string]interface{} {
-    return cf.cacheConfig.GetConfig()
-}
-
-// Метод для получения конфигурации логирования
-func (cf *ConfigFacade) GetLoggingConfig() map[string]string {
-    return cf.loggingConfig.GetConfig()
-}
-```
-{% endcode %}
-
-**3. Использование Фасада**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import (
-    "fmt"
-)
+import "fmt"
 
-func main() {
-    // Пример использования Фасада
-    configFacade := NewConfigFacade()
-
-    // Получение конфигурации базы данных
-    dbConfig := configFacade.GetDatabaseConfig()
-    fmt.Println("Database Config:", dbConfig)
-
-    // Получение конфигурации кэширования
-    cacheConfig := configFacade.GetCacheConfig()
-    fmt.Println("Cache Config:", cacheConfig)
-
-    // Получение конфигурации логирования
-    loggingConfig := configFacade.GetLoggingConfig()
-    fmt.Println("Logging Config:", loggingConfig)
+type EventFlyweight interface {
+    Render(extrinsicState map[string]string)
 }
 ```
 {% endcode %}
 
-#### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (63).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```go
+type ConcreteEventFlyweight struct {
+    Type     string
+    Priority string
+}
+
+func (c *ConcreteEventFlyweight) Render(extrinsicState map[string]string) {
+    // Внешнее состояние включает уникальные данные события, такие как название и дата
+    name := extrinsicState["name"]
+    date := extrinsicState["date"]
+
+    // Рендеринг события
+    fmt.Printf("Событие: %s\n", name)
+    fmt.Printf("Тип: %s\n", c.Type)
+    fmt.Printf("Приоритет: %s\n", c.Priority)
+    fmt.Printf("Дата: %s\n\n", date)
+}
+```
+{% endcode %}
+
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type EventFlyweightFactory struct {
+    flyweights map[string]EventFlyweight
+}
+
+func NewEventFlyweightFactory() *EventFlyweightFactory {
+    return &EventFlyweightFactory{
+        flyweights: make(map[string]EventFlyweight),
+    }
+}
+
+func (f *EventFlyweightFactory) GetFlyweight(typeName, priority string) EventFlyweight {
+    key := typeName + "_" + priority
+    if flyweight, exists := f.flyweights[key]; exists {
+        return flyweight
+    }
+    flyweight := &ConcreteEventFlyweight{Type: typeName, Priority: priority}
+    f.flyweights[key] = flyweight
+    return flyweight
+}
+```
+{% endcode %}
+
+**4. Использование легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+func main() {
+    // Создаем фабрику легковесных объектов
+    factory := NewEventFlyweightFactory()
+
+    // Создаем события с использованием легковесных объектов
+    events := []map[string]string{
+        {"name": "Встреча с командой", "type": "Встреча", "priority": "Высокий", "date": "2023-10-01"},
+        {"name": "Дедлайн проекта", "type": "Дедлайн", "priority": "Средний", "date": "2023-10-05"},
+        {"name": "Обед с друзьями", "type": "Встреча", "priority": "Низкий", "date": "2023-10-03"},
+    }
+
+    for _, event := range events {
+        flyweight := factory.GetFlyweight(event["type"], event["priority"])
+        flyweight.Render(map[string]string{
+            "name": event["name"],
+            "date": event["date"],
+        })
+    }
+}
+```
+{% endcode %}
+
+#### UML Диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (69).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plant-uml
 @startuml
-
-class DatabaseConfig {
-    -Host: string
-    -Username: string
-    -Password: string
-    -Database: string
-    +NewDatabaseConfig(host: string, username: string, password: string, database: string): DatabaseConfig
-    +GetConfig(): map[string]string
+interface EventFlyweight {
+    +Render(extrinsicState: map[string]string)
 }
 
-class CacheConfig {
-    -Driver: string
-    -Host: string
-    -Port: int
-    +NewCacheConfig(driver: string, host: string, port: int): CacheConfig
-    +GetConfig(): map[string]interface{}
+class ConcreteEventFlyweight implements EventFlyweight {
+    -Type: string
+    -Priority: string
+    +Render(extrinsicState: map[string]string)
 }
 
-class LoggingConfig {
-    -Level: string
-    -File: string
-    +NewLoggingConfig(level: string, file: string): LoggingConfig
-    +GetConfig(): map[string]string
+class EventFlyweightFactory {
+    -flyweights: map[string]EventFlyweight
+    +NewEventFlyweightFactory(): EventFlyweightFactory
+    +GetFlyweight(typeName: string, priority: string): EventFlyweight
 }
 
-class ConfigFacade {
-    -databaseConfig: DatabaseConfig
-    -cacheConfig: CacheConfig
-    -loggingConfig: LoggingConfig
-    +NewConfigFacade(): ConfigFacade
-    +GetDatabaseConfig(): map[string]string
-    +GetCacheConfig(): map[string]interface{}
-    +GetLoggingConfig(): map[string]string
-}
-
-ConfigFacade --> DatabaseConfig
-ConfigFacade --> CacheConfig
-ConfigFacade --> LoggingConfig
-
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с событиями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров событий. Это особенно полезно, когда у нас много событий с одинаковыми или похожими состояниями.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!

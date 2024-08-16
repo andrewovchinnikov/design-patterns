@@ -158,7 +158,7 @@
         * [PHP](klassifikaciya-patternov/structural-patterns/fasad-facade/primery/uproshenie-raboty-s-mikroservisami/php.md)
         * [Go](klassifikaciya-patternov/structural-patterns/fasad-facade/primery/uproshenie-raboty-s-mikroservisami/go.md)
         * [Python](klassifikaciya-patternov/structural-patterns/fasad-facade/primery/uproshenie-raboty-s-mikroservisami/python.md)
-  * [Легковесный объект (Flyweight)](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight/README.md)
+  * [Легковесный объект (Flyweight)](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight.md)
     * [Примеры](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight/primery/README.md)
       * [Управление событиями](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight/primery/upravlenie-sobytiyami/README.md)
         * [PHP](klassifikaciya-patternov/structural-patterns/legkovesnyi-obekt-flyweight/primery/upravlenie-sobytiyami/php.md)
