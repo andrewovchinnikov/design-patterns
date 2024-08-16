@@ -1,162 +1,126 @@
 # PHP
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления пользовательскими настройками. Наше приложение позволяет пользователям настраивать различные параметры, такие как темы оформления, язык интерфейса и уведомления. Мы хотим оптимизировать работу с пользовательскими настройками, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, пользовательские настройки могут иметь одинаковые параметры, такие как тема оформления (светлая, темная) и язык интерфейса (русский, английский). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новые настройки для пользователя.
 
 #### Пример кода на PHP
 
-**1. Классы для управления аутентификацией и авторизацией**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс для управления пользователями
-class User {
-    private $username;
-    private $password;
-    private $role;
+interface UserSettingsFlyweight {
+    public function render(array $extrinsicState);
+}
+```
+{% endcode %}
 
-    public function __construct($username, $password, $role) {
-        $this->username = $username;
-        $this->password = $password;
-        $this->role = $role;
+**2. Реализация конкретного легковесного объекта**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    private $theme;
+    private $language;
+
+    public function __construct($theme, $language) {
+        $this->theme = $theme;
+        $this->language = $language;
     }
 
-    public function getUsername() {
-        return $this->username;
-    }
+    public function render(array $extrinsicState) {
+        // Внешнее состояние включает уникальные данные пользователя, такие как имя пользователя и дата настройки
+        $username = $extrinsicState['username'];
+        $date = $extrinsicState['date'];
 
-    public function getPassword() {
-        return $this->password;
-    }
-
-    public function getRole() {
-        return $this->role;
+        // Рендеринг настроек пользователя
+        echo "Пользователь: $username<br>";
+        echo "Тема: $this->theme<br>";
+        echo "Язык: $this->language<br>";
+        echo "Дата настройки: $date<br><br>";
     }
 }
+```
+{% endcode %}
 
-// Класс для аутентификации пользователей
-class Authentication {
-    public function authenticate($username, $password) {
-        // Простая проверка аутентификации
-        $users = [
-            'admin' => new User('admin', 'admin123', 'admin'),
-            'user' => new User('user', 'user123', 'user')
-        ];
+**3. Фабрика легковесных объектов**
 
-        if (isset($users[$username]) && $users[$username]->getPassword() === $password) {
-            return $users[$username];
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class UserSettingsFlyweightFactory {
+    private $flyweights = [];
+
+    public function getFlyweight($theme, $language) {
+        $key = $theme . '_' . $language;
+        if (!isset($this->flyweights[$key])) {
+            $this->flyweights[$key] = new ConcreteUserSettingsFlyweight($theme, $language);
         }
-
-        return null;
-    }
-}
-
-// Класс для авторизации пользователей
-class Authorization {
-    public function authorize($user, $requiredRole) {
-        return $user->getRole() === $requiredRole;
+        return $this->flyweights[$key];
     }
 }
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс Фасада для управления аутентификацией и авторизацией
-class AuthFacade {
-    private $authentication;
-    private $authorization;
+// Создаем фабрику легковесных объектов
+$factory = new UserSettingsFlyweightFactory();
 
-    public function __construct() {
-        $this->authentication = new Authentication();
-        $this->authorization = new Authorization();
-    }
+// Создаем пользовательские настройки с использованием легковесных объектов
+$settings = [
+    ['username' => 'Иван', 'theme' => 'Светлая', 'language' => 'Русский', 'date' => '2023-10-01'],
+    ['username' => 'Мария', 'theme' => 'Темная', 'language' => 'Английский', 'date' => '2023-10-05'],
+    ['username' => 'Алексей', 'theme' => 'Светлая', 'language' => 'Русский', 'date' => '2023-10-03']
+];
 
-    // Метод для аутентификации пользователя
-    public function login($username, $password) {
-        $user = $this->authentication->authenticate($username, $password);
-        if ($user) {
-            return $user;
-        }
-        return null;
-    }
-
-    // Метод для авторизации пользователя
-    public function checkAccess($user, $requiredRole) {
-        return $this->authorization->authorize($user, $requiredRole);
-    }
+foreach ($settings as $setting) {
+    $flyweight = $factory->getFlyweight($setting['theme'], $setting['language']);
+    $flyweight->render([
+        'username' => $setting['username'],
+        'date' => $setting['date']
+    ]);
 }
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+#### UML Диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (71).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-// Пример использования Фасада
-$authFacade = new AuthFacade();
-
-// Аутентификация пользователя
-$user = $authFacade->login('admin', 'admin123');
-if ($user) {
-    echo "User authenticated: " . $user->getUsername() . "\n";
-
-    // Авторизация пользователя
-    if ($authFacade->checkAccess($user, 'admin')) {
-        echo "User has admin access.\n";
-    } else {
-        echo "User does not have admin access.\n";
-    }
-} else {
-    echo "Authentication failed.\n";
-}
-```
-{% endcode %}
-
-#### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (64).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class User {
-    -username: string
-    -password: string
-    -role: string
-    +__construct(username: string, password: string, role: string)
-    +getUsername(): string
-    +getPassword(): string
-    +getRole(): string
+interface UserSettingsFlyweight {
+    +render(extrinsicState: array)
 }
 
-class Authentication {
-    +authenticate(username: string, password: string): User
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    -theme: string
+    -language: string
+    +__construct(theme: string, language: string)
+    +render(extrinsicState: array)
 }
 
-class Authorization {
-    +authorize(user: User, requiredRole: string): bool
+class UserSettingsFlyweightFactory {
+    -flyweights: array
+    +getFlyweight(theme: string, language: string): UserSettingsFlyweight
 }
 
-class AuthFacade {
-    -authentication: Authentication
-    -authorization: Authorization
-    +__construct()
-    +login(username: string, password: string): User
-    +checkAccess(user: User, requiredRole: string): bool
-}
-
-AuthFacade --> Authentication
-AuthFacade --> Authorization
-
+UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
+UserSettingsFlyweightFactory --> UserSettingsFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с пользовательскими настройками в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров настроек. Это особенно полезно, когда у нас много пользователей с одинаковыми или похожими настройками.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
