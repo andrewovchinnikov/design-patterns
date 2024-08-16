@@ -1,157 +1,125 @@
 # Python
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение имеет множество настроек и конфигураций, таких как подключение к базе данных, настройки кэширования, параметры логирования и многое другое. Все эти настройки хранятся в разных местах и управляются разными классами. Наша задача — упростить управление этими конфигурациями, чтобы другие разработчики могли легко и быстро изменять настройки без необходимости понимать внутреннюю структуру приложения.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления событиями. Наше приложение позволяет пользователям создавать, редактировать и удалять события, а также просматривать их в календаре. Мы хотим оптимизировать работу с событиями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления всеми конфигурациями приложения.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, события могут иметь одинаковые параметры, такие как тип события (встреча, дедлайн и т.д.) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое событие.
 
 #### Пример кода на Python
 
-**1. Классы для управления конфигурациями**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс для управления настройками базы данных
-class DatabaseConfig:
-    def __init__(self, host, username, password, database):
-        self.host = host
-        self.username = username
-        self.password = password
-        self.database = database
+from abc import ABC, abstractmethod
 
-    def get_config(self):
-        return {
-            'host': self.host,
-            'username': self.username,
-            'password': self.password,
-            'database': self.database
-        }
-
-# Класс для управления настройками кэширования
-class CacheConfig:
-    def __init__(self, driver, host, port):
-        self.driver = driver
-        self.host = host
-        self.port = port
-
-    def get_config(self):
-        return {
-            'driver': self.driver,
-            'host': self.host,
-            'port': self.port
-        }
-
-# Класс для управления настройками логирования
-class LoggingConfig:
-    def __init__(self, level, file):
-        self.level = level
-        self.file = file
-
-    def get_config(self):
-        return {
-            'level': self.level,
-            'file': self.file
-        }
+class EventFlyweight(ABC):
+    @abstractmethod
+    def render(self, extrinsic_state):
+        pass
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Класс Фасада для управления всеми конфигурациями
-class ConfigFacade:
+class ConcreteEventFlyweight(EventFlyweight):
+    def __init__(self, type, priority):
+        self.type = type
+        self.priority = priority
+
+    def render(self, extrinsic_state):
+        # Внешнее состояние включает уникальные данные события, такие как название и дата
+        name = extrinsic_state['name']
+        date = extrinsic_state['date']
+
+        # Рендеринг события
+        print(f"Событие: {name}")
+        print(f"Тип: {self.type}")
+        print(f"Приоритет: {self.priority}")
+        print(f"Дата: {date}\n")
+```
+{% endcode %}
+
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class EventFlyweightFactory:
     def __init__(self):
-        # Инициализация конфигураций с дефолтными значениями
-        self.database_config = DatabaseConfig('localhost', 'root', 'password', 'mydb')
-        self.cache_config = CacheConfig('redis', 'localhost', 6379)
-        self.logging_config = LoggingConfig('info', '/var/log/app.log')
+        self.flyweights = {}
 
-    # Метод для получения конфигурации базы данных
-    def get_database_config(self):
-        return self.database_config.get_config()
-
-    # Метод для получения конфигурации кэширования
-    def get_cache_config(self):
-        return self.cache_config.get_config()
-
-    # Метод для получения конфигурации логирования
-    def get_logging_config(self):
-        return self.logging_config.get_config()
+    def get_flyweight(self, type, priority):
+        key = f"{type}_{priority}"
+        if key not in self.flyweights:
+            self.flyweights[key] = ConcreteEventFlyweight(type, priority)
+        return self.flyweights[key]
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-# Пример использования Фасада
+def main():
+    # Создаем фабрику легковесных объектов
+    factory = EventFlyweightFactory()
+
+    # Создаем события с использованием легковесных объектов
+    events = [
+        {"name": "Встреча с командой", "type": "Встреча", "priority": "Высокий", "date": "2023-10-01"},
+        {"name": "Дедлайн проекта", "type": "Дедлайн", "priority": "Средний", "date": "2023-10-05"},
+        {"name": "Обед с друзьями", "type": "Встреча", "priority": "Низкий", "date": "2023-10-03"}
+    ]
+
+    for event in events:
+        flyweight = factory.get_flyweight(event["type"], event["priority"])
+        flyweight.render({
+            "name": event["name"],
+            "date": event["date"]
+        })
+
 if __name__ == "__main__":
-    config_facade = ConfigFacade()
-
-    # Получение конфигурации базы данных
-    db_config = config_facade.get_database_config()
-    print("Database Config:", db_config)
-
-    # Получение конфигурации кэширования
-    cache_config = config_facade.get_cache_config()
-    print("Cache Config:", cache_config)
-
-    # Получение конфигурации логирования
-    logging_config = config_facade.get_logging_config()
-    print("Logging Config:", logging_config)
+    main()
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (70).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class DatabaseConfig {
-    -host: string
-    -username: string
-    -password: string
-    -database: string
-    +__init__(host: string, username: string, password: string, database: string)
-    +get_config(): dict
+interface EventFlyweight {
+    +render(extrinsic_state: dict)
 }
 
-class CacheConfig {
-    -driver: string
-    -host: string
-    -port: int
-    +__init__(driver: string, host: string, port: int)
-    +get_config(): dict
+class ConcreteEventFlyweight implements EventFlyweight {
+    -type: string
+    -priority: string
+    +__init__(type: string, priority: string)
+    +render(extrinsic_state: dict)
 }
 
-class LoggingConfig {
-    -level: string
-    -file: string
-    +__init__(level: string, file: string)
-    +get_config(): dict
-}
-
-class ConfigFacade {
-    -database_config: DatabaseConfig
-    -cache_config: CacheConfig
-    -logging_config: LoggingConfig
+class EventFlyweightFactory {
+    -flyweights: dict
     +__init__()
-    +get_database_config(): dict
-    +get_cache_config(): dict
-    +get_logging_config(): dict
+    +get_flyweight(type: string, priority: string): EventFlyweight
 }
 
-ConfigFacade --> DatabaseConfig
-ConfigFacade --> CacheConfig
-ConfigFacade --> LoggingConfig
-
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления конфигурациями нашего приложения. Теперь другие разработчики могут легко получать и изменять настройки, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с конфигурацией и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с событиями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров событий. Это особенно полезно, когда у нас много событий с одинаковыми или похожими состояниями.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
