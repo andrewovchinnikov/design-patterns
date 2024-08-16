@@ -1,148 +1,126 @@
 # PHP
 
-Представьте, что мы — команда разработчиков, работающая над сложным веб-приложением, которое взаимодействует с несколькими микросервисами. Наше приложение должно отправлять запросы к различным микросервисам для получения данных, обработки заказов, управления пользователями и других задач. Каждый микросервис имеет свой собственный API и способ взаимодействия, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления уведомлениями. Наше приложение позволяет пользователям создавать, редактировать и удалять уведомления, а также просматривать их в реальном времени. Мы хотим оптимизировать работу с уведомлениями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с микросервисами, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для взаимодействия с микросервисами.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, уведомления могут иметь одинаковые параметры, такие как тип уведомления (информация, предупреждение, ошибка) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое уведомление.
 
 #### Пример кода на PHP
 
-**1. Классы для взаимодействия с микросервисами**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс для взаимодействия с микросервисом пользователей
-class UserService {
-    public function getUser($userId) {
-        // Логика для получения данных пользователя из микросервиса
-        return [
-            'id' => $userId,
-            'name' => 'John Doe',
-            'email' => 'john.doe@example.com'
-        ];
-    }
+interface NotificationFlyweight {
+    public function render(array $extrinsicState);
 }
+```
+{% endcode %}
 
-// Класс для взаимодействия с микросервисом заказов
-class OrderService {
-    public function getOrder($orderId) {
-        // Логика для получения данных заказа из микросервиса
-        return [
-            'id' => $orderId,
-            'status' => 'completed',
-            'total' => 100.00
-        ];
+**2. Реализация конкретного легковесного объекта**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    private $type;
+    private $priority;
+
+    public function __construct($type, $priority) {
+        $this->type = $type;
+        $this->priority = $priority;
     }
-}
 
-// Класс для взаимодействия с микросервисом продуктов
-class ProductService {
-    public function getProduct($productId) {
-        // Логика для получения данных продукта из микросервиса
-        return [
-            'id' => $productId,
-            'name' => 'Product Name',
-            'price' => 50.00
-        ];
+    public function render(array $extrinsicState) {
+        // Внешнее состояние включает уникальные данные уведомления, такие как сообщение и дата
+        $message = $extrinsicState['message'];
+        $date = $extrinsicState['date'];
+
+        // Рендеринг уведомления
+        echo "Сообщение: $message<br>";
+        echo "Тип: $this->type<br>";
+        echo "Приоритет: $this->priority<br>";
+        echo "Дата: $date<br><br>";
     }
 }
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**3. Фабрика легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Класс Фасада для взаимодействия с микросервисами
-class MicroserviceFacade {
-    private $userService;
-    private $orderService;
-    private $productService;
+class NotificationFlyweightFactory {
+    private $flyweights = [];
 
-    public function __construct() {
-        $this->userService = new UserService();
-        $this->orderService = new OrderService();
-        $this->productService = new ProductService();
-    }
-
-    // Метод для получения данных пользователя
-    public function getUser($userId) {
-        return $this->userService->getUser($userId);
-    }
-
-    // Метод для получения данных заказа
-    public function getOrder($orderId) {
-        return $this->orderService->getOrder($orderId);
-    }
-
-    // Метод для получения данных продукта
-    public function getProduct($productId) {
-        return $this->productService->getProduct($productId);
+    public function getFlyweight($type, $priority) {
+        $key = $type . '_' . $priority;
+        if (!isset($this->flyweights[$key])) {
+            $this->flyweights[$key] = new ConcreteNotificationFlyweight($type, $priority);
+        }
+        return $this->flyweights[$key];
     }
 }
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Пример использования Фасада
-$microserviceFacade = new MicroserviceFacade();
+// Создаем фабрику легковесных объектов
+$factory = new NotificationFlyweightFactory();
 
-// Получение данных пользователя
-$user = $microserviceFacade->getUser(1);
-print_r($user);
+// Создаем уведомления с использованием легковесных объектов
+$notifications = [
+    ['message' => 'Встреча с командой', 'type' => 'Информация', 'priority' => 'Высокий', 'date' => '2023-10-01'],
+    ['message' => 'Дедлайн проекта', 'type' => 'Предупреждение', 'priority' => 'Средний', 'date' => '2023-10-05'],
+    ['message' => 'Ошибка сервера', 'type' => 'Ошибка', 'priority' => 'Высокий', 'date' => '2023-10-03']
+];
 
-// Получение данных заказа
-$order = $microserviceFacade->getOrder(1);
-print_r($order);
-
-// Получение данных продукта
-$product = $microserviceFacade->getProduct(1);
-print_r($product);
+foreach ($notifications as $notification) {
+    $flyweight = $factory->getFlyweight($notification['type'], $notification['priority']);
+    $flyweight->render([
+        'message' => $notification['message'],
+        'date' => $notification['date']
+    ]);
+}
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+```plant-uml
 @startuml
-
-class UserService {
-    +getUser(userId: int): array
+interface NotificationFlyweight {
+    +render(extrinsicState: array)
 }
 
-class OrderService {
-    +getOrder(orderId: int): array
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    -type: string
+    -priority: string
+    +__construct(type: string, priority: string)
+    +render(extrinsicState: array)
 }
 
-class ProductService {
-    +getProduct(productId: int): array
+class NotificationFlyweightFactory {
+    -flyweights: array
+    +getFlyweight(type: string, priority: string): NotificationFlyweight
 }
 
-class MicroserviceFacade {
-    -userService: UserService
-    -orderService: OrderService
-    -productService: ProductService
-    +__construct()
-    +getUser(userId: int): array
-    +getOrder(orderId: int): array
-    +getProduct(productId: int): array
-}
-
-MicroserviceFacade --> UserService
-MicroserviceFacade --> OrderService
-MicroserviceFacade --> ProductService
-
+NotificationFlyweight <|-- ConcreteNotificationFlyweight
+NotificationFlyweightFactory --> NotificationFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для взаимодействия с микросервисами в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из микросервисов. Это упрощает работу с системой микросервисов и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с уведомлениями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров уведомлений. Это особенно полезно, когда у нас много уведомлений с одинаковыми или похожими состояниями.
 
-09:01∙Mistral Large 2АО\
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
