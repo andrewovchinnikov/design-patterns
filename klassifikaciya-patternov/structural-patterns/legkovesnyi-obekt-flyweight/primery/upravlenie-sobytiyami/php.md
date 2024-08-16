@@ -90,6 +90,8 @@ foreach ($events as $event) {
 
 #### UML Диаграмма
 
+<figure><img src="../../../../../.gitbook/assets/image (68).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
