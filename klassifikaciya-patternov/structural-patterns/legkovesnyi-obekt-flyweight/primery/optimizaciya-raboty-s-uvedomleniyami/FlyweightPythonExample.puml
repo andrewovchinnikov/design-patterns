@@ -1,0 +1,21 @@
+@startuml
+interface NotificationFlyweight {
+    +render(extrinsic_state: dict)
+}
+
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    -type: string
+    -priority: string
+    +__init__(type: string, priority: string)
+    +render(extrinsic_state: dict)
+}
+
+class NotificationFlyweightFactory {
+    -flyweights: dict
+    +__init__()
+    +get_flyweight(type: string, priority: string): NotificationFlyweight
+}
+
+NotificationFlyweight <|-- ConcreteNotificationFlyweight
+NotificationFlyweightFactory --> NotificationFlyweight
+@enduml

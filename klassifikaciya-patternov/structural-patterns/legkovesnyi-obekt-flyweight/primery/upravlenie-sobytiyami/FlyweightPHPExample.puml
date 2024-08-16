@@ -1,0 +1,20 @@
+@startuml
+interface EventFlyweight {
+    +render(extrinsicState: array)
+}
+
+class ConcreteEventFlyweight implements EventFlyweight {
+    -type: string
+    -priority: string
+    +__construct(type: string, priority: string)
+    +render(extrinsicState: array)
+}
+
+class EventFlyweightFactory {
+    -flyweights: array
+    +getFlyweight(type: string, priority: string): EventFlyweight
+}
+
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+interface UserSettingsFlyweight {
+    +Render(extrinsicState: map[string]string)
+}
+
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    -Theme: string
+    -Language: string
+    +Render(extrinsicState: map[string]string)
+}
+
+class UserSettingsFlyweightFactory {
+    -flyweights: map[string]UserSettingsFlyweight
+    +NewUserSettingsFlyweightFactory(): UserSettingsFlyweightFactory
+    +GetFlyweight(theme: string, language: string): UserSettingsFlyweight
+}
+
+UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
+UserSettingsFlyweightFactory --> UserSettingsFlyweight
+@enduml

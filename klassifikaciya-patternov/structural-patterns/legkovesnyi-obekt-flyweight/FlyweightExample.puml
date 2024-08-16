@@ -1,0 +1,24 @@
+@startuml
+interface Flyweight {
+    +operation(extrinsicState: UniqueState)
+}
+
+class ConcreteFlyweight implements Flyweight {
+    -intrinsicState: SharedState
+    +operation(extrinsicState: UniqueState)
+}
+
+class UnsharedConcreteFlyweight implements Flyweight {
+    -allState: UniqueState
+    +operation(extrinsicState: UniqueState)
+}
+
+class FlyweightFactory {
+    -flyweights: Map<String, Flyweight>
+    +getFlyweight(key: String): Flyweight
+}
+
+Flyweight <|-- ConcreteFlyweight
+Flyweight <|-- UnsharedConcreteFlyweight
+FlyweightFactory --> Flyweight
+@enduml

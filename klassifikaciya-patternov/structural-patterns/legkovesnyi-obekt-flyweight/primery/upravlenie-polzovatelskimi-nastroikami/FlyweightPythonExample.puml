@@ -1,0 +1,21 @@
+@startuml
+interface UserSettingsFlyweight {
+    +render(extrinsic_state: dict)
+}
+
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    -theme: string
+    -language: string
+    +__init__(theme: string, language: string)
+    +render(extrinsic_state: dict)
+}
+
+class UserSettingsFlyweightFactory {
+    -flyweights: dict
+    +__init__()
+    +get_flyweight(theme: string, language: string): UserSettingsFlyweight
+}
+
+UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
+UserSettingsFlyweightFactory --> UserSettingsFlyweight
+@enduml

@@ -1,0 +1,21 @@
+@startuml
+interface EventFlyweight {
+    +render(extrinsic_state: dict)
+}
+
+class ConcreteEventFlyweight implements EventFlyweight {
+    -type: string
+    -priority: string
+    +__init__(type: string, priority: string)
+    +render(extrinsic_state: dict)
+}
+
+class EventFlyweightFactory {
+    -flyweights: dict
+    +__init__()
+    +get_flyweight(type: string, priority: string): EventFlyweight
+}
+
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
+@enduml

@@ -1,0 +1,20 @@
+@startuml
+interface EventFlyweight {
+    +Render(extrinsicState: map[string]string)
+}
+
+class ConcreteEventFlyweight implements EventFlyweight {
+    -Type: string
+    -Priority: string
+    +Render(extrinsicState: map[string]string)
+}
+
+class EventFlyweightFactory {
+    -flyweights: map[string]EventFlyweight
+    +NewEventFlyweightFactory(): EventFlyweightFactory
+    +GetFlyweight(typeName: string, priority: string): EventFlyweight
+}
+
+EventFlyweight <|-- ConcreteEventFlyweight
+EventFlyweightFactory --> EventFlyweight
+@enduml

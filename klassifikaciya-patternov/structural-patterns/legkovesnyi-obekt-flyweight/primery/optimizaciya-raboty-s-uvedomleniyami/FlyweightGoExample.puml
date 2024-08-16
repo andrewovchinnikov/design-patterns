@@ -1,0 +1,20 @@
+@startuml
+interface NotificationFlyweight {
+    +Render(extrinsicState: map[string]string)
+}
+
+class ConcreteNotificationFlyweight implements NotificationFlyweight {
+    -Type: string
+    -Priority: string
+    +Render(extrinsicState: map[string]string)
+}
+
+class NotificationFlyweightFactory {
+    -flyweights: map[string]NotificationFlyweight
+    +NewNotificationFlyweightFactory(): NotificationFlyweightFactory
+    +GetFlyweight(typeName: string, priority: string): NotificationFlyweight
+}
+
+NotificationFlyweight <|-- ConcreteNotificationFlyweight
+NotificationFlyweightFactory --> NotificationFlyweight
+@enduml
