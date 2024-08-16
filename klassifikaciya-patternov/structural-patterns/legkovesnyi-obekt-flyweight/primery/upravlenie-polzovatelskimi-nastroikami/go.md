@@ -1,12 +1,14 @@
 # Go
 
-Представьте, что мы — команда разработчиков, работающая над веб-приложением. Наше приложение требует сложной системы аутентификации и авторизации. Мы должны управлять пользователями, их ролями, правами доступа и проверять их учетные данные. Все эти задачи выполняются разными классами и модулями, что делает систему сложной для понимания и использования.
+Привет! Мы — команда разработчиков, работающая над веб-приложением для управления пользовательскими настройками. Наше приложение позволяет пользователям настраивать различные параметры, такие как темы оформления, язык интерфейса и уведомления. Мы хотим оптимизировать работу с пользовательскими настройками, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
 
-Наша задача — упростить взаимодействие с системой аутентификации и авторизации, чтобы другие разработчики могли легко и быстро интегрировать эти функции в свои части приложения. Для этого мы решили использовать паттерн проектирования "Фасад" (Facade). Фасад предоставляет простой интерфейс для сложной системы классов, библиотек или фреймворков. В нашем случае, фасад будет предоставлять единый интерфейс для управления аутентификацией и авторизацией.
+#### Описание кейса
+
+Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, пользовательские настройки могут иметь одинаковые параметры, такие как тема оформления (светлая, темная) и язык интерфейса (русский, английский). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новые настройки для пользователя.
 
 #### Пример кода на Go
 
-**1. Классы для управления аутентификацией и авторизацией**
+**1. Определение интерфейса Flyweight**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -14,155 +16,120 @@ package main
 
 import "fmt"
 
-// Класс для управления пользователями
-type User struct {
-    Username string
-    Password string
-    Role     string
-}
-
-func NewUser(username, password, role string) *User {
-    return &User{
-        Username: username,
-        Password: password,
-        Role:     role,
-    }
-}
-
-func (u *User) GetUsername() string {
-    return u.Username
-}
-
-func (u *User) GetPassword() string {
-    return u.Password
-}
-
-func (u *User) GetRole() string {
-    return u.Role
-}
-
-// Класс для аутентификации пользователей
-type Authentication struct{}
-
-func (a *Authentication) Authenticate(username, password string) *User {
-    // Простая проверка аутентификации
-    users := map[string]*User{
-        "admin": NewUser("admin", "admin123", "admin"),
-        "user":  NewUser("user", "user123", "user"),
-    }
-
-    if user, ok := users[username]; ok && user.GetPassword() == password {
-        return user
-    }
-
-    return nil
-}
-
-// Класс для авторизации пользователей
-type Authorization struct{}
-
-func (a *Authorization) Authorize(user *User, requiredRole string) bool {
-    return user.GetRole() == requiredRole
+type UserSettingsFlyweight interface {
+    Render(extrinsicState map[string]string)
 }
 ```
 {% endcode %}
 
-**2. Класс Фасада**
+**2. Реализация конкретного легковесного объекта**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-// Класс Фасада для управления аутентификацией и авторизацией
-type AuthFacade struct {
-    authentication *Authentication
-    authorization  *Authorization
+type ConcreteUserSettingsFlyweight struct {
+    Theme    string
+    Language string
 }
 
-func NewAuthFacade() *AuthFacade {
-    return &AuthFacade{
-        authentication: &Authentication{},
-        authorization:  &Authorization{},
-    }
-}
+func (c *ConcreteUserSettingsFlyweight) Render(extrinsicState map[string]string) {
+    // Внешнее состояние включает уникальные данные пользователя, такие как имя пользователя и дата настройки
+    username := extrinsicState["username"]
+    date := extrinsicState["date"]
 
-// Метод для аутентификации пользователя
-func (af *AuthFacade) Login(username, password string) *User {
-    return af.authentication.Authenticate(username, password)
-}
-
-// Метод для авторизации пользователя
-func (af *AuthFacade) CheckAccess(user *User, requiredRole string) bool {
-    return af.authorization.Authorize(user, requiredRole)
+    // Рендеринг настроек пользователя
+    fmt.Printf("Пользователь: %s\n", username)
+    fmt.Printf("Тема: %s\n", c.Theme)
+    fmt.Printf("Язык: %s\n", c.Language)
+    fmt.Printf("Дата настройки: %s\n\n", date)
 }
 ```
 {% endcode %}
 
-**3. Использование Фасада**
+**3. Фабрика легковесных объектов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type UserSettingsFlyweightFactory struct {
+    flyweights map[string]UserSettingsFlyweight
+}
+
+func NewUserSettingsFlyweightFactory() *UserSettingsFlyweightFactory {
+    return &UserSettingsFlyweightFactory{
+        flyweights: make(map[string]UserSettingsFlyweight),
+    }
+}
+
+func (f *UserSettingsFlyweightFactory) GetFlyweight(theme, language string) UserSettingsFlyweight {
+    key := theme + "_" + language
+    if flyweight, exists := f.flyweights[key]; exists {
+        return flyweight
+    }
+    flyweight := &ConcreteUserSettingsFlyweight{Theme: theme, Language: language}
+    f.flyweights[key] = flyweight
+    return flyweight
+}
+```
+{% endcode %}
+
+**4. Использование легковесных объектов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Пример использования Фасада
-    authFacade := NewAuthFacade()
+    // Создаем фабрику легковесных объектов
+    factory := NewUserSettingsFlyweightFactory()
 
-    // Аутентификация пользователя
-    user := authFacade.Login("admin", "admin123")
-    if user != nil {
-        fmt.Println("User authenticated:", user.GetUsername())
+    // Создаем пользовательские настройки с использованием легковесных объектов
+    settings := []map[string]string{
+        {"username": "Иван", "theme": "Светлая", "language": "Русский", "date": "2023-10-01"},
+        {"username": "Мария", "theme": "Темная", "language": "Английский", "date": "2023-10-05"},
+        {"username": "Алексей", "theme": "Светлая", "language": "Русский", "date": "2023-10-03"},
+    }
 
-        // Авторизация пользователя
-        if authFacade.CheckAccess(user, "admin") {
-            fmt.Println("User has admin access.")
-        } else {
-            fmt.Println("User does not have admin access.")
-        }
-    } else {
-        fmt.Println("Authentication failed.")
+    for _, setting := range settings {
+        flyweight := factory.GetFlyweight(setting["theme"], setting["language"])
+        flyweight.Render(map[string]string{
+            "username": setting["username"],
+            "date":     setting["date"],
+        })
     }
 }
 ```
 {% endcode %}
 
-#### UML диаграмма
+#### UML Диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (65).png" alt=""><figcaption><p>UML диаграмма для паттерна "Фасад"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (72).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
+{% code title="" overflow="wrap" lineNumbers="true" %}
+```plant-uml
 @startuml
-
-class User {
-    -Username: string
-    -Password: string
-    -Role: string
-    +NewUser(username: string, password: string, role: string): User
-    +GetUsername(): string
-    +GetPassword(): string
-    +GetRole(): string
+interface UserSettingsFlyweight {
+    +Render(extrinsicState: map[string]string)
 }
 
-class Authentication {
-    +Authenticate(username: string, password: string): User
+class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
+    -Theme: string
+    -Language: string
+    +Render(extrinsicState: map[string]string)
 }
 
-class Authorization {
-    +Authorize(user: User, requiredRole: string): bool
+class UserSettingsFlyweightFactory {
+    -flyweights: map[string]UserSettingsFlyweight
+    +NewUserSettingsFlyweightFactory(): UserSettingsFlyweightFactory
+    +GetFlyweight(theme: string, language: string): UserSettingsFlyweight
 }
 
-class AuthFacade {
-    -authentication: Authentication
-    -authorization: Authorization
-    +NewAuthFacade(): AuthFacade
-    +Login(username: string, password: string): User
-    +CheckAccess(user: User, requiredRole: string): bool
-}
-
-AuthFacade --> Authentication
-AuthFacade --> Authorization
-
+UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
+UserSettingsFlyweightFactory --> UserSettingsFlyweight
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна "Фасад" позволило нам создать простой и удобный интерфейс для управления аутентификацией и авторизацией в нашем приложении. Теперь другие разработчики могут легко интегрировать эти функции в свои части приложения, не вдаваясь в детали реализации каждого из классов. Это упрощает работу с системой аутентификации и авторизации и делает код более читаемым и поддерживаемым.
+Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с пользовательскими настройками в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров настроек. Это особенно полезно, когда у нас много пользователей с одинаковыми или похожими настройками.
+
+Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
