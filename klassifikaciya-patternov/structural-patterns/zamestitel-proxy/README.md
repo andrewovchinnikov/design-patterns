@@ -4,6 +4,8 @@
 
 ### **UML Диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image (75).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml
