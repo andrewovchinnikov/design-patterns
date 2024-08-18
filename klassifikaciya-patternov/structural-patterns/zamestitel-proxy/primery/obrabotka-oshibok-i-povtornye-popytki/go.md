@@ -1,135 +1,125 @@
 # Go
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления событиями. Наше приложение позволяет пользователям создавать, редактировать и удалять события, а также просматривать их в календаре. Мы хотим оптимизировать работу с событиями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что мы работаем в компании, которая разрабатывает веб-приложение для управления заказами. Наше приложение должно уметь обрабатывать заказы, но иногда сервер, который обрабатывает заказы, может быть недоступен. Мы хотим, чтобы наше приложение не падало в таких случаях, а пыталось повторно отправить заказ через некоторое время.
 
-#### Описание кейса
-
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, события могут иметь одинаковые параметры, такие как тип события (встреча, дедлайн и т.д.) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое событие.
+Для этого мы будем использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать объект-заместитель, который будет выполнять дополнительные действия перед вызовом основного объекта. В нашем случае заместитель будет обрабатывать ошибки и делать повторные попытки.
 
 #### Пример кода на Go
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для обработки заказов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+	"math/rand"
+	"time"
+)
 
-type EventFlyweight interface {
-    Render(extrinsicState map[string]string)
+type OrderProcessor interface {
+	ProcessOrder(orderId string) (string, error)
 }
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Создание основного класса для обработки заказов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type ConcreteEventFlyweight struct {
-    Type     string
-    Priority string
-}
+type RealOrderProcessor struct{}
 
-func (c *ConcreteEventFlyweight) Render(extrinsicState map[string]string) {
-    // Внешнее состояние включает уникальные данные события, такие как название и дата
-    name := extrinsicState["name"]
-    date := extrinsicState["date"]
-
-    // Рендеринг события
-    fmt.Printf("Событие: %s\n", name)
-    fmt.Printf("Тип: %s\n", c.Type)
-    fmt.Printf("Приоритет: %s\n", c.Priority)
-    fmt.Printf("Дата: %s\n\n", date)
+func (rop *RealOrderProcessor) ProcessOrder(orderId string) (string, error) {
+	// Симуляция обработки заказа
+	if rand.Intn(2) == 0 {
+		return "", errors.New("Сервер недоступен")
+	}
+	return fmt.Sprintf("Заказ %s успешно обработан", orderId), nil
 }
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type EventFlyweightFactory struct {
-    flyweights map[string]EventFlyweight
+type OrderProcessorProxy struct {
+	realOrderProcessor OrderProcessor
 }
 
-func NewEventFlyweightFactory() *EventFlyweightFactory {
-    return &EventFlyweightFactory{
-        flyweights: make(map[string]EventFlyweight),
-    }
+func NewOrderProcessorProxy(realOrderProcessor OrderProcessor) *OrderProcessorProxy {
+	return &OrderProcessorProxy{realOrderProcessor: realOrderProcessor}
 }
 
-func (f *EventFlyweightFactory) GetFlyweight(typeName, priority string) EventFlyweight {
-    key := typeName + "_" + priority
-    if flyweight, exists := f.flyweights[key]; exists {
-        return flyweight
-    }
-    flyweight := &ConcreteEventFlyweight{Type: typeName, Priority: priority}
-    f.flyweights[key] = flyweight
-    return flyweight
+func (opp *OrderProcessorProxy) ProcessOrder(orderId string) (string, error) {
+	attempts := 3
+	for attempts > 0 {
+		result, err := opp.realOrderProcessor.ProcessOrder(orderId)
+		if err == nil {
+			return result, nil
+		}
+		attempts--
+		if attempts == 0 {
+			return "", err
+		}
+		fmt.Println("Повторная попытка...")
+		time.Sleep(1 * time.Second) // Пауза перед повторной попыткой
+	}
+	return "", errors.New("Не удалось обработать заказ")
 }
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем фабрику легковесных объектов
-    factory := NewEventFlyweightFactory()
+	realOrderProcessor := &RealOrderProcessor{}
+	orderProcessorProxy := NewOrderProcessorProxy(realOrderProcessor)
 
-    // Создаем события с использованием легковесных объектов
-    events := []map[string]string{
-        {"name": "Встреча с командой", "type": "Встреча", "priority": "Высокий", "date": "2023-10-01"},
-        {"name": "Дедлайн проекта", "type": "Дедлайн", "priority": "Средний", "date": "2023-10-05"},
-        {"name": "Обед с друзьями", "type": "Встреча", "priority": "Низкий", "date": "2023-10-03"},
-    }
-
-    for _, event := range events {
-        flyweight := factory.GetFlyweight(event["type"], event["priority"])
-        flyweight.Render(map[string]string{
-            "name": event["name"],
-            "date": event["date"],
-        })
-    }
+	result, err := orderProcessorProxy.ProcessOrder("12345")
+	if err != nil {
+		fmt.Printf("Ошибка: %v\n", err)
+	} else {
+		fmt.Println(result)
+	}
 }
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (69).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (76).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface EventFlyweight {
-    +Render(extrinsicState: map[string]string)
+interface OrderProcessor {
+    +ProcessOrder(orderId: String): (String, error)
 }
 
-class ConcreteEventFlyweight implements EventFlyweight {
-    -Type: string
-    -Priority: string
-    +Render(extrinsicState: map[string]string)
+class RealOrderProcessor {
+    +ProcessOrder(orderId: String): (String, error)
 }
 
-class EventFlyweightFactory {
-    -flyweights: map[string]EventFlyweight
-    +NewEventFlyweightFactory(): EventFlyweightFactory
-    +GetFlyweight(typeName: string, priority: string): EventFlyweight
+class OrderProcessorProxy {
+    -realOrderProcessor: OrderProcessor
+    +NewOrderProcessorProxy(realOrderProcessor: OrderProcessor): OrderProcessorProxy
+    +ProcessOrder(orderId: String): (String, error)
 }
 
-EventFlyweight <|-- ConcreteEventFlyweight
-EventFlyweightFactory --> EventFlyweight
+OrderProcessor <|-- RealOrderProcessor
+OrderProcessor <|-- OrderProcessorProxy
+OrderProcessorProxy --> RealOrderProcessor
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с событиями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров событий. Это особенно полезно, когда у нас много событий с одинаковыми или похожими состояниями.
+В этом кейсе мы использовали паттерн "Заместитель" для обработки ошибок и повторных попыток при обработке заказов. Основной класс `RealOrderProcessor` выполняет реальную обработку заказов, а класс-заместитель `OrderProcessorProxy` обрабатывает ошибки и делает повторные попытки.
 
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
-
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Этот подход позволяет нам сделать наше приложение более устойчивым к сбоям и улучшить пользовательский опыт, так как приложение не падает при временных проблемах с сервером.
