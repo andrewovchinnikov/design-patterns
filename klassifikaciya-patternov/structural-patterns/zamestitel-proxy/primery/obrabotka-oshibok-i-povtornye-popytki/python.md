@@ -1,125 +1,111 @@
 # Python
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления событиями. Наше приложение позволяет пользователям создавать, редактировать и удалять события, а также просматривать их в календаре. Мы хотим оптимизировать работу с событиями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что мы работаем в компании, которая разрабатывает веб-приложение для управления заказами. Наше приложение должно уметь обрабатывать заказы, но иногда сервер, который обрабатывает заказы, может быть недоступен. Мы хотим, чтобы наше приложение не падало в таких случаях, а пыталось повторно отправить заказ через некоторое время.
 
-#### Описание кейса
-
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, события могут иметь одинаковые параметры, такие как тип события (встреча, дедлайн и т.д.) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое событие.
+Для этого мы будем использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать объект-заместитель, который будет выполнять дополнительные действия перед вызовом основного объекта. В нашем случае заместитель будет обрабатывать ошибки и делать повторные попытки.
 
 #### Пример кода на Python
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для обработки заказов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class EventFlyweight(ABC):
+class OrderProcessor(ABC):
     @abstractmethod
-    def render(self, extrinsic_state):
+    def process_order(self, order_id: str) -> str:
         pass
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Создание основного класса для обработки заказов**
 
-{% code overflow="wrap" lineNumbers="true" %}
+{% code lineNumbers="true" %}
 ```python
-class ConcreteEventFlyweight(EventFlyweight):
-    def __init__(self, type, priority):
-        self.type = type
-        self.priority = priority
+import random
 
-    def render(self, extrinsic_state):
-        # Внешнее состояние включает уникальные данные события, такие как название и дата
-        name = extrinsic_state['name']
-        date = extrinsic_state['date']
-
-        # Рендеринг события
-        print(f"Событие: {name}")
-        print(f"Тип: {self.type}")
-        print(f"Приоритет: {self.priority}")
-        print(f"Дата: {date}\n")
+class RealOrderProcessor(OrderProcessor):
+    def process_order(self, order_id: str) -> str:
+        # Симуляция обработки заказа
+        if random.randint(0, 1) == 0:
+            raise Exception("Сервер недоступен")
+        return f"Заказ {order_id} успешно обработан"
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class EventFlyweightFactory:
-    def __init__(self):
-        self.flyweights = {}
+import time
 
-    def get_flyweight(self, type, priority):
-        key = f"{type}_{priority}"
-        if key not in self.flyweights:
-            self.flyweights[key] = ConcreteEventFlyweight(type, priority)
-        return self.flyweights[key]
+class OrderProcessorProxy(OrderProcessor):
+    def __init__(self, real_order_processor: OrderProcessor):
+        self.real_order_processor = real_order_processor
+
+    def process_order(self, order_id: str) -> str:
+        attempts = 3
+        while attempts > 0:
+            try:
+                return self.real_order_processor.process_order(order_id)
+            except Exception as e:
+                attempts -= 1
+                if attempts == 0:
+                    raise e
+                print("Повторная попытка...")
+                time.sleep(1)  # Пауза перед повторной попыткой
+        return "Не удалось обработать заказ"
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 def main():
-    # Создаем фабрику легковесных объектов
-    factory = EventFlyweightFactory()
+    real_order_processor = RealOrderProcessor()
+    order_processor_proxy = OrderProcessorProxy(real_order_processor)
 
-    # Создаем события с использованием легковесных объектов
-    events = [
-        {"name": "Встреча с командой", "type": "Встреча", "priority": "Высокий", "date": "2023-10-01"},
-        {"name": "Дедлайн проекта", "type": "Дедлайн", "priority": "Средний", "date": "2023-10-05"},
-        {"name": "Обед с друзьями", "type": "Встреча", "priority": "Низкий", "date": "2023-10-03"}
-    ]
-
-    for event in events:
-        flyweight = factory.get_flyweight(event["type"], event["priority"])
-        flyweight.render({
-            "name": event["name"],
-            "date": event["date"]
-        })
+    try:
+        result = order_processor_proxy.process_order("12345")
+        print(result)
+    except Exception as e:
+        print(f"Ошибка: {e}")
 
 if __name__ == "__main__":
     main()
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (70).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface EventFlyweight {
-    +render(extrinsic_state: dict)
+interface OrderProcessor {
+    +process_order(order_id: String): String
 }
 
-class ConcreteEventFlyweight implements EventFlyweight {
-    -type: string
-    -priority: string
-    +__init__(type: string, priority: string)
-    +render(extrinsic_state: dict)
+class RealOrderProcessor {
+    +process_order(order_id: String): String
 }
 
-class EventFlyweightFactory {
-    -flyweights: dict
-    +__init__()
-    +get_flyweight(type: string, priority: string): EventFlyweight
+class OrderProcessorProxy {
+    -real_order_processor: OrderProcessor
+    +OrderProcessorProxy(real_order_processor: OrderProcessor)
+    +process_order(order_id: String): String
 }
 
-EventFlyweight <|-- ConcreteEventFlyweight
-EventFlyweightFactory --> EventFlyweight
+OrderProcessor <|-- RealOrderProcessor
+OrderProcessor <|-- OrderProcessorProxy
+OrderProcessorProxy --> RealOrderProcessor
 @enduml
 ```
-{% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с событиями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров событий. Это особенно полезно, когда у нас много событий с одинаковыми или похожими состояниями.
+В этом кейсе мы использовали паттерн "Заместитель" для обработки ошибок и повторных попыток при обработке заказов. Основной класс `RealOrderProcessor` выполняет реальную обработку заказов, а класс-заместитель `OrderProcessorProxy` обрабатывает ошибки и делает повторные попытки.
 
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
-
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Этот подход позволяет нам сделать наше приложение более устойчивым к сбоям и улучшить
