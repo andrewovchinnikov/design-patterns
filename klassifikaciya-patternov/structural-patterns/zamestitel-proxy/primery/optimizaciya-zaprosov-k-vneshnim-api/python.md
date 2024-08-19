@@ -1,125 +1,130 @@
 # Python
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления пользовательскими настройками. Наше приложение позволяет пользователям настраивать различные параметры, такие как темы оформления, язык интерфейса и уведомления. Мы хотим оптимизировать работу с пользовательскими настройками, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что вы работаете в команде разработчиков интернет-магазина. Ваш тимлид поставил задачу улучшить стабильность приложения, особенно в части взаимодействия с внешним API, который предоставляет информацию о товарах. Внешний API иногда бывает медленным или недоступным, что приводит к задержкам и ошибкам в вашем приложении.
 
-#### Описание кейса
+Для решения этой проблемы мы решили использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать промежуточный объект, который будет управлять доступом к внешнему API и кэшировать результаты запросов, чтобы уменьшить количество обращений к внешнему сервису и улучшить производительность нашего приложения.
 
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, пользовательские настройки могут иметь одинаковые параметры, такие как тема оформления (светлая, темная) и язык интерфейса (русский, английский). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новые настройки для пользователя.
+#### Описание паттерна "Заместитель"
+
+Паттерн "Заместитель" (Proxy) используется для создания объекта, который контролирует доступ к другому объекту. В нашем случае, мы создадим прокси-объект, который будет управлять доступом к внешнему API и кэшировать результаты запросов.
 
 #### Пример кода на Python
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для взаимодействия с API**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class UserSettingsFlyweight(ABC):
+class ProductApiInterface(ABC):
     @abstractmethod
-    def render(self, extrinsic_state):
+    def get_product_info(self, product_id: int) -> dict:
         pass
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Реализация класса для взаимодействия с внешним API**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class ConcreteUserSettingsFlyweight(UserSettingsFlyweight):
-    def __init__(self, theme, language):
-        self.theme = theme
-        self.language = language
+import time
 
-    def render(self, extrinsic_state):
-        # Внешнее состояние включает уникальные данные пользователя, такие как имя пользователя и дата настройки
-        username = extrinsic_state['username']
-        date = extrinsic_state['date']
-
-        # Рендеринг настроек пользователя
-        print(f"Пользователь: {username}")
-        print(f"Тема: {self.theme}")
-        print(f"Язык: {self.language}")
-        print(f"Дата настройки: {date}\n")
+class ExternalProductApi(ProductApiInterface):
+    def get_product_info(self, product_id: int) -> dict:
+        # Симуляция запроса к внешнему API
+        time.sleep(2)  # Задержка для имитации медленного ответа
+        return {
+            'id': product_id,
+            'name': f'Product {product_id}',
+            'price': 100,
+            'availability': 'In stock'
+        }
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание прокси-класса для кэширования результатов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class UserSettingsFlyweightFactory:
-    def __init__(self):
-        self.flyweights = {}
+class ProductApiProxy(ProductApiInterface):
+    def __init__(self, real_api: ProductApiInterface):
+        self.real_api = real_api
+        self.cache = {}
 
-    def get_flyweight(self, theme, language):
-        key = f"{theme}_{language}"
-        if key not in self.flyweights:
-            self.flyweights[key] = ConcreteUserSettingsFlyweight(theme, language)
-        return self.flyweights[key]
+    def get_product_info(self, product_id: int) -> dict:
+        # Проверка кэша
+        if product_id in self.cache:
+            print(f"Используем кэш для продукта {product_id}")
+            return self.cache[product_id]
+
+        # Если данных нет в кэше, делаем запрос к реальному API
+        product_info = self.real_api.get_product_info(product_id)
+
+        # Сохраняем результат в кэш
+        self.cache[product_id] = product_info
+
+        return product_info
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование прокси-класса в приложении**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-def main():
-    # Создаем фабрику легковесных объектов
-    factory = UserSettingsFlyweightFactory()
-
-    # Создаем пользовательские настройки с использованием легковесных объектов
-    settings = [
-        {"username": "Иван", "theme": "Светлая", "language": "Русский", "date": "2023-10-01"},
-        {"username": "Мария", "theme": "Темная", "language": "Английский", "date": "2023-10-05"},
-        {"username": "Алексей", "theme": "Светлая", "language": "Русский", "date": "2023-10-03"}
-    ]
-
-    for setting in settings:
-        flyweight = factory.get_flyweight(setting["theme"], setting["language"])
-        flyweight.render({
-            "username": setting["username"],
-            "date": setting["date"]
-        })
-
 if __name__ == "__main__":
-    main()
+    # Создаем экземпляр реального API
+    real_api = ExternalProductApi()
+
+    # Создаем экземпляр прокси-класса
+    proxy_api = ProductApiProxy(real_api)
+
+    # Получаем информацию о продукте через прокси
+    product_info1 = proxy_api.get_product_info(1)
+    print(product_info1)
+
+    # Повторный запрос той же информации о продукте
+    product_info2 = proxy_api.get_product_info(1)
+    print(product_info2)
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (73).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (77).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface UserSettingsFlyweight {
-    +render(extrinsic_state: dict)
+interface ProductApiInterface {
+    +get_product_info(product_id: int): dict
 }
 
-class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
-    -theme: string
-    -language: string
-    +__init__(theme: string, language: string)
-    +render(extrinsic_state: dict)
+class ExternalProductApi {
+    +get_product_info(product_id: int): dict
 }
 
-class UserSettingsFlyweightFactory {
-    -flyweights: dict
-    +__init__()
-    +get_flyweight(theme: string, language: string): UserSettingsFlyweight
+class ProductApiProxy {
+    -real_api: ProductApiInterface
+    -cache: dict
+    +__init__(real_api: ProductApiInterface)
+    +get_product_info(product_id: int): dict
 }
 
-UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
-UserSettingsFlyweightFactory --> UserSettingsFlyweight
+ProductApiInterface <|-- ExternalProductApi
+ProductApiInterface <|-- ProductApiProxy
+ProductApiProxy --> ExternalProductApi
+
 @enduml
 ```
 {% endcode %}
 
-#### Вывод для кейса
+#### Объяснение кода
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с пользовательскими настройками в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров настроек. Это особенно полезно, когда у нас много пользователей с одинаковыми или похожими настройками.
+1. **Интерфейс `ProductApiInterface`**: Определяет метод `get_product_info`, который должен быть реализован в классах, работающих с API.
+2. **Класс `ExternalProductApi`**: Реализует интерфейс `ProductApiInterface` и симулирует запрос к внешнему API с задержкой.
+3. **Класс `ProductApiProxy`**: Реализует интерфейс `ProductApiInterface` и действует как прокси. Он кэширует результаты запросов и использует кэш при повторных запросах.
+4. **Использование прокси-класса**: Создаем экземпляр реального API и прокси-класса, затем используем прокси для получения информации о продукте. При повторном запросе той же информации прокси использует кэш, что ускоряет ответ.
 
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+#### Вывод
 
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Использование паттерна "Заместитель" (Proxy) позволяет нам оптимизировать запросы к внешнему API, кэшируя результаты и уменьшая количество обращений к внешнему сервису. Это улучшает производительность нашего приложения и делает его более устойчивым к проблемам с внешним API. В нашем примере мы создали прокси-класс, который кэширует результаты запросов и использует кэш при повторных запросах, что значительно ускоряет ответ на запросы.
