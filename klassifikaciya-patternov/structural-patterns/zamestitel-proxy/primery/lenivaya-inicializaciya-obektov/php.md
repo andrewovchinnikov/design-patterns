@@ -1,126 +1,105 @@
 # PHP
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления уведомлениями. Наше приложение позволяет пользователям создавать, редактировать и удалять уведомления, а также просматривать их в реальном времени. Мы хотим оптимизировать работу с уведомлениями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что вы работаете в компании, которая занимается разработкой системы аналитики. Ваш сеньор-разработчик поставил задачу: оптимизировать код системы аналитики для повышения производительности. Одной из проблем, которую нужно решить, является ленивая инициализация объектов. Это означает, что объекты должны создаваться только тогда, когда они действительно нужны, а не сразу при запуске программы. Это поможет сэкономить ресурсы и улучшить производительность системы.
 
-#### Описание кейса
+#### Кейс применения паттерна Заместитель
 
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, уведомления могут иметь одинаковые параметры, такие как тип уведомления (информация, предупреждение, ошибка) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое уведомление.
+Паттерн Заместитель (Proxy) позволяет создать объект-заместитель, который управляет доступом к другому объекту. В нашем случае, мы будем использовать этот паттерн для ленивой инициализации объектов.
 
 #### Пример кода на PHP
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для аналитики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface NotificationFlyweight {
-    public function render(array $extrinsicState);
+<?php
+interface AnalyticsInterface {
+    public function analyzeData(array $data): string;
 }
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Реализация класса аналитики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class ConcreteNotificationFlyweight implements NotificationFlyweight {
-    private $type;
-    private $priority;
-
-    public function __construct($type, $priority) {
-        $this->type = $type;
-        $this->priority = $priority;
-    }
-
-    public function render(array $extrinsicState) {
-        // Внешнее состояние включает уникальные данные уведомления, такие как сообщение и дата
-        $message = $extrinsicState['message'];
-        $date = $extrinsicState['date'];
-
-        // Рендеринг уведомления
-        echo "Сообщение: $message<br>";
-        echo "Тип: $this->type<br>";
-        echo "Приоритет: $this->priority<br>";
-        echo "Дата: $date<br><br>";
+class RealAnalytics implements AnalyticsInterface {
+    public function analyzeData(array $data): string {
+        // Симуляция сложного анализа данных
+        sleep(2); // Имитация долгой операции
+        return "Анализ данных завершен: " . implode(", ", $data);
     }
 }
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class NotificationFlyweightFactory {
-    private $flyweights = [];
+class AnalyticsProxy implements AnalyticsInterface {
+    private $realAnalytics = null;
 
-    public function getFlyweight($type, $priority) {
-        $key = $type . '_' . $priority;
-        if (!isset($this->flyweights[$key])) {
-            $this->flyweights[$key] = new ConcreteNotificationFlyweight($type, $priority);
+    public function analyzeData(array $data): string {
+        // Ленивая инициализация реального объекта аналитики
+        if ($this->realAnalytics === null) {
+            $this->realAnalytics = new RealAnalytics();
         }
-        return $this->flyweights[$key];
+        // Делегирование выполнения реальному объекту
+        return $this->realAnalytics->analyzeData($data);
     }
 }
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем фабрику легковесных объектов
-$factory = new NotificationFlyweightFactory();
+$analytics = new AnalyticsProxy();
 
-// Создаем уведомления с использованием легковесных объектов
-$notifications = [
-    ['message' => 'Встреча с командой', 'type' => 'Информация', 'priority' => 'Высокий', 'date' => '2023-10-01'],
-    ['message' => 'Дедлайн проекта', 'type' => 'Предупреждение', 'priority' => 'Средний', 'date' => '2023-10-05'],
-    ['message' => 'Ошибка сервера', 'type' => 'Ошибка', 'priority' => 'Высокий', 'date' => '2023-10-03']
-];
+// Первый вызов, объект RealAnalytics будет создан
+echo $analytics->analyzeData(["данные1", "данные2"]);
 
-foreach ($notifications as $notification) {
-    $flyweight = $factory->getFlyweight($notification['type'], $notification['priority']);
-    $flyweight->render([
-        'message' => $notification['message'],
-        'date' => $notification['date']
-    ]);
-}
+// Второй вызов, объект RealAnalytics уже создан и используется снова
+echo $analytics->analyzeData(["данные3", "данные4"]);
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### Объяснение кода
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+1. **Интерфейс AnalyticsInterface**: Определяет метод `analyzeData`, который должен быть реализован всеми классами, работающими с аналитикой.
+2. **Класс RealAnalytics**: Реализует интерфейс `AnalyticsInterface` и содержит реальную логику анализа данных. В данном примере используется `sleep(2)` для имитации долгой операции.
+3. **Класс AnalyticsProxy**: Реализует интерфейс `AnalyticsInterface` и содержит логику ленивой инициализации. Объект `RealAnalytics` создается только при первом вызове метода `analyzeData`. Это позволяет отложить создание объекта до тех пор, пока он действительно не понадобится.
+4. **Использование класса-заместителя**: Создаем объект `AnalyticsProxy` и вызываем метод `analyzeData`. При первом вызове объект `RealAnalytics` создается, а при последующих вызовах используется уже созданный объект.
+
+#### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface NotificationFlyweight {
-    +render(extrinsicState: array)
+interface AnalyticsInterface {
+    +analyzeData(data: array): string
 }
 
-class ConcreteNotificationFlyweight implements NotificationFlyweight {
-    -type: string
-    -priority: string
-    +__construct(type: string, priority: string)
-    +render(extrinsicState: array)
+class RealAnalytics {
+    +analyzeData(data: array): string
 }
 
-class NotificationFlyweightFactory {
-    -flyweights: array
-    +getFlyweight(type: string, priority: string): NotificationFlyweight
+class AnalyticsProxy {
+    -realAnalytics: RealAnalytics
+    +analyzeData(data: array): string
 }
 
-NotificationFlyweight <|-- ConcreteNotificationFlyweight
-NotificationFlyweightFactory --> NotificationFlyweight
+AnalyticsInterface <|-- RealAnalytics
+AnalyticsInterface <|-- AnalyticsProxy
+AnalyticsProxy --> RealAnalytics
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с уведомлениями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров уведомлений. Это особенно полезно, когда у нас много уведомлений с одинаковыми или похожими состояниями.
-
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
-
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Использование паттерна Заместитель (Proxy) позволяет нам оптимизировать систему аналитики за счет ленивой инициализации объектов. Это помогает сэкономить ресурсы и улучшить производительность системы, так как объекты создаются только тогда, когда они действительно нужны. В результате, система становится более эффективной и отзывчивой.
