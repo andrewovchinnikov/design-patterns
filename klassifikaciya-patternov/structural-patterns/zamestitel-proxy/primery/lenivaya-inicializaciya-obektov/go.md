@@ -1,135 +1,113 @@
 # Go
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления уведомлениями. Наше приложение позволяет пользователям создавать, редактировать и удалять уведомления, а также просматривать их в реальном времени. Мы хотим оптимизировать работу с уведомлениями, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что вы работаете в компании, которая занимается разработкой системы аналитики. Ваш сеньор-разработчик поставил задачу: оптимизировать код системы аналитики для повышения производительности. Одной из проблем, которую нужно решить, является ленивая инициализация объектов. Это означает, что объекты должны создаваться только тогда, когда они действительно нужны, а не сразу при запуске программы. Это поможет сэкономить ресурсы и улучшить производительность системы.
 
-#### Описание кейса
+#### Кейс применения паттерна Заместитель
 
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, уведомления могут иметь одинаковые параметры, такие как тип уведомления (информация, предупреждение, ошибка) и приоритет (высокий, средний, низкий). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новое уведомление.
+Паттерн Заместитель (Proxy) позволяет создать объект-заместитель, который управляет доступом к другому объекту. В нашем случае, мы будем использовать этот паттерн для ленивой инициализации объектов.
 
 #### Пример кода на Go
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для аналитики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
-type NotificationFlyweight interface {
-    Render(extrinsicState map[string]string)
+type AnalyticsInterface interface {
+	AnalyzeData(data []string) string
 }
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Реализация класса аналитики**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type ConcreteNotificationFlyweight struct {
-    Type     string
-    Priority string
-}
+type RealAnalytics struct{}
 
-func (c *ConcreteNotificationFlyweight) Render(extrinsicState map[string]string) {
-    // Внешнее состояние включает уникальные данные уведомления, такие как сообщение и дата
-    message := extrinsicState["message"]
-    date := extrinsicState["date"]
-
-    // Рендеринг уведомления
-    fmt.Printf("Сообщение: %s\n", message)
-    fmt.Printf("Тип: %s\n", c.Type)
-    fmt.Printf("Приоритет: %s\n", c.Priority)
-    fmt.Printf("Дата: %s\n\n", date)
+func (r *RealAnalytics) AnalyzeData(data []string) string {
+	// Симуляция сложного анализа данных
+	time.Sleep(2 * time.Second) // Имитация долгой операции
+	return "Анализ данных завершен: " + fmt.Sprint(data)
 }
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type NotificationFlyweightFactory struct {
-    flyweights map[string]NotificationFlyweight
+type AnalyticsProxy struct {
+	realAnalytics *RealAnalytics
 }
 
-func NewNotificationFlyweightFactory() *NotificationFlyweightFactory {
-    return &NotificationFlyweightFactory{
-        flyweights: make(map[string]NotificationFlyweight),
-    }
-}
-
-func (f *NotificationFlyweightFactory) GetFlyweight(typeName, priority string) NotificationFlyweight {
-    key := typeName + "_" + priority
-    if flyweight, exists := f.flyweights[key]; exists {
-        return flyweight
-    }
-    flyweight := &ConcreteNotificationFlyweight{Type: typeName, Priority: priority}
-    f.flyweights[key] = flyweight
-    return flyweight
+func (p *AnalyticsProxy) AnalyzeData(data []string) string {
+	// Ленивая инициализация реального объекта аналитики
+	if p.realAnalytics == nil {
+		p.realAnalytics = &RealAnalytics{}
+	}
+	// Делегирование выполнения реальному объекту
+	return p.realAnalytics.AnalyzeData(data)
 }
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование класса-заместителя**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем фабрику легковесных объектов
-    factory := NewNotificationFlyweightFactory()
+	analytics := &AnalyticsProxy{}
 
-    // Создаем уведомления с использованием легковесных объектов
-    notifications := []map[string]string{
-        {"message": "Встреча с командой", "type": "Информация", "priority": "Высокий", "date": "2023-10-01"},
-        {"message": "Дедлайн проекта", "type": "Предупреждение", "priority": "Средний", "date": "2023-10-05"},
-        {"message": "Ошибка сервера", "type": "Ошибка", "priority": "Высокий", "date": "2023-10-03"},
-    }
+	// Первый вызов, объект RealAnalytics будет создан
+	fmt.Println(analytics.AnalyzeData([]string{"данные1", "данные2"}))
 
-    for _, notification := range notifications {
-        flyweight := factory.GetFlyweight(notification["type"], notification["priority"])
-        flyweight.Render(map[string]string{
-            "message": notification["message"],
-            "date":    notification["date"],
-        })
-    }
+	// Второй вызов, объект RealAnalytics уже создан и используется снова
+	fmt.Println(analytics.AnalyzeData([]string{"данные3", "данные4"}))
 }
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### Объяснение кода
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+1. **Интерфейс AnalyticsInterface**: Определяет метод `AnalyzeData`, который должен быть реализован всеми классами, работающими с аналитикой.
+2. **Класс RealAnalytics**: Реализует интерфейс `AnalyticsInterface` и содержит реальную логику анализа данных. В данном примере используется `time.Sleep(2 * time.Second)` для имитации долгой операции.
+3. **Класс AnalyticsProxy**: Реализует интерфейс `AnalyticsInterface` и содержит логику ленивой инициализации. Объект `RealAnalytics` создается только при первом вызове метода `AnalyzeData`. Это позволяет отложить создание объекта до тех пор, пока он действительно не понадобится.
+4. **Использование класса-заместителя**: Создаем объект `AnalyticsProxy` и вызываем метод `AnalyzeData`. При первом вызове объект `RealAnalytics` создается, а при последующих вызовах используется уже созданный объект.
+
+#### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (78).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface NotificationFlyweight {
-    +Render(extrinsicState: map[string]string)
+interface AnalyticsInterface {
+    +AnalyzeData(data: array): string
 }
 
-class ConcreteNotificationFlyweight implements NotificationFlyweight {
-    -Type: string
-    -Priority: string
-    +Render(extrinsicState: map[string]string)
+class RealAnalytics {
+    +AnalyzeData(data: array): string
 }
 
-class NotificationFlyweightFactory {
-    -flyweights: map[string]NotificationFlyweight
-    +NewNotificationFlyweightFactory(): NotificationFlyweightFactory
-    +GetFlyweight(typeName: string, priority: string): NotificationFlyweight
+class AnalyticsProxy {
+    -realAnalytics: RealAnalytics
+    +AnalyzeData(data: array): string
 }
 
-NotificationFlyweight <|-- ConcreteNotificationFlyweight
-NotificationFlyweightFactory --> NotificationFlyweight
+AnalyticsInterface <|-- RealAnalytics
+AnalyticsInterface <|-- AnalyticsProxy
+AnalyticsProxy --> RealAnalytics
 @enduml
 ```
 {% endcode %}
 
 #### Вывод для кейса
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с уведомлениями в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров уведомлений. Это особенно полезно, когда у нас много уведомлений с одинаковыми или похожими состояниями.
-
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
-
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Использование паттерна Заместитель (Proxy) позволяет нам оптимизировать систему аналитики за счет ленивой инициализации объектов. Это помогает сэкономить ресурсы и улучшить производительность системы, так как объекты создаются только тогда, когда они действительно нужны. В результате, система становится более эффективной и отзывчивой.
