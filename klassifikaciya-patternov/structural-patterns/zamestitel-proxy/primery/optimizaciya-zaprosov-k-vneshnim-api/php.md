@@ -1,126 +1,132 @@
 # PHP
 
-Привет! Мы — команда разработчиков, работающая над веб-приложением для управления пользовательскими настройками. Наше приложение позволяет пользователям настраивать различные параметры, такие как темы оформления, язык интерфейса и уведомления. Мы хотим оптимизировать работу с пользовательскими настройками, чтобы наше приложение работало быстрее и эффективнее. Для этого мы решили использовать паттерн Легковесный объект (Flyweight).
+Представьте, что вы работаете в команде разработчиков интернет-магазина. Ваш тимлид поставил задачу улучшить стабильность приложения, особенно в части взаимодействия с внешним API, который предоставляет информацию о товарах. Внешний API иногда бывает медленным или недоступным, что приводит к задержкам и ошибкам в вашем приложении.
 
-#### Описание кейса
+Для решения этой проблемы мы решили использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать промежуточный объект, который будет управлять доступом к внешнему API и кэшировать результаты запросов, чтобы уменьшить количество обращений к внешнему сервису и улучшить производительность нашего приложения.
 
-Паттерн Легковесный объект помогает нам экономить память и ресурсы, когда у нас много объектов с одинаковыми или похожими состояниями. В нашем случае, пользовательские настройки могут иметь одинаковые параметры, такие как тема оформления (светлая, темная) и язык интерфейса (русский, английский). Мы можем использовать легковесные объекты для представления этих параметров, чтобы не создавать новые объекты каждый раз, когда нам нужно создать новые настройки для пользователя.
+#### Описание паттерна "Заместитель"
+
+Паттерн "Заместитель" (Proxy) используется для создания объекта, который контролирует доступ к другому объекту. В нашем случае, мы создадим прокси-объект, который будет управлять доступом к внешнему API и кэшировать результаты запросов.
 
 #### Пример кода на PHP
 
-**1. Определение интерфейса Flyweight**
+**1. Создание интерфейса для взаимодействия с API**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface UserSettingsFlyweight {
-    public function render(array $extrinsicState);
+interface ProductApiInterface {
+    public function getProductInfo($productId);
 }
 ```
 {% endcode %}
 
-**2. Реализация конкретного легковесного объекта**
+**2. Реализация класса для взаимодействия с внешним API**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
-    private $theme;
-    private $language;
-
-    public function __construct($theme, $language) {
-        $this->theme = $theme;
-        $this->language = $language;
-    }
-
-    public function render(array $extrinsicState) {
-        // Внешнее состояние включает уникальные данные пользователя, такие как имя пользователя и дата настройки
-        $username = $extrinsicState['username'];
-        $date = $extrinsicState['date'];
-
-        // Рендеринг настроек пользователя
-        echo "Пользователь: $username<br>";
-        echo "Тема: $this->theme<br>";
-        echo "Язык: $this->language<br>";
-        echo "Дата настройки: $date<br><br>";
+class ExternalProductApi implements ProductApiInterface {
+    public function getProductInfo($productId) {
+        // Симуляция запроса к внешнему API
+        sleep(2); // Задержка для имитации медленного ответа
+        return [
+            'id' => $productId,
+            'name' => 'Product ' . $productId,
+            'price' => 100,
+            'availability' => 'In stock'
+        ];
     }
 }
 ```
 {% endcode %}
 
-**3. Фабрика легковесных объектов**
+**3. Создание прокси-класса для кэширования результатов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class UserSettingsFlyweightFactory {
-    private $flyweights = [];
+class ProductApiProxy implements ProductApiInterface {
+    private $realApi;
+    private $cache = [];
 
-    public function getFlyweight($theme, $language) {
-        $key = $theme . '_' . $language;
-        if (!isset($this->flyweights[$key])) {
-            $this->flyweights[$key] = new ConcreteUserSettingsFlyweight($theme, $language);
+    public function __construct(ProductApiInterface $realApi) {
+        $this->realApi = $realApi;
+    }
+
+    public function getProductInfo($productId) {
+        // Проверка кэша
+        if (isset($this->cache[$productId])) {
+            echo "Используем кэш для продукта $productId\n";
+            return $this->cache[$productId];
         }
-        return $this->flyweights[$key];
+
+        // Если данных нет в кэше, делаем запрос к реальному API
+        $productInfo = $this->realApi->getProductInfo($productId);
+
+        // Сохраняем результат в кэш
+        $this->cache[$productId] = $productInfo;
+
+        return $productInfo;
     }
 }
 ```
 {% endcode %}
 
-**4. Использование легковесных объектов**
+**4. Использование прокси-класса в приложении**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем фабрику легковесных объектов
-$factory = new UserSettingsFlyweightFactory();
+// Создаем экземпляр реального API
+$realApi = new ExternalProductApi();
 
-// Создаем пользовательские настройки с использованием легковесных объектов
-$settings = [
-    ['username' => 'Иван', 'theme' => 'Светлая', 'language' => 'Русский', 'date' => '2023-10-01'],
-    ['username' => 'Мария', 'theme' => 'Темная', 'language' => 'Английский', 'date' => '2023-10-05'],
-    ['username' => 'Алексей', 'theme' => 'Светлая', 'language' => 'Русский', 'date' => '2023-10-03']
-];
+// Создаем экземпляр прокси-класса
+$proxyApi = new ProductApiProxy($realApi);
 
-foreach ($settings as $setting) {
-    $flyweight = $factory->getFlyweight($setting['theme'], $setting['language']);
-    $flyweight->render([
-        'username' => $setting['username'],
-        'date' => $setting['date']
-    ]);
-}
+// Получаем информацию о продукте через прокси
+$productInfo1 = $proxyApi->getProductInfo(1);
+print_r($productInfo1);
+
+// Повторный запрос той же информации о продукте
+$productInfo2 = $proxyApi->getProductInfo(1);
+print_r($productInfo2);
 ```
 {% endcode %}
 
-#### UML Диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (71).png" alt=""><figcaption><p>UML диаграмма для паттерна "Легковесный объект"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
+```plantuml
 @startuml
-interface UserSettingsFlyweight {
-    +render(extrinsicState: array)
+interface ProductApiInterface {
+    +getProductInfo(productId: int): array
 }
 
-class ConcreteUserSettingsFlyweight implements UserSettingsFlyweight {
-    -theme: string
-    -language: string
-    +__construct(theme: string, language: string)
-    +render(extrinsicState: array)
+class ExternalProductApi {
+    +getProductInfo(productId: int): array
 }
 
-class UserSettingsFlyweightFactory {
-    -flyweights: array
-    +getFlyweight(theme: string, language: string): UserSettingsFlyweight
+class ProductApiProxy {
+    -realApi: ProductApiInterface
+    -cache: array
+    +__construct(realApi: ProductApiInterface)
+    +getProductInfo(productId: int): array
 }
 
-UserSettingsFlyweight <|-- ConcreteUserSettingsFlyweight
-UserSettingsFlyweightFactory --> UserSettingsFlyweight
+ProductApiInterface <|-- ExternalProductApi
+ProductApiInterface <|-- ProductApiProxy
+ProductApiProxy --> ExternalProductApi
+
 @enduml
 ```
 {% endcode %}
 
-#### Вывод для кейса
+#### Объяснение кода
 
-Использование паттерна Легковесный объект позволило нам значительно оптимизировать работу с пользовательскими настройками в нашем веб-приложении. Мы смогли сократить использование памяти и улучшить производительность, создавая легковесные объекты для общих параметров настроек. Это особенно полезно, когда у нас много пользователей с одинаковыми или похожими настройками.
+1. **Интерфейс `ProductApiInterface`**: Определяет метод `getProductInfo`, который должен быть реализован в классах, работающих с API.
+2. **Класс `ExternalProductApi`**: Реализует интерфейс `ProductApiInterface` и симулирует запрос к внешнему API с задержкой.
+3. **Класс `ProductApiProxy`**: Реализует интерфейс `ProductApiInterface` и действует как прокси. Он кэширует результаты запросов и использует кэш при повторных запросах.
+4. **Использование прокси-класса**: Создаем экземпляр реального API и прокси-класса, затем используем прокси для получения информации о продукте. При повторном запросе той же информации прокси использует кэш, что ускоряет ответ.
 
-Теперь наше приложение работает быстрее и эффективнее, что делает его более удобным для пользователей. Мы планируем продолжать использовать этот паттерн и в других частях нашего приложения, чтобы достичь еще большей оптимизации.
+#### Вывод
 
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн Легковесный объект в ваших проектах!
+Использование паттерна "Заместитель" (Proxy) позволяет нам оптимизировать запросы к внешнему API, кэшируя результаты и уменьшая количество обращений к внешнему сервису. Это улучшает производительность нашего приложения и делает его более устойчивым к проблемам с внешним API. В нашем примере мы создали прокси-класс, который кэширует результаты запросов и использует кэш при повторных запросах, что значительно ускоряет ответ на запросы.
