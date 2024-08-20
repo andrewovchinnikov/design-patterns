@@ -1,113 +1,162 @@
 # Go
 
-Представьте, что вы работаете в компании, которая занимается разработкой системы аналитики. Ваш сеньор-разработчик поставил задачу: оптимизировать код системы аналитики для повышения производительности. Одной из проблем, которую нужно решить, является ленивая инициализация объектов. Это означает, что объекты должны создаваться только тогда, когда они действительно нужны, а не сразу при запуске программы. Это поможет сэкономить ресурсы и улучшить производительность системы.
+Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
 
-#### Кейс применения паттерна Заместитель
+### Описание
 
-Паттерн Заместитель (Proxy) позволяет создать объект-заместитель, который управляет доступом к другому объекту. В нашем случае, мы будем использовать этот паттерн для ленивой инициализации объектов.
+Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
 
-#### Пример кода на Go
+### Пример кода на Go
 
-**1. Создание интерфейса для аналитики**
+**1. Создание интерфейса обработчика**
 
-{% code overflow="wrap" lineNumbers="true" %}
+{% code title="" overflow="wrap" %}
 ```go
 package main
 
-import (
-	"fmt"
-	"time"
-)
+import "fmt"
 
-type AnalyticsInterface interface {
-	AnalyzeData(data []string) string
+type EventHandler interface {
+    Handle(event Event)
+    SetNext(handler EventHandler) EventHandler
 }
 ```
 {% endcode %}
 
-**2. Реализация класса аналитики**
+**2. Создание базового класса обработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type RealAnalytics struct{}
+type BaseEventHandler struct {
+    nextHandler EventHandler
+}
 
-func (r *RealAnalytics) AnalyzeData(data []string) string {
-	// Симуляция сложного анализа данных
-	time.Sleep(2 * time.Second) // Имитация долгой операции
-	return "Анализ данных завершен: " + fmt.Sprint(data)
+func (b *BaseEventHandler) SetNext(handler EventHandler) EventHandler {
+    b.nextHandler = handler
+    return handler
+}
+
+func (b *BaseEventHandler) Handle(event Event) {
+    if b.nextHandler != nil {
+        b.nextHandler.Handle(event)
+    }
 }
 ```
 {% endcode %}
 
-**3. Создание класса-заместителя**
+**3. Создание класса события**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type AnalyticsProxy struct {
-	realAnalytics *RealAnalytics
+type Event struct {
+    Type string
+    Data map[string]interface{}
 }
 
-func (p *AnalyticsProxy) AnalyzeData(data []string) string {
-	// Ленивая инициализация реального объекта аналитики
-	if p.realAnalytics == nil {
-		p.realAnalytics = &RealAnalytics{}
-	}
-	// Делегирование выполнения реальному объекту
-	return p.realAnalytics.AnalyzeData(data)
+func NewEvent(eventType string, data map[string]interface{}) Event {
+    return Event{Type: eventType, Data: data}
 }
 ```
 {% endcode %}
 
-**4. Использование класса-заместителя**
+**4. Создание конкретных обработчиков**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type LightHandler struct {
+    BaseEventHandler
+}
+
+func (l *LightHandler) Handle(event Event) {
+    if event.Type == "door_open" {
+        fmt.Println("Turning on the light.")
+    }
+    l.BaseEventHandler.Handle(event)
+}
+
+type NotificationHandler struct {
+    BaseEventHandler
+}
+
+func (n *NotificationHandler) Handle(event Event) {
+    if event.Type == "door_open" {
+        fmt.Println("Sending notification to the phone.")
+    }
+    n.BaseEventHandler.Handle(event)
+}
+
+type LogHandler struct {
+    BaseEventHandler
+}
+
+func (l *LogHandler) Handle(event Event) {
+    fmt.Printf("Logging event: %s\n", event.Type)
+    l.BaseEventHandler.Handle(event)
+}
+```
+{% endcode %}
+
+**5. Создание цепочки обработчиков и обработка события**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-	analytics := &AnalyticsProxy{}
+    lightHandler := &LightHandler{}
+    notificationHandler := &NotificationHandler{}
+    logHandler := &LogHandler{}
 
-	// Первый вызов, объект RealAnalytics будет создан
-	fmt.Println(analytics.AnalyzeData([]string{"данные1", "данные2"}))
+    lightHandler.SetNext(notificationHandler).SetNext(logHandler)
 
-	// Второй вызов, объект RealAnalytics уже создан и используется снова
-	fmt.Println(analytics.AnalyzeData([]string{"данные3", "данные4"}))
+    event := NewEvent("door_open", nil)
+    lightHandler.Handle(event)
 }
 ```
 {% endcode %}
 
-#### Объяснение кода
+### UML диаграмма
 
-1. **Интерфейс AnalyticsInterface**: Определяет метод `AnalyzeData`, который должен быть реализован всеми классами, работающими с аналитикой.
-2. **Класс RealAnalytics**: Реализует интерфейс `AnalyticsInterface` и содержит реальную логику анализа данных. В данном примере используется `time.Sleep(2 * time.Second)` для имитации долгой операции.
-3. **Класс AnalyticsProxy**: Реализует интерфейс `AnalyticsInterface` и содержит логику ленивой инициализации. Объект `RealAnalytics` создается только при первом вызове метода `AnalyzeData`. Это позволяет отложить создание объекта до тех пор, пока он действительно не понадобится.
-4. **Использование класса-заместителя**: Создаем объект `AnalyticsProxy` и вызываем метод `AnalyzeData`. При первом вызове объект `RealAnalytics` создается, а при последующих вызовах используется уже созданный объект.
-
-#### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (78).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface AnalyticsInterface {
-    +AnalyzeData(data: array): string
+interface EventHandler {
+    +Handle(event Event)
+    +SetNext(handler EventHandler): EventHandler
 }
 
-class RealAnalytics {
-    +AnalyzeData(data: array): string
+class BaseEventHandler {
+    -nextHandler: EventHandler
+    +SetNext(handler EventHandler): EventHandler
+    +Handle(event Event)
 }
 
-class AnalyticsProxy {
-    -realAnalytics: RealAnalytics
-    +AnalyzeData(data: array): string
+class LightHandler {
+    +Handle(event Event)
 }
 
-AnalyticsInterface <|-- RealAnalytics
-AnalyticsInterface <|-- AnalyticsProxy
-AnalyticsProxy --> RealAnalytics
+class NotificationHandler {
+    +Handle(event Event)
+}
+
+class LogHandler {
+    +Handle(event Event)
+}
+
+class Event {
+    -Type: string
+    -Data: map[string]interface{}
+    +NewEvent(eventType string, data map[string]interface{}): Event
+}
+
+EventHandler <|-- BaseEventHandler
+BaseEventHandler <|-- LightHandler
+BaseEventHandler <|-- NotificationHandler
+BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-#### Вывод для кейса
+### Вывод
 
-Использование паттерна Заместитель (Proxy) позволяет нам оптимизировать систему аналитики за счет ленивой инициализации объектов. Это помогает сэкономить ресурсы и улучшить производительность системы, так как объекты создаются только тогда, когда они действительно нужны. В результате, система становится более эффективной и отзывчивой.
+Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.
