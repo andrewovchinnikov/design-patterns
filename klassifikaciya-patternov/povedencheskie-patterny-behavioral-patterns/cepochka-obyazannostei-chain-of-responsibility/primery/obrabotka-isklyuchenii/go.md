@@ -1,125 +1,224 @@
 # Go
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложение для управления заказами. Наше приложение должно уметь обрабатывать заказы, но иногда сервер, который обрабатывает заказы, может быть недоступен. Мы хотим, чтобы наше приложение не падало в таких случаях, а пыталось повторно отправить заказ через некоторое время.
+Представьте, что вы работаете в команде разработчиков, которая занимается созданием и поддержкой веб-приложения. Ваш сеньор-разработчик поставил задачу: переделать обработку исключений для парсера данных. Ваша задача — сделать систему обработки исключений более гибкой и удобной для расширения. Для этого вы решили использовать паттерн "Цепочка обязанностей".
 
-Для этого мы будем использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать объект-заместитель, который будет выполнять дополнительные действия перед вызовом основного объекта. В нашем случае заместитель будет обрабатывать ошибки и делать повторные попытки.
+### Описание кейса
 
-#### Пример кода на Go
+Ваш парсер данных обрабатывает различные типы данных и может вызывать разные исключения. Например, данные могут быть некорректными, файл может быть поврежден, или может возникнуть сетевая ошибка. Ваша цель — создать цепочку обработчиков, каждый из которых будет отвечать за обработку определенного типа исключений.
 
-**1. Создание интерфейса для обработки заказов**
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface ExceptionHandler {
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class InvalidDataExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class FileCorruptedExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class NetworkExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+ExceptionHandler <|-- InvalidDataExceptionHandler
+ExceptionHandler <|-- FileCorruptedExceptionHandler
+ExceptionHandler <|-- NetworkExceptionHandler
+InvalidDataExceptionHandler --> FileCorruptedExceptionHandler
+FileCorruptedExceptionHandler --> NetworkExceptionHandler
+@enduml
+```
+{% endcode %}
+
+### Пример кода на Go
+
+**Интерфейс ExceptionHandler**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
 import (
-	"errors"
 	"fmt"
-	"math/rand"
-	"time"
 )
 
-type OrderProcessor interface {
-	ProcessOrder(orderId string) (string, error)
+type ExceptionHandler interface {
+	handleException(error) bool
+	setNext(ExceptionHandler)
 }
 ```
 {% endcode %}
 
-**2. Создание основного класса для обработки заказов**
+**Абстрактный класс AbstractExceptionHandler**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type RealOrderProcessor struct{}
+type AbstractExceptionHandler struct {
+	nextHandler ExceptionHandler
+}
 
-func (rop *RealOrderProcessor) ProcessOrder(orderId string) (string, error) {
-	// Симуляция обработки заказа
-	if rand.Intn(2) == 0 {
-		return "", errors.New("Сервер недоступен")
+func (h *AbstractExceptionHandler) setNext(nextHandler ExceptionHandler) {
+	h.nextHandler = nextHandler
+}
+
+func (h *AbstractExceptionHandler) handleException(exception error) bool {
+	if h.canHandle(exception) {
+		h.process(exception)
+		return true
 	}
-	return fmt.Sprintf("Заказ %s успешно обработан", orderId), nil
+	if h.nextHandler != nil {
+		return h.nextHandler.handleException(exception)
+	}
+	return false
+}
+
+func (h *AbstractExceptionHandler) canHandle(exception error) bool {
+	return false
+}
+
+func (h *AbstractExceptionHandler) process(exception error) {
+	// Реализация в конкретных обработчиках
 }
 ```
 {% endcode %}
 
-**3. Создание класса-заместителя**
+**Конкретный обработчик InvalidDataExceptionHandler**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type OrderProcessorProxy struct {
-	realOrderProcessor OrderProcessor
+type InvalidDataException struct {
+	msg string
 }
 
-func NewOrderProcessorProxy(realOrderProcessor OrderProcessor) *OrderProcessorProxy {
-	return &OrderProcessorProxy{realOrderProcessor: realOrderProcessor}
+func (e *InvalidDataException) Error() string {
+	return e.msg
 }
 
-func (opp *OrderProcessorProxy) ProcessOrder(orderId string) (string, error) {
-	attempts := 3
-	for attempts > 0 {
-		result, err := opp.realOrderProcessor.ProcessOrder(orderId)
-		if err == nil {
-			return result, nil
-		}
-		attempts--
-		if attempts == 0 {
-			return "", err
-		}
-		fmt.Println("Повторная попытка...")
-		time.Sleep(1 * time.Second) // Пауза перед повторной попыткой
-	}
-	return "", errors.New("Не удалось обработать заказ")
+type InvalidDataExceptionHandler struct {
+	AbstractExceptionHandler
+}
+
+func (h *InvalidDataExceptionHandler) canHandle(exception error) bool {
+	_, ok := exception.(*InvalidDataException)
+	return ok
+}
+
+func (h *InvalidDataExceptionHandler) process(exception error) {
+	fmt.Printf("Обработка исключения некорректных данных: %s\n", exception.Error())
 }
 ```
 {% endcode %}
 
-**4. Использование класса-заместителя**
+**Конкретный обработчик FileCorruptedExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type FileCorruptedException struct {
+	msg string
+}
+
+func (e *FileCorruptedException) Error() string {
+	return e.msg
+}
+
+type FileCorruptedExceptionHandler struct {
+	AbstractExceptionHandler
+}
+
+func (h *FileCorruptedExceptionHandler) canHandle(exception error) bool {
+	_, ok := exception.(*FileCorruptedException)
+	return ok
+}
+
+func (h *FileCorruptedExceptionHandler) process(exception error) {
+	fmt.Printf("Обработка исключения поврежденного файла: %s\n", exception.Error())
+}
+```
+{% endcode %}
+
+**Конкретный обработчик NetworkExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type NetworkException struct {
+	msg string
+}
+
+func (e *NetworkException) Error() string {
+	return e.msg
+}
+
+type NetworkExceptionHandler struct {
+	AbstractExceptionHandler
+}
+
+func (h *NetworkExceptionHandler) canHandle(exception error) bool {
+	_, ok := exception.(*NetworkException)
+	return ok
+}
+
+func (h *NetworkExceptionHandler) process(exception error) {
+	fmt.Printf("Обработка исключения сетевой ошибки: %s\n", exception.Error())
+}
+```
+{% endcode %}
+
+**Использование цепочки обязанностей**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-	realOrderProcessor := &RealOrderProcessor{}
-	orderProcessorProxy := NewOrderProcessorProxy(realOrderProcessor)
+	// Создание цепочки обработчиков
+	networkHandler := &NetworkExceptionHandler{}
+	fileHandler := &FileCorruptedExceptionHandler{}
+	invalidDataHandler := &InvalidDataExceptionHandler{}
 
-	result, err := orderProcessorProxy.ProcessOrder("12345")
-	if err != nil {
-		fmt.Printf("Ошибка: %v\n", err)
-	} else {
-		fmt.Println(result)
+	invalidDataHandler.setNext(fileHandler)
+	fileHandler.setNext(networkHandler)
+
+	// Пример использования
+	exceptions := []error{
+		&InvalidDataException{msg: "Некорректные данные"},
+		&FileCorruptedException{msg: "Файл поврежден"},
+		&NetworkException{msg: "Сетевая ошибка"},
+	}
+
+	for _, exception := range exceptions {
+		invalidDataHandler.handleException(exception)
 	}
 }
 ```
 {% endcode %}
 
-#### UML диаграмма
+### Объяснение кода
 
-<figure><img src="../../../../../.gitbook/assets/image (76).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+1. **Интерфейс ExceptionHandler**:
+   * Определяет методы `handleException` и `setNext`, которые должны быть реализованы всеми обработчиками.
+2. **Абстрактный класс AbstractExceptionHandler**:
+   * Реализует метод `setNext` для установки следующего обработчика в цепочке.
+   * Метод `handleException` проверяет, может ли текущий обработчик обработать исключение. Если нет, он передает исключение следующему обработчику.
+   * Методы `canHandle` и `process` должны быть реализованы в конкретных обработчиках.
+3. **Конкретные обработчики**:
+   * `InvalidDataExceptionHandler`, `FileCorruptedExceptionHandler`, `NetworkExceptionHandler` реализуют методы `canHandle` и `process` для обработки соответствующих типов исключений.
+4. **Использование цепочки обязанностей**:
+   * Создаются экземпляры обработчиков и устанавливается цепочка.
+   * При возникновении исключения, оно передается в цепочку обработчиков, где каждый обработчик проверяет, может ли он обработать исключение.
 
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-interface OrderProcessor {
-    +ProcessOrder(orderId: String): (String, error)
-}
+### Вывод
 
-class RealOrderProcessor {
-    +ProcessOrder(orderId: String): (String, error)
-}
-
-class OrderProcessorProxy {
-    -realOrderProcessor: OrderProcessor
-    +NewOrderProcessorProxy(realOrderProcessor: OrderProcessor): OrderProcessorProxy
-    +ProcessOrder(orderId: String): (String, error)
-}
-
-OrderProcessor <|-- RealOrderProcessor
-OrderProcessor <|-- OrderProcessorProxy
-OrderProcessorProxy --> RealOrderProcessor
-@enduml
-```
-{% endcode %}
-
-#### Вывод для кейса
-
-В этом кейсе мы использовали паттерн "Заместитель" для обработки ошибок и повторных попыток при обработке заказов. Основной класс `RealOrderProcessor` выполняет реальную обработку заказов, а класс-заместитель `OrderProcessorProxy` обрабатывает ошибки и делает повторные попытки.
-
-Этот подход позволяет нам сделать наше приложение более устойчивым к сбоям и улучшить пользовательский опыт, так как приложение не падает при временных проблемах с сервером.
+Паттерн "Цепочка обязанностей" позволяет гибко и эффективно обрабатывать различные типы исключений в вашем парсере данных. Этот подход упрощает добавление новых обработчиков и делает код более читаемым и поддерживаемым. В данном кейсе мы показали, как можно использовать этот паттерн для обработки исключений некорректных данных, поврежденных файлов и сетевых ошибок.

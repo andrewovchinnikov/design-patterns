@@ -1,105 +1,166 @@
 # PHP
 
-Представьте, что вы работаете в компании, которая занимается разработкой системы аналитики. Ваш сеньор-разработчик поставил задачу: оптимизировать код системы аналитики для повышения производительности. Одной из проблем, которую нужно решить, является ленивая инициализация объектов. Это означает, что объекты должны создаваться только тогда, когда они действительно нужны, а не сразу при запуске программы. Это поможет сэкономить ресурсы и улучшить производительность системы.
+Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
 
-#### Кейс применения паттерна Заместитель
+#### Описание паттерна Цепочка обязанностей
 
-Паттерн Заместитель (Proxy) позволяет создать объект-заместитель, который управляет доступом к другому объекту. В нашем случае, мы будем использовать этот паттерн для ленивой инициализации объектов.
+Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
 
-#### Пример кода на PHP
+### Пример кода на PHP
 
-**1. Создание интерфейса для аналитики**
+**1. Создание интерфейса обработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-interface AnalyticsInterface {
-    public function analyzeData(array $data): string;
+interface EventHandler {
+    public function handle(Event $event): void;
+    public function setNext(EventHandler $handler): EventHandler;
 }
 ```
 {% endcode %}
 
-**2. Реализация класса аналитики**
+**2. Создание базового класса обработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class RealAnalytics implements AnalyticsInterface {
-    public function analyzeData(array $data): string {
-        // Симуляция сложного анализа данных
-        sleep(2); // Имитация долгой операции
-        return "Анализ данных завершен: " . implode(", ", $data);
+<?php
+abstract class BaseEventHandler implements EventHandler {
+    private ?EventHandler $nextHandler = null;
+
+    public function setNext(EventHandler $handler): EventHandler {
+        $this->nextHandler = $handler;
+        return $handler;
     }
-}
-```
-{% endcode %}
 
-**3. Создание класса-заместителя**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class AnalyticsProxy implements AnalyticsInterface {
-    private $realAnalytics = null;
-
-    public function analyzeData(array $data): string {
-        // Ленивая инициализация реального объекта аналитики
-        if ($this->realAnalytics === null) {
-            $this->realAnalytics = new RealAnalytics();
+    public function handle(Event $event): void {
+        if ($this->nextHandler) {
+            $this->nextHandler->handle($event);
         }
-        // Делегирование выполнения реальному объекту
-        return $this->realAnalytics->analyzeData($data);
     }
 }
 ```
 {% endcode %}
 
-**4. Использование класса-заместителя**
+**3. Создание класса события**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-$analytics = new AnalyticsProxy();
+<?php
+class Event {
+    private string $type;
+    private array $data;
 
-// Первый вызов, объект RealAnalytics будет создан
-echo $analytics->analyzeData(["данные1", "данные2"]);
+    public function __construct(string $type, array $data = []) {
+        $this->type = $type;
+        $this->data = $data;
+    }
 
-// Второй вызов, объект RealAnalytics уже создан и используется снова
-echo $analytics->analyzeData(["данные3", "данные4"]);
+    public function getType(): string {
+        return $this->type;
+    }
+
+    public function getData(): array {
+        return $this->data;
+    }
+}
 ```
 {% endcode %}
 
-#### Объяснение кода
+**4. Создание конкретных обработчиков**
 
-1. **Интерфейс AnalyticsInterface**: Определяет метод `analyzeData`, который должен быть реализован всеми классами, работающими с аналитикой.
-2. **Класс RealAnalytics**: Реализует интерфейс `AnalyticsInterface` и содержит реальную логику анализа данных. В данном примере используется `sleep(2)` для имитации долгой операции.
-3. **Класс AnalyticsProxy**: Реализует интерфейс `AnalyticsInterface` и содержит логику ленивой инициализации. Объект `RealAnalytics` создается только при первом вызове метода `analyzeData`. Это позволяет отложить создание объекта до тех пор, пока он действительно не понадобится.
-4. **Использование класса-заместителя**: Создаем объект `AnalyticsProxy` и вызываем метод `analyzeData`. При первом вызове объект `RealAnalytics` создается, а при последующих вызовах используется уже созданный объект.
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+class LightHandler extends BaseEventHandler {
+    public function handle(Event $event): void {
+        if ($event->getType() === 'door_open') {
+            echo "Turning on the light.\n";
+        }
+        parent::handle($event);
+    }
+}
 
-#### UML диаграмма
+class NotificationHandler extends BaseEventHandler {
+    public function handle(Event $event): void {
+        if ($event->getType() === 'door_open') {
+            echo "Sending notification to the phone.\n";
+        }
+        parent::handle($event);
+    }
+}
 
-<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+class LogHandler extends BaseEventHandler {
+    public function handle(Event $event): void {
+        echo "Logging event: " . $event->getType() . "\n";
+        parent::handle($event);
+    }
+}
+```
+{% endcode %}
+
+**5. Создание цепочки обработчиков и обработка события**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+$lightHandler = new LightHandler();
+$notificationHandler = new NotificationHandler();
+$logHandler = new LogHandler();
+
+$lightHandler->setNext($notificationHandler)->setNext($logHandler);
+
+$event = new Event('door_open');
+$lightHandler->handle($event);
+```
+{% endcode %}
+
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (84).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface AnalyticsInterface {
-    +analyzeData(data: array): string
+interface EventHandler {
+    +handle(Event $event): void
+    +setNext(EventHandler $handler): EventHandler
 }
 
-class RealAnalytics {
-    +analyzeData(data: array): string
+abstract class BaseEventHandler {
+    -nextHandler: EventHandler
+    +setNext(EventHandler $handler): EventHandler
+    +handle(Event $event): void
 }
 
-class AnalyticsProxy {
-    -realAnalytics: RealAnalytics
-    +analyzeData(data: array): string
+class LightHandler {
+    +handle(Event $event): void
 }
 
-AnalyticsInterface <|-- RealAnalytics
-AnalyticsInterface <|-- AnalyticsProxy
-AnalyticsProxy --> RealAnalytics
+class NotificationHandler {
+    +handle(Event $event): void
+}
+
+class LogHandler {
+    +handle(Event $event): void
+}
+
+class Event {
+    -type: string
+    -data: array
+    +__construct(string $type, array $data = [])
+    +getType(): string
+    +getData(): array
+}
+
+EventHandler <|-- BaseEventHandler
+BaseEventHandler <|-- LightHandler
+BaseEventHandler <|-- NotificationHandler
+BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-#### Вывод для кейса
+#### Вывод
 
-Использование паттерна Заместитель (Proxy) позволяет нам оптимизировать систему аналитики за счет ленивой инициализации объектов. Это помогает сэкономить ресурсы и улучшить производительность системы, так как объекты создаются только тогда, когда они действительно нужны. В результате, система становится более эффективной и отзывчивой.
+Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.

@@ -1,120 +1,207 @@
 # PHP
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложение для управления заказами. Наше приложение должно уметь обрабатывать заказы, но иногда сервер, который обрабатывает заказы, может быть недоступен. Мы хотим, чтобы наше приложение не падало в таких случаях, а пыталось повторно отправить заказ через некоторое время.
+Представьте, что вы работаете в команде разработчиков, которая занимается созданием и поддержкой веб-приложения. Ваш сеньор-разработчик поставил задачу: переделать обработку исключений для парсера данных. Ваша задача — сделать систему обработки исключений более гибкой и удобной для расширения. Для этого вы решили использовать паттерн "Цепочка обязанностей".
 
-Для этого мы будем использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать объект-заместитель, который будет выполнять дополнительные действия перед вызовом основного объекта. В нашем случае заместитель будет обрабатывать ошибки и делать повторные попытки.
+### Описание кейса
 
-#### Пример кода на PHP
+Ваш парсер данных обрабатывает различные типы данных и может вызывать разные исключения. Например, данные могут быть некорректными, файл может быть поврежден, или может возникнуть сетевая ошибка. Ваша цель — создать цепочку обработчиков, каждый из которых будет отвечать за обработку определенного типа исключений.
 
-**1. Создание интерфейса для обработки заказов**
+### UML диаграмма
 
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-interface OrderProcessor {
-    public function processOrder(string $orderId): string;
-}
-?>
-```
-{% endcode %}
+<figure><img src="../../../../../.gitbook/assets/image (81).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
 
-**2. Создание основного класса для обработки заказов**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class RealOrderProcessor implements OrderProcessor {
-    public function processOrder(string $orderId): string {
-        // Симуляция обработки заказа
-        if (rand(0, 1) === 0) {
-            throw new Exception("Сервер недоступен");
-        }
-        return "Заказ $orderId успешно обработан";
-    }
-}
-?>
-```
-{% endcode %}
-
-**3. Создание класса-заместителя**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class OrderProcessorProxy implements OrderProcessor {
-    private $realOrderProcessor;
-
-    public function __construct(OrderProcessor $realOrderProcessor) {
-        $this->realOrderProcessor = $realOrderProcessor;
-    }
-
-    public function processOrder(string $orderId): string {
-        $attempts = 3;
-        while ($attempts > 0) {
-            try {
-                return $this->realOrderProcessor->processOrder($orderId);
-            } catch (Exception $e) {
-                $attempts--;
-                if ($attempts == 0) {
-                    throw $e;
-                }
-                echo "Повторная попытка...\n";
-            }
-        }
-        return "Не удалось обработать заказ";
-    }
-}
-?>
-```
-{% endcode %}
-
-**4. Использование класса-заместителя**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-$realOrderProcessor = new RealOrderProcessor();
-$orderProcessorProxy = new OrderProcessorProxy($realOrderProcessor);
-
-try {
-    echo $orderProcessorProxy->processOrder("12345");
-} catch (Exception $e) {
-    echo "Ошибка: " . $e->getMessage();
-}
-?>
-```
-{% endcode %}
-
-#### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface OrderProcessor {
-    +processOrder(orderId: String): String
+interface ExceptionHandler {
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
 }
 
-class RealOrderProcessor {
-    +processOrder(orderId: String): String
+class InvalidDataExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
 }
 
-class OrderProcessorProxy {
-    -realOrderProcessor: OrderProcessor
-    +OrderProcessorProxy(realOrderProcessor: OrderProcessor)
-    +processOrder(orderId: String): String
+class FileCorruptedExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
 }
 
-OrderProcessor <|-- RealOrderProcessor
-OrderProcessor <|-- OrderProcessorProxy
-OrderProcessorProxy --> RealOrderProcessor
+class NetworkExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+ExceptionHandler <|-- InvalidDataExceptionHandler
+ExceptionHandler <|-- FileCorruptedExceptionHandler
+ExceptionHandler <|-- NetworkExceptionHandler
+InvalidDataExceptionHandler --> FileCorruptedExceptionHandler
+FileCorruptedExceptionHandler --> NetworkExceptionHandler
 @enduml
+```
+
+### Пример кода на PHP
+
+**Интерфейс ExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+interface ExceptionHandler {
+    public function handleException(Exception $exception): bool;
+    public function setNext(ExceptionHandler $nextHandler);
+}
+?>
 ```
 {% endcode %}
 
-#### Вывод для кейса
+**Абстрактный класс AbstractExceptionHandler**
 
-В этом кейсе мы использовали паттерн "Заместитель" для обработки ошибок и повторных попыток при обработке заказов. Основной класс `RealOrderProcessor` выполняет реальную обработку заказов, а класс-заместитель `OrderProcessorProxy` обрабатывает ошибки и делает повторные попытки.
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+abstract class AbstractExceptionHandler implements ExceptionHandler {
+    private $nextHandler;
 
-Этот подход позволяет нам сделать наше приложение более устойчивым к сбоям и улучшить пользовательский опыт, так как приложение не падает при временных проблемах с сервером.
+    public function setNext(ExceptionHandler $nextHandler) {
+        $this->nextHandler = $nextHandler;
+    }
+
+    public function handleException(Exception $exception): bool {
+        if ($this->canHandle($exception)) {
+            $this->process($exception);
+            return true;
+        }
+        if ($this->nextHandler) {
+            return $this->nextHandler->handleException($exception);
+        }
+        return false;
+    }
+
+    abstract protected function canHandle(Exception $exception): bool;
+    abstract protected function process(Exception $exception);
+}
+?>
+```
+{% endcode %}
+
+**Конкретный обработчик InvalidDataExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+class InvalidDataExceptionHandler extends AbstractExceptionHandler {
+    protected function canHandle(Exception $exception): bool {
+        return $exception instanceof InvalidDataException;
+    }
+
+    protected function process(Exception $exception) {
+        // Логика обработки исключения некорректных данных
+        echo "Обработка исключения некорректных данных: " . $exception->getMessage() . "\n";
+    }
+}
+?>
+```
+{% endcode %}
+
+**Конкретный обработчик FileCorruptedExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+class FileCorruptedExceptionHandler extends AbstractExceptionHandler {
+    protected function canHandle(Exception $exception): bool {
+        return $exception instanceof FileCorruptedException;
+    }
+
+    protected function process(Exception $exception) {
+        // Логика обработки исключения поврежденного файла
+        echo "Обработка исключения поврежденного файла: " . $exception->getMessage() . "\n";
+    }
+}
+?>
+```
+{% endcode %}
+
+**Конкретный обработчик NetworkExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+class NetworkExceptionHandler extends AbstractExceptionHandler {
+    protected function canHandle(Exception $exception): bool {
+        return $exception instanceof NetworkException;
+    }
+
+    protected function process(Exception $exception) {
+        // Логика обработки исключения сетевой ошибки
+        echo "Обработка исключения сетевой ошибки: " . $exception->getMessage() . "\n";
+    }
+}
+?>
+```
+{% endcode %}
+
+**Использование цепочки обязанностей**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+// Определение пользовательских исключений
+class InvalidDataException extends Exception {}
+class FileCorruptedException extends Exception {}
+class NetworkException extends Exception {}
+
+// Создание цепочки обработчиков
+$networkHandler = new NetworkExceptionHandler();
+$fileHandler = new FileCorruptedExceptionHandler();
+$invalidDataHandler = new InvalidDataExceptionHandler();
+
+$invalidDataHandler->setNext($fileHandler);
+$fileHandler->setNext($networkHandler);
+
+// Пример использования
+try {
+    // Симуляция исключения
+    throw new InvalidDataException("Некорректные данные");
+} catch (Exception $e) {
+    $invalidDataHandler->handleException($e);
+}
+
+try {
+    // Симуляция исключения
+    throw new FileCorruptedException("Файл поврежден");
+} catch (Exception $e) {
+    $invalidDataHandler->handleException($e);
+}
+
+try {
+    // Симуляция исключения
+    throw new NetworkException("Сетевая ошибка");
+} catch (Exception $e) {
+    $invalidDataHandler->handleException($e);
+}
+?>
+```
+{% endcode %}
+
+### Объяснение кода
+
+1. **Интерфейс ExceptionHandler**:
+   * Определяет методы `handleException` и `setNext`, которые должны быть реализованы всеми обработчиками.
+2. **Абстрактный класс AbstractExceptionHandler**:
+   * Реализует метод `setNext` для установки следующего обработчика в цепочке.
+   * Метод `handleException` проверяет, может ли текущий обработчик обработать исключение. Если нет, он передает исключение следующему обработчику.
+   * Абстрактные методы `canHandle` и `process` должны быть реализованы в конкретных обработчиках.
+3. **Конкретные обработчики**:
+   * `InvalidDataExceptionHandler`, `FileCorruptedExceptionHandler`, `NetworkExceptionHandler` реализуют методы `canHandle` и `process` для обработки соответствующих типов исключений.
+4. **Использование цепочки обязанностей**:
+   * Создаются экземпляры обработчиков и устанавливается цепочка.
+   * При возникновении исключения, оно передается в цепочку обработчиков, где каждый обработчик проверяет, может ли он обработать исключение.
+
+### Вывод
+
+Паттерн "Цепочка обязанностей" позволяет гибко и эффективно обрабатывать различные типы исключений в вашем парсере данных. Этот подход упрощает добавление новых обработчиков и делает код более читаемым и поддерживаемым. В данном кейсе мы показали, как можно использовать этот паттерн для обработки исключений некорректных данных, поврежденных файлов и сетевых ошибок.

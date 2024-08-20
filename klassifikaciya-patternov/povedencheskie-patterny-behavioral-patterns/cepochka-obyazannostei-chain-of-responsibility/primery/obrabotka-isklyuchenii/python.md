@@ -1,111 +1,184 @@
 # Python
 
-Представьте, что мы работаем в компании, которая разрабатывает веб-приложение для управления заказами. Наше приложение должно уметь обрабатывать заказы, но иногда сервер, который обрабатывает заказы, может быть недоступен. Мы хотим, чтобы наше приложение не падало в таких случаях, а пыталось повторно отправить заказ через некоторое время.
+Представьте, что вы работаете в команде разработчиков, которая занимается созданием и поддержкой веб-приложения. Ваш сеньор-разработчик поставил задачу: переделать обработку исключений для парсера данных. Ваша задача — сделать систему обработки исключений более гибкой и удобной для расширения. Для этого вы решили использовать паттерн "Цепочка обязанностей".
 
-Для этого мы будем использовать паттерн "Заместитель" (Proxy). Этот паттерн позволяет нам создать объект-заместитель, который будет выполнять дополнительные действия перед вызовом основного объекта. В нашем случае заместитель будет обрабатывать ошибки и делать повторные попытки.
+### Описание кейса
 
-#### Пример кода на Python
+Ваш парсер данных обрабатывает различные типы данных и может вызывать разные исключения. Например, данные могут быть некорректными, файл может быть поврежден, или может возникнуть сетевая ошибка. Ваша цель — создать цепочку обработчиков, каждый из которых будет отвечать за обработку определенного типа исключений.
 
-**1. Создание интерфейса для обработки заказов**
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (82).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface ExceptionHandler {
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class InvalidDataExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class FileCorruptedExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class NetworkExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+ExceptionHandler <|-- InvalidDataExceptionHandler
+ExceptionHandler <|-- FileCorruptedExceptionHandler
+ExceptionHandler <|-- NetworkExceptionHandler
+InvalidDataExceptionHandler --> FileCorruptedExceptionHandler
+FileCorruptedExceptionHandler --> NetworkExceptionHandler
+@enduml
+```
+{% endcode %}
+
+### Пример кода на Python
+
+**Интерфейс ExceptionHandler**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class OrderProcessor(ABC):
+class ExceptionHandler(ABC):
+    def __init__(self):
+        self.next_handler = None
+
+    def set_next(self, handler):
+        self.next_handler = handler
+
     @abstractmethod
-    def process_order(self, order_id: str) -> str:
+    def handle_exception(self, exception):
         pass
 ```
 {% endcode %}
 
-**2. Создание основного класса для обработки заказов**
-
-{% code lineNumbers="true" %}
-```python
-import random
-
-class RealOrderProcessor(OrderProcessor):
-    def process_order(self, order_id: str) -> str:
-        # Симуляция обработки заказа
-        if random.randint(0, 1) == 0:
-            raise Exception("Сервер недоступен")
-        return f"Заказ {order_id} успешно обработан"
-```
-{% endcode %}
-
-**3. Создание класса-заместителя**
+**Абстрактный класс AbstractExceptionHandler**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-import time
+class AbstractExceptionHandler(ExceptionHandler):
+    def handle_exception(self, exception):
+        if self.can_handle(exception):
+            self.process(exception)
+            return True
+        if self.next_handler:
+            return self.next_handler.handle_exception(exception)
+        return False
 
-class OrderProcessorProxy(OrderProcessor):
-    def __init__(self, real_order_processor: OrderProcessor):
-        self.real_order_processor = real_order_processor
+    @abstractmethod
+    def can_handle(self, exception):
+        pass
 
-    def process_order(self, order_id: str) -> str:
-        attempts = 3
-        while attempts > 0:
-            try:
-                return self.real_order_processor.process_order(order_id)
-            except Exception as e:
-                attempts -= 1
-                if attempts == 0:
-                    raise e
-                print("Повторная попытка...")
-                time.sleep(1)  # Пауза перед повторной попыткой
-        return "Не удалось обработать заказ"
+    @abstractmethod
+    def process(self, exception):
+        pass
 ```
 {% endcode %}
 
-**4. Использование класса-заместителя**
+**Конкретный обработчик InvalidDataExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class InvalidDataException(Exception):
+    pass
+
+class InvalidDataExceptionHandler(AbstractExceptionHandler):
+    def can_handle(self, exception):
+        return isinstance(exception, InvalidDataException)
+
+    def process(self, exception):
+        print(f"Обработка исключения некорректных данных: {exception}")
+```
+{% endcode %}
+
+**Конкретный обработчик FileCorruptedExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class FileCorruptedException(Exception):
+    pass
+
+class FileCorruptedExceptionHandler(AbstractExceptionHandler):
+    def can_handle(self, exception):
+        return isinstance(exception, FileCorruptedException)
+
+    def process(self, exception):
+        print(f"Обработка исключения поврежденного файла: {exception}")
+```
+{% endcode %}
+
+**Конкретный обработчик NetworkExceptionHandler**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class NetworkException(Exception):
+    pass
+
+class NetworkExceptionHandler(AbstractExceptionHandler):
+    def can_handle(self, exception):
+        return isinstance(exception, NetworkException)
+
+    def process(self, exception):
+        print(f"Обработка исключения сетевой ошибки: {exception}")
+```
+{% endcode %}
+
+**Использование цепочки обязанностей**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 def main():
-    real_order_processor = RealOrderProcessor()
-    order_processor_proxy = OrderProcessorProxy(real_order_processor)
+    # Создание цепочки обработчиков
+    network_handler = NetworkExceptionHandler()
+    file_handler = FileCorruptedExceptionHandler()
+    invalid_data_handler = InvalidDataExceptionHandler()
 
-    try:
-        result = order_processor_proxy.process_order("12345")
-        print(result)
-    except Exception as e:
-        print(f"Ошибка: {e}")
+    invalid_data_handler.set_next(file_handler)
+    file_handler.set_next(network_handler)
+
+    # Пример использования
+    exceptions = [
+        InvalidDataException("Некорректные данные"),
+        FileCorruptedException("Файл поврежден"),
+        NetworkException("Сетевая ошибка"),
+    ]
+
+    for exception in exceptions:
+        invalid_data_handler.handle_exception(exception)
 
 if __name__ == "__main__":
     main()
 ```
 {% endcode %}
 
-#### UML диаграмма
+### Объяснение кода
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+1. **Интерфейс ExceptionHandler**:
+   * Определяет методы `handle_exception` и `set_next`, которые должны быть реализованы всеми обработчиками.
+2. **Абстрактный класс AbstractExceptionHandler**:
+   * Реализует метод `set_next` для установки следующего обработчика в цепочке.
+   * Метод `handle_exception` проверяет, может ли текущий обработчик обработать исключение. Если нет, он передает исключение следующему обработчику.
+   * Абстрактные методы `can_handle` и `process` должны быть реализованы в конкретных обработчиках.
+3. **Конкретные обработчики**:
+   * `InvalidDataExceptionHandler`, `FileCorruptedExceptionHandler`, `NetworkExceptionHandler` реализуют методы `can_handle` и `process` для обработки соответствующих типов исключений.
+4. **Использование цепочки обязанностей**:
+   * Создаются экземпляры обработчиков и устанавливается цепочка.
+   * При возникновении исключения, оно передается в цепочку обработчиков, где каждый обработчик проверяет, может ли он обработать исключение.
 
-```plantuml
-@startuml
-interface OrderProcessor {
-    +process_order(order_id: String): String
-}
+### Вывод
 
-class RealOrderProcessor {
-    +process_order(order_id: String): String
-}
-
-class OrderProcessorProxy {
-    -real_order_processor: OrderProcessor
-    +OrderProcessorProxy(real_order_processor: OrderProcessor)
-    +process_order(order_id: String): String
-}
-
-OrderProcessor <|-- RealOrderProcessor
-OrderProcessor <|-- OrderProcessorProxy
-OrderProcessorProxy --> RealOrderProcessor
-@enduml
-```
-
-#### Вывод для кейса
-
-В этом кейсе мы использовали паттерн "Заместитель" для обработки ошибок и повторных попыток при обработке заказов. Основной класс `RealOrderProcessor` выполняет реальную обработку заказов, а класс-заместитель `OrderProcessorProxy` обрабатывает ошибки и делает повторные попытки.
-
-Этот подход позволяет нам сделать наше приложение более устойчивым к сбоям и улучшить пользовательский опыт, так как приложение не падает при временных проблемах с сервером.
+Паттерн "Цепочка обязанностей" позволяет гибко и эффективно обрабатывать различные типы исключений в вашем парсере данных. Этот подход упрощает добавление новых обработчиков и делает код более читаемым и поддерживаемым. В данном кейсе мы показали, как можно использовать этот паттерн для обработки исключений некорректных данных, поврежденных файлов и сетевых ошибок.
