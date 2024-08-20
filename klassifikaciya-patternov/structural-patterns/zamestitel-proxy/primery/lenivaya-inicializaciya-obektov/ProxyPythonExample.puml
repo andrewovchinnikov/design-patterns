@@ -1,0 +1,18 @@
+@startuml
+interface AnalyticsInterface {
+    +analyze_data(data: array): string
+}
+
+class RealAnalytics {
+    +analyze_data(data: array): string
+}
+
+class AnalyticsProxy {
+    -_real_analytics: RealAnalytics
+    +analyze_data(data: array): string
+}
+
+AnalyticsInterface <|-- RealAnalytics
+AnalyticsInterface <|-- AnalyticsProxy
+AnalyticsProxy --> RealAnalytics
+@enduml

@@ -1,0 +1,30 @@
+@startuml
+interface ExceptionHandler {
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class InvalidDataExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class FileCorruptedExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+class NetworkExceptionHandler implements ExceptionHandler {
+    -nextHandler: ExceptionHandler
+    +handleException(exception: Exception): boolean
+    +setNext(nextHandler: ExceptionHandler)
+}
+
+ExceptionHandler <|-- InvalidDataExceptionHandler
+ExceptionHandler <|-- FileCorruptedExceptionHandler
+ExceptionHandler <|-- NetworkExceptionHandler
+InvalidDataExceptionHandler --> FileCorruptedExceptionHandler
+FileCorruptedExceptionHandler --> NetworkExceptionHandler
+@enduml

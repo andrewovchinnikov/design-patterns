@@ -1,0 +1,19 @@
+@startuml
+interface OrderProcessor {
+    +process_order(order_id: String): String
+}
+
+class RealOrderProcessor {
+    +process_order(order_id: String): String
+}
+
+class OrderProcessorProxy {
+    -real_order_processor: OrderProcessor
+    +OrderProcessorProxy(real_order_processor: OrderProcessor)
+    +process_order(order_id: String): String
+}
+
+OrderProcessor <|-- RealOrderProcessor
+OrderProcessor <|-- OrderProcessorProxy
+OrderProcessorProxy --> RealOrderProcessor
+@enduml

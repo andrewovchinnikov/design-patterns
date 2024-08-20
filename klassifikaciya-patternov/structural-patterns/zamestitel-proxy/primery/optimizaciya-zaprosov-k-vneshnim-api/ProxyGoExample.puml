@@ -1,0 +1,21 @@
+@startuml
+interface ProductApiInterface {
+    +GetProductInfo(productId: int): map[string]interface{}
+}
+
+class ExternalProductApi {
+    +GetProductInfo(productId: int): map[string]interface{}
+}
+
+class ProductApiProxy {
+    -realApi: ProductApiInterface
+    -cache: map[int]map[string]interface{}
+    +NewProductApiProxy(realApi: ProductApiInterface): ProductApiProxy
+    +GetProductInfo(productId: int): map[string]interface{}
+}
+
+ProductApiInterface <|-- ExternalProductApi
+ProductApiInterface <|-- ProductApiProxy
+ProductApiProxy --> ExternalProductApi
+
+@enduml

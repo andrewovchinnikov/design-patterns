@@ -1,0 +1,22 @@
+@startuml
+interface Handler {
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: Handler)
+}
+
+class ConcreteHandler1 implements Handler {
+    -nextHandler: Handler
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: Handler)
+}
+
+class ConcreteHandler2 implements Handler {
+    -nextHandler: Handler
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: Handler)
+}
+
+Handler <|-- ConcreteHandler1
+Handler <|-- ConcreteHandler2
+ConcreteHandler1 --> ConcreteHandler2
+@enduml

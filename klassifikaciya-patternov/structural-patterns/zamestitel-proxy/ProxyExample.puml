@@ -1,0 +1,18 @@
+@startuml
+interface Subject {
+    +request()
+}
+
+class RealSubject implements Subject {
+    +request()
+}
+
+class Proxy implements Subject {
+    -realSubject: RealSubject
+    +request()
+}
+
+Subject <|-- RealSubject
+Subject <|-- Proxy
+Proxy --> RealSubject
+@enduml

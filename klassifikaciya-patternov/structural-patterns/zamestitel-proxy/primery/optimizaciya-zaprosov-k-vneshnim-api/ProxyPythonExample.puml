@@ -1,0 +1,21 @@
+@startuml
+interface ProductApiInterface {
+    +get_product_info(product_id: int): dict
+}
+
+class ExternalProductApi {
+    +get_product_info(product_id: int): dict
+}
+
+class ProductApiProxy {
+    -real_api: ProductApiInterface
+    -cache: dict
+    +__init__(real_api: ProductApiInterface)
+    +get_product_info(product_id: int): dict
+}
+
+ProductApiInterface <|-- ExternalProductApi
+ProductApiInterface <|-- ProductApiProxy
+ProductApiProxy --> ExternalProductApi
+
+@enduml

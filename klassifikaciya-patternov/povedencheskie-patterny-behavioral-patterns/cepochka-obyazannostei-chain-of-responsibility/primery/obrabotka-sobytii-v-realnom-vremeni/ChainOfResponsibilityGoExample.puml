@@ -1,0 +1,35 @@
+@startuml
+interface EventHandler {
+    +Handle(event Event)
+    +SetNext(handler EventHandler): EventHandler
+}
+
+class BaseEventHandler {
+    -nextHandler: EventHandler
+    +SetNext(handler EventHandler): EventHandler
+    +Handle(event Event)
+}
+
+class LightHandler {
+    +Handle(event Event)
+}
+
+class NotificationHandler {
+    +Handle(event Event)
+}
+
+class LogHandler {
+    +Handle(event Event)
+}
+
+class Event {
+    -Type: string
+    -Data: map[string]interface{}
+    +NewEvent(eventType string, data map[string]interface{}): Event
+}
+
+EventHandler <|-- BaseEventHandler
+BaseEventHandler <|-- LightHandler
+BaseEventHandler <|-- NotificationHandler
+BaseEventHandler <|-- LogHandler
+@enduml
