@@ -1,105 +1,152 @@
 # Python
 
-Представьте, что вы работаете в компании, которая занимается разработкой системы аналитики. Ваш сеньор-разработчик поставил задачу: оптимизировать код системы аналитики для повышения производительности. Одной из проблем, которую нужно решить, является ленивая инициализация объектов. Это означает, что объекты должны создаваться только тогда, когда они действительно нужны, а не сразу при запуске программы. Это поможет сэкономить ресурсы и улучшить производительность системы.
+#### Вводная часть
 
-#### Кейс применения паттерна Заместитель
+Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
 
-Паттерн Заместитель (Proxy) позволяет создать объект-заместитель, который управляет доступом к другому объекту. В нашем случае, мы будем использовать этот паттерн для ленивой инициализации объектов.
+### Описание паттерна
 
-#### Пример кода на Python
+Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
 
-**1. Создание интерфейса для аналитики**
+### Пример кода на Python
+
+**1. Создание интерфейса обработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
-import time
 
-class AnalyticsInterface(ABC):
+class EventHandler(ABC):
     @abstractmethod
-    def analyze_data(self, data):
+    def handle(self, event):
+        pass
+
+    @abstractmethod
+    def set_next(self, handler):
         pass
 ```
 {% endcode %}
 
-**2. Реализация класса аналитики**
+**2. Создание базового класса обработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class RealAnalytics(AnalyticsInterface):
-    def analyze_data(self, data):
-        # Симуляция сложного анализа данных
-        time.sleep(2)  # Имитация долгой операции
-        return f"Анализ данных завершен: {', '.join(data)}"
-```
-{% endcode %}
-
-**3. Создание класса-заместителя**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class AnalyticsProxy(AnalyticsInterface):
+class BaseEventHandler(EventHandler):
     def __init__(self):
-        self._real_analytics = None
+        self._next_handler = None
 
-    def analyze_data(self, data):
-        # Ленивая инициализация реального объекта аналитики
-        if self._real_analytics is None:
-            self._real_analytics = RealAnalytics()
-        # Делегирование выполнения реальному объекту
-        return self._real_analytics.analyze_data(data)
+    def set_next(self, handler):
+        self._next_handler = handler
+        return handler
+
+    def handle(self, event):
+        if self._next_handler:
+            self._next_handler.handle(event)
 ```
 {% endcode %}
 
-**4. Использование класса-заместителя**
+**3. Создание класса события**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Event:
+    def __init__(self, event_type, data=None):
+        self.event_type = event_type
+        self.data = data if data is not None else {}
+
+    def get_type(self):
+        return self.event_type
+
+    def get_data(self):
+        return self.data
+```
+{% endcode %}
+
+**4. Создание конкретных обработчиков**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class LightHandler(BaseEventHandler):
+    def handle(self, event):
+        if event.get_type() == 'door_open':
+            print("Turning on the light.")
+        super().handle(event)
+
+class NotificationHandler(BaseEventHandler):
+    def handle(self, event):
+        if event.get_type() == 'door_open':
+            print("Sending notification to the phone.")
+        super().handle(event)
+
+class LogHandler(BaseEventHandler):
+    def handle(self, event):
+        print(f"Logging event: {event.get_type()}")
+        super().handle(event)
+```
+{% endcode %}
+
+**5. Создание цепочки обработчиков и обработка события**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    analytics = AnalyticsProxy()
+    light_handler = LightHandler()
+    notification_handler = NotificationHandler()
+    log_handler = LogHandler()
 
-    # Первый вызов, объект RealAnalytics будет создан
-    print(analytics.analyze_data(["данные1", "данные2"]))
+    light_handler.set_next(notification_handler).set_next(log_handler)
 
-    # Второй вызов, объект RealAnalytics уже создан и используется снова
-    print(analytics.analyze_data(["данные3", "данные4"]))
+    event = Event('door_open')
+    light_handler.handle(event)
 ```
 {% endcode %}
 
-#### Объяснение кода
+#### UML диаграмма
 
-1. **Интерфейс AnalyticsInterface**: Определяет метод `analyze_data`, который должен быть реализован всеми классами, работающими с аналитикой.
-2. **Класс RealAnalytics**: Реализует интерфейс `AnalyticsInterface` и содержит реальную логику анализа данных. В данном примере используется `time.sleep(2)` для имитации долгой операции.
-3. **Класс AnalyticsProxy**: Реализует интерфейс `AnalyticsInterface` и содержит логику ленивой инициализации. Объект `RealAnalytics` создается только при первом вызове метода `analyze_data`. Это позволяет отложить создание объекта до тех пор, пока он действительно не понадобится.
-4. **Использование класса-заместителя**: Создаем объект `AnalyticsProxy` и вызываем метод `analyze_data`. При первом вызове объект `RealAnalytics` создается, а при последующих вызовах используется уже созданный объект.
-
-#### UML диаграмма&#x20;
-
-<figure><img src="../../../../../.gitbook/assets/image (79).png" alt=""><figcaption><p>UML диаграмма для паттерна "Заместитель"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (85).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface AnalyticsInterface {
-    +analyze_data(data: array): string
+interface EventHandler {
+    +handle(event Event)
+    +set_next(handler EventHandler): EventHandler
 }
 
-class RealAnalytics {
-    +analyze_data(data: array): string
+class BaseEventHandler {
+    -_next_handler: EventHandler
+    +set_next(handler EventHandler): EventHandler
+    +handle(event Event)
 }
 
-class AnalyticsProxy {
-    -_real_analytics: RealAnalytics
-    +analyze_data(data: array): string
+class LightHandler {
+    +handle(event Event)
 }
 
-AnalyticsInterface <|-- RealAnalytics
-AnalyticsInterface <|-- AnalyticsProxy
-AnalyticsProxy --> RealAnalytics
+class NotificationHandler {
+    +handle(event Event)
+}
+
+class LogHandler {
+    +handle(event Event)
+}
+
+class Event {
+    -event_type: string
+    -data: dict
+    +__init__(event_type string, data dict): Event
+    +get_type(): string
+    +get_data(): dict
+}
+
+EventHandler <|-- BaseEventHandler
+BaseEventHandler <|-- LightHandler
+BaseEventHandler <|-- NotificationHandler
+BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-#### Вывод для кейса
+### Вывод
 
-Использование паттерна Заместитель (Proxy) позволяет нам оптимизировать систему аналитики за счет ленивой инициализации объектов. Это помогает сэкономить ресурсы и улучшить производительность системы, так как объекты создаются только тогда, когда они действительно нужны. В результате, система становится более эффективной и отзывчивой.
+Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.
