@@ -1,207 +1,169 @@
 # PHP
 
-Представьте, что вы работаете в команде разработчиков, которая занимается созданием и поддержкой веб-приложения. Ваш сеньор-разработчик поставил задачу: переделать обработку исключений для парсера данных. Ваша задача — сделать систему обработки исключений более гибкой и удобной для расширения. Для этого вы решили использовать паттерн "Цепочка обязанностей".
+Представьте, что мы разрабатываем приложение для управления состоянием различных компонентов системы. Наше приложение должно уметь включать и выключать различные компоненты, такие как серверы, базы данных и другие сервисы. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+
+Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
 
 ### Описание кейса
 
-Ваш парсер данных обрабатывает различные типы данных и может вызывать разные исключения. Например, данные могут быть некорректными, файл может быть поврежден, или может возникнуть сетевая ошибка. Ваша цель — создать цепочку обработчиков, каждый из которых будет отвечать за обработку определенного типа исключений.
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (81).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
-
-```plantuml
-@startuml
-interface ExceptionHandler {
-    +handleException(exception: Exception): boolean
-    +setNext(nextHandler: ExceptionHandler)
-}
-
-class InvalidDataExceptionHandler implements ExceptionHandler {
-    -nextHandler: ExceptionHandler
-    +handleException(exception: Exception): boolean
-    +setNext(nextHandler: ExceptionHandler)
-}
-
-class FileCorruptedExceptionHandler implements ExceptionHandler {
-    -nextHandler: ExceptionHandler
-    +handleException(exception: Exception): boolean
-    +setNext(nextHandler: ExceptionHandler)
-}
-
-class NetworkExceptionHandler implements ExceptionHandler {
-    -nextHandler: ExceptionHandler
-    +handleException(exception: Exception): boolean
-    +setNext(nextHandler: ExceptionHandler)
-}
-
-ExceptionHandler <|-- InvalidDataExceptionHandler
-ExceptionHandler <|-- FileCorruptedExceptionHandler
-ExceptionHandler <|-- NetworkExceptionHandler
-InvalidDataExceptionHandler --> FileCorruptedExceptionHandler
-FileCorruptedExceptionHandler --> NetworkExceptionHandler
-@enduml
-```
+Мы создадим систему управления состоянием приложения, которая будет включать и выключать компоненты. Мы будем использовать паттерн "Команда" для инкапсуляции команд включения и выключения.
 
 ### Пример кода на PHP
 
-**Интерфейс ExceptionHandler**
+**1. Создание интерфейса команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-interface ExceptionHandler {
-    public function handleException(Exception $exception): bool;
-    public function setNext(ExceptionHandler $nextHandler);
+interface Command {
+    public function execute();
 }
-?>
 ```
 {% endcode %}
 
-**Абстрактный класс AbstractExceptionHandler**
+**2. Создание конкретных команд**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-abstract class AbstractExceptionHandler implements ExceptionHandler {
-    private $nextHandler;
+class StartCommand implements Command {
+    private $component;
 
-    public function setNext(ExceptionHandler $nextHandler) {
-        $this->nextHandler = $nextHandler;
+    public function __construct($component) {
+        $this->component = $component;
     }
 
-    public function handleException(Exception $exception): bool {
-        if ($this->canHandle($exception)) {
-            $this->process($exception);
-            return true;
-        }
-        if ($this->nextHandler) {
-            return $this->nextHandler->handleException($exception);
-        }
-        return false;
+    public function execute() {
+        $this->component->start();
     }
-
-    abstract protected function canHandle(Exception $exception): bool;
-    abstract protected function process(Exception $exception);
 }
-?>
+
+class StopCommand implements Command {
+    private $component;
+
+    public function __construct($component) {
+        $this->component = $component;
+    }
+
+    public function execute() {
+        $this->component->stop();
+    }
+}
 ```
 {% endcode %}
 
-**Конкретный обработчик InvalidDataExceptionHandler**
+**3. Создание получателя команд**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class InvalidDataExceptionHandler extends AbstractExceptionHandler {
-    protected function canHandle(Exception $exception): bool {
-        return $exception instanceof InvalidDataException;
+class Component {
+    private $name;
+
+    public function __construct($name) {
+        $this->name = $name;
     }
 
-    protected function process(Exception $exception) {
-        // Логика обработки исключения некорректных данных
-        echo "Обработка исключения некорректных данных: " . $exception->getMessage() . "\n";
+    public function start() {
+        echo "Компонент {$this->name} запущен.\n";
+    }
+
+    public function stop() {
+        echo "Компонент {$this->name} остановлен.\n";
     }
 }
-?>
 ```
 {% endcode %}
 
-**Конкретный обработчик FileCorruptedExceptionHandler**
+**4. Создание отправителя команд**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class FileCorruptedExceptionHandler extends AbstractExceptionHandler {
-    protected function canHandle(Exception $exception): bool {
-        return $exception instanceof FileCorruptedException;
+class Invoker {
+    private $command;
+
+    public function setCommand(Command $command) {
+        $this->command = $command;
     }
 
-    protected function process(Exception $exception) {
-        // Логика обработки исключения поврежденного файла
-        echo "Обработка исключения поврежденного файла: " . $exception->getMessage() . "\n";
+    public function executeCommand() {
+        $this->command->execute();
     }
 }
-?>
 ```
 {% endcode %}
 
-**Конкретный обработчик NetworkExceptionHandler**
+**5. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class NetworkExceptionHandler extends AbstractExceptionHandler {
-    protected function canHandle(Exception $exception): bool {
-        return $exception instanceof NetworkException;
-    }
+// Создаем компонент
+$component = new Component('Сервер');
 
-    protected function process(Exception $exception) {
-        // Логика обработки исключения сетевой ошибки
-        echo "Обработка исключения сетевой ошибки: " . $exception->getMessage() . "\n";
-    }
-}
-?>
+// Создаем команды
+$startCommand = new StartCommand($component);
+$stopCommand = new StopCommand($component);
+
+// Создаем отправителя команд
+$invoker = new Invoker();
+
+// Устанавливаем и выполняем команду запуска
+$invoker->setCommand($startCommand);
+$invoker->executeCommand();
+
+// Устанавливаем и выполняем команду остановки
+$invoker->setCommand($stopCommand);
+$invoker->executeCommand();
 ```
 {% endcode %}
 
-**Использование цепочки обязанностей**
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (86).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-// Определение пользовательских исключений
-class InvalidDataException extends Exception {}
-class FileCorruptedException extends Exception {}
-class NetworkException extends Exception {}
-
-// Создание цепочки обработчиков
-$networkHandler = new NetworkExceptionHandler();
-$fileHandler = new FileCorruptedExceptionHandler();
-$invalidDataHandler = new InvalidDataExceptionHandler();
-
-$invalidDataHandler->setNext($fileHandler);
-$fileHandler->setNext($networkHandler);
-
-// Пример использования
-try {
-    // Симуляция исключения
-    throw new InvalidDataException("Некорректные данные");
-} catch (Exception $e) {
-    $invalidDataHandler->handleException($e);
+```plantuml
+@startuml
+interface Command {
+    +execute()
 }
 
-try {
-    // Симуляция исключения
-    throw new FileCorruptedException("Файл поврежден");
-} catch (Exception $e) {
-    $invalidDataHandler->handleException($e);
+class StartCommand {
+    -component: Component
+    +__construct(component: Component)
+    +execute()
 }
 
-try {
-    // Симуляция исключения
-    throw new NetworkException("Сетевая ошибка");
-} catch (Exception $e) {
-    $invalidDataHandler->handleException($e);
+class StopCommand {
+    -component: Component
+    +__construct(component: Component)
+    +execute()
 }
-?>
+
+class Component {
+    -name: String
+    +__construct(name: String)
+    +start()
+    +stop()
+}
+
+class Invoker {
+    -command: Command
+    +setCommand(command: Command)
+    +executeCommand()
+}
+
+Command <|-- StartCommand
+Command <|-- StopCommand
+StartCommand --> Component
+StopCommand --> Component
+Invoker --> Command
+@enduml
 ```
 {% endcode %}
 
-### Объяснение кода
+### Вывод для кейса
 
-1. **Интерфейс ExceptionHandler**:
-   * Определяет методы `handleException` и `setNext`, которые должны быть реализованы всеми обработчиками.
-2. **Абстрактный класс AbstractExceptionHandler**:
-   * Реализует метод `setNext` для установки следующего обработчика в цепочке.
-   * Метод `handleException` проверяет, может ли текущий обработчик обработать исключение. Если нет, он передает исключение следующему обработчику.
-   * Абстрактные методы `canHandle` и `process` должны быть реализованы в конкретных обработчиках.
-3. **Конкретные обработчики**:
-   * `InvalidDataExceptionHandler`, `FileCorruptedExceptionHandler`, `NetworkExceptionHandler` реализуют методы `canHandle` и `process` для обработки соответствующих типов исключений.
-4. **Использование цепочки обязанностей**:
-   * Создаются экземпляры обработчиков и устанавливается цепочка.
-   * При возникновении исключения, оно передается в цепочку обработчиков, где каждый обработчик проверяет, может ли он обработать исключение.
-
-### Вывод
-
-Паттерн "Цепочка обязанностей" позволяет гибко и эффективно обрабатывать различные типы исключений в вашем парсере данных. Этот подход упрощает добавление новых обработчиков и делает код более читаемым и поддерживаемым. В данном кейсе мы показали, как можно использовать этот паттерн для обработки исключений некорректных данных, поврежденных файлов и сетевых ошибок.
+Использование паттерна "Команда" позволяет нам гибко управлять состоянием компонентов нашего приложения. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для запуска и остановки компонентов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять состоянием наших компонентов и добавлять новые команды в будущем.
