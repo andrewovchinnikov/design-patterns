@@ -1,0 +1,46 @@
+@startuml
+
+interface Command {
+    +execute()
+    +undo()
+}
+
+class TransferMoneyCommand {
+    -account_from: string
+    -account_to: string
+    -amount: float
+    +__init__(account_from: string, account_to: string, amount: float)
+    +execute()
+    +undo()
+}
+
+class WithdrawMoneyCommand {
+    -account: string
+    -amount: float
+    +__init__(account: string, amount: float)
+    +execute()
+    +undo()
+}
+
+class DepositMoneyCommand {
+    -account: string
+    -amount: float
+    +__init__(account: string, amount: float)
+    +execute()
+    +undo()
+}
+
+class TransactionInvoker {
+    -commands: Command[]
+    +__init__()
+    +add_command(command: Command)
+    +execute_commands()
+    +undo_commands()
+}
+
+Command <|-- TransferMoneyCommand
+Command <|-- WithdrawMoneyCommand
+Command <|-- DepositMoneyCommand
+TransactionInvoker --> Command
+
+@enduml

@@ -1,0 +1,36 @@
+@startuml
+interface Command {
+    +execute()
+}
+
+class StartCommand {
+    -component: Component
+    +__construct(component: Component)
+    +execute()
+}
+
+class StopCommand {
+    -component: Component
+    +__construct(component: Component)
+    +execute()
+}
+
+class Component {
+    -name: String
+    +__construct(name: String)
+    +start()
+    +stop()
+}
+
+class Invoker {
+    -command: Command
+    +setCommand(command: Command)
+    +executeCommand()
+}
+
+Command <|-- StartCommand
+Command <|-- StopCommand
+StartCommand --> Component
+StopCommand --> Component
+Invoker --> Command
+@enduml

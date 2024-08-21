@@ -1,0 +1,42 @@
+@startuml
+
+interface Command {
+    +Execute()
+    +Undo()
+}
+
+class TransferMoneyCommand {
+    -accountFrom: string
+    -accountTo: string
+    -amount: float64
+    +Execute()
+    +Undo()
+}
+
+class WithdrawMoneyCommand {
+    -account: string
+    -amount: float64
+    +Execute()
+    +Undo()
+}
+
+class DepositMoneyCommand {
+    -account: string
+    -amount: float64
+    +Execute()
+    +Undo()
+}
+
+class TransactionInvoker {
+    -commands: Command[]
+    +AddCommand(command: Command)
+    +ExecuteCommands()
+    +UndoCommands()
+}
+
+Command <|-- TransferMoneyCommand
+Command <|-- WithdrawMoneyCommand
+Command <|-- DepositMoneyCommand
+TransactionInvoker --> Command
+
+@enduml

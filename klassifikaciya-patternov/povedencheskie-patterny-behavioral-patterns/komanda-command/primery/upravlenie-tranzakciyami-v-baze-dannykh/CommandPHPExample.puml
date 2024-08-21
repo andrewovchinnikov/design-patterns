@@ -1,0 +1,30 @@
+@startuml
+interface RequestHandler {
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: RequestHandler)
+}
+
+class DatabaseRequestHandler implements RequestHandler {
+    -nextHandler: RequestHandler
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: RequestHandler)
+}
+
+class ApiRequestHandler implements RequestHandler {
+    -nextHandler: RequestHandler
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: RequestHandler)
+}
+
+class FileSystemRequestHandler implements RequestHandler {
+    -nextHandler: RequestHandler
+    +handleRequest(request: Request): boolean
+    +setNext(nextHandler: RequestHandler)
+}
+
+RequestHandler <|-- DatabaseRequestHandler
+RequestHandler <|-- ApiRequestHandler
+RequestHandler <|-- FileSystemRequestHandler
+DatabaseRequestHandler --> ApiRequestHandler
+ApiRequestHandler --> FileSystemRequestHandler
+@enduml
