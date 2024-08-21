@@ -1,152 +1,172 @@
 # Python
 
-#### Вводная часть
+Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
 
-Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
+### Описание
 
-### Описание паттерна
-
-Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
+Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
 
 ### Пример кода на Python
 
-**1. Создание интерфейса обработчика**
+**1. Интерфейс команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class EventHandler(ABC):
+class Command(ABC):
     @abstractmethod
-    def handle(self, event):
+    def execute(self):
         pass
 
     @abstractmethod
-    def set_next(self, handler):
+    def undo(self):
         pass
 ```
 {% endcode %}
 
-**2. Создание базового класса обработчика**
+**2. Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class BaseEventHandler(EventHandler):
+class TransferMoneyCommand(Command):
+    def __init__(self, account_from, account_to, amount):
+        self.account_from = account_from
+        self.account_to = account_to
+        self.amount = amount
+
+    def execute(self):
+        # Логика перевода денег
+        print(f"Перевод {self.amount} с {self.account_from} на {self.account_to}")
+
+    def undo(self):
+        # Логика отмены перевода
+        print(f"Отмена перевода {self.amount} с {self.account_from} на {self.account_to}")
+
+class WithdrawMoneyCommand(Command):
+    def __init__(self, account, amount):
+        self.account = account
+        self.amount = amount
+
+    def execute(self):
+        # Логика снятия денег
+        print(f"Снятие {self.amount} с {self.account}")
+
+    def undo(self):
+        # Логика отмены снятия
+        print(f"Отмена снятия {self.amount} с {self.account}")
+
+class DepositMoneyCommand(Command):
+    def __init__(self, account, amount):
+        self.account = account
+        self.amount = amount
+
+    def execute(self):
+        # Логика пополнения счета
+        print(f"Пополнение {self.amount} на {self.account}")
+
+    def undo(self):
+        # Логика отмены пополнения
+        print(f"Отмена пополнения {self.amount} на {self.account}")
+```
+{% endcode %}
+
+**3. Вызывающий объект (Invoker)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class TransactionInvoker:
     def __init__(self):
-        self._next_handler = None
+        self.commands = []
 
-    def set_next(self, handler):
-        self._next_handler = handler
-        return handler
+    def add_command(self, command):
+        self.commands.append(command)
 
-    def handle(self, event):
-        if self._next_handler:
-            self._next_handler.handle(event)
+    def execute_commands(self):
+        for command in self.commands:
+            command.execute()
+
+    def undo_commands(self):
+        for command in reversed(self.commands):
+            command.undo()
 ```
 {% endcode %}
 
-**3. Создание класса события**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Event:
-    def __init__(self, event_type, data=None):
-        self.event_type = event_type
-        self.data = data if data is not None else {}
-
-    def get_type(self):
-        return self.event_type
-
-    def get_data(self):
-        return self.data
-```
-{% endcode %}
-
-**4. Создание конкретных обработчиков**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class LightHandler(BaseEventHandler):
-    def handle(self, event):
-        if event.get_type() == 'door_open':
-            print("Turning on the light.")
-        super().handle(event)
-
-class NotificationHandler(BaseEventHandler):
-    def handle(self, event):
-        if event.get_type() == 'door_open':
-            print("Sending notification to the phone.")
-        super().handle(event)
-
-class LogHandler(BaseEventHandler):
-    def handle(self, event):
-        print(f"Logging event: {event.get_type()}")
-        super().handle(event)
-```
-{% endcode %}
-
-**5. Создание цепочки обработчиков и обработка события**
+**4. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    light_handler = LightHandler()
-    notification_handler = NotificationHandler()
-    log_handler = LogHandler()
+    invoker = TransactionInvoker()
 
-    light_handler.set_next(notification_handler).set_next(log_handler)
+    transfer_command = TransferMoneyCommand('Account1', 'Account2', 100)
+    withdraw_command = WithdrawMoneyCommand('Account1', 50)
+    deposit_command = DepositMoneyCommand('Account2', 150)
 
-    event = Event('door_open')
-    light_handler.handle(event)
+    invoker.add_command(transfer_command)
+    invoker.add_command(withdraw_command)
+    invoker.add_command(deposit_command)
+
+    invoker.execute_commands()
+    invoker.undo_commands()
 ```
 {% endcode %}
 
-#### UML диаграмма
+### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (85).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (91).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface EventHandler {
-    +handle(event Event)
-    +set_next(handler EventHandler): EventHandler
+
+interface Command {
+    +execute()
+    +undo()
 }
 
-class BaseEventHandler {
-    -_next_handler: EventHandler
-    +set_next(handler EventHandler): EventHandler
-    +handle(event Event)
+class TransferMoneyCommand {
+    -account_from: string
+    -account_to: string
+    -amount: float
+    +__init__(account_from: string, account_to: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class LightHandler {
-    +handle(event Event)
+class WithdrawMoneyCommand {
+    -account: string
+    -amount: float
+    +__init__(account: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class NotificationHandler {
-    +handle(event Event)
+class DepositMoneyCommand {
+    -account: string
+    -amount: float
+    +__init__(account: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class LogHandler {
-    +handle(event Event)
+class TransactionInvoker {
+    -commands: Command[]
+    +__init__()
+    +add_command(command: Command)
+    +execute_commands()
+    +undo_commands()
 }
 
-class Event {
-    -event_type: string
-    -data: dict
-    +__init__(event_type string, data dict): Event
-    +get_type(): string
-    +get_data(): dict
-}
+Command <|-- TransferMoneyCommand
+Command <|-- WithdrawMoneyCommand
+Command <|-- DepositMoneyCommand
+TransactionInvoker --> Command
 
-EventHandler <|-- BaseEventHandler
-BaseEventHandler <|-- LightHandler
-BaseEventHandler <|-- NotificationHandler
-BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.
+Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.

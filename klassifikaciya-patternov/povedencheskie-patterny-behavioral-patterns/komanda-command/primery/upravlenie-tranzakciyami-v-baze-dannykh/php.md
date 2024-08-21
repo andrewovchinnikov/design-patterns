@@ -1,166 +1,199 @@
 # PHP
 
-Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
+Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
 
-#### Описание паттерна Цепочка обязанностей
+### Описание
 
-Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
+Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
 
 ### Пример кода на PHP
 
-**1. Создание интерфейса обработчика**
+**1. Интерфейс команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-interface EventHandler {
-    public function handle(Event $event): void;
-    public function setNext(EventHandler $handler): EventHandler;
+
+interface Command {
+    public function execute();
+    public function undo();
 }
 ```
 {% endcode %}
 
-**2. Создание базового класса обработчика**
+**2. Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-abstract class BaseEventHandler implements EventHandler {
-    private ?EventHandler $nextHandler = null;
 
-    public function setNext(EventHandler $handler): EventHandler {
-        $this->nextHandler = $handler;
-        return $handler;
+class TransferMoneyCommand implements Command {
+    private $accountFrom;
+    private $accountTo;
+    private $amount;
+
+    public function __construct($accountFrom, $accountTo, $amount) {
+        $this->accountFrom = $accountFrom;
+        $this->accountTo = $accountTo;
+        $this->amount = $amount;
     }
 
-    public function handle(Event $event): void {
-        if ($this->nextHandler) {
-            $this->nextHandler->handle($event);
+    public function execute() {
+        // Логика перевода денег
+        echo "Перевод $this->amount с $this->accountFrom на $this->accountTo\n";
+    }
+
+    public function undo() {
+        // Логика отмены перевода
+        echo "Отмена перевода $this->amount с $this->accountFrom на $this->accountTo\n";
+    }
+}
+
+class WithdrawMoneyCommand implements Command {
+    private $account;
+    private $amount;
+
+    public function __construct($account, $amount) {
+        $this->account = $account;
+        $this->amount = $amount;
+    }
+
+    public function execute() {
+        // Логика снятия денег
+        echo "Снятие $this->amount с $this->account\n";
+    }
+
+    public function undo() {
+        // Логика отмены снятия
+        echo "Отмена снятия $this->amount с $this->account\n";
+    }
+}
+
+class DepositMoneyCommand implements Command {
+    private $account;
+    private $amount;
+
+    public function __construct($account, $amount) {
+        $this->account = $account;
+        $this->amount = $amount;
+    }
+
+    public function execute() {
+        // Логика пополнения счета
+        echo "Пополнение $this->amount на $this->account\n";
+    }
+
+    public function undo() {
+        // Логика отмены пополнения
+        echo "Отмена пополнения $this->amount на $this->account\n";
+    }
+}
+```
+{% endcode %}
+
+**3. Вызывающий объект (Invoker)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+<?php
+
+class TransactionInvoker {
+    private $commands = [];
+
+    public function addCommand(Command $command) {
+        $this->commands[] = $command;
+    }
+
+    public function executeCommands() {
+        foreach ($this->commands as $command) {
+            $command->execute();
+        }
+    }
+
+    public function undoCommands() {
+        foreach (array_reverse($this->commands) as $command) {
+            $command->undo();
         }
     }
 }
 ```
 {% endcode %}
 
-**3. Создание класса события**
+**4. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class Event {
-    private string $type;
-    private array $data;
 
-    public function __construct(string $type, array $data = []) {
-        $this->type = $type;
-        $this->data = $data;
-    }
+$invoker = new TransactionInvoker();
 
-    public function getType(): string {
-        return $this->type;
-    }
+$transferCommand = new TransferMoneyCommand('Account1', 'Account2', 100);
+$withdrawCommand = new WithdrawMoneyCommand('Account1', 50);
+$depositCommand = new DepositMoneyCommand('Account2', 150);
 
-    public function getData(): array {
-        return $this->data;
-    }
-}
-```
-{% endcode %}
+$invoker->addCommand($transferCommand);
+$invoker->addCommand($withdrawCommand);
+$invoker->addCommand($depositCommand);
 
-**4. Создание конкретных обработчиков**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class LightHandler extends BaseEventHandler {
-    public function handle(Event $event): void {
-        if ($event->getType() === 'door_open') {
-            echo "Turning on the light.\n";
-        }
-        parent::handle($event);
-    }
-}
-
-class NotificationHandler extends BaseEventHandler {
-    public function handle(Event $event): void {
-        if ($event->getType() === 'door_open') {
-            echo "Sending notification to the phone.\n";
-        }
-        parent::handle($event);
-    }
-}
-
-class LogHandler extends BaseEventHandler {
-    public function handle(Event $event): void {
-        echo "Logging event: " . $event->getType() . "\n";
-        parent::handle($event);
-    }
-}
-```
-{% endcode %}
-
-**5. Создание цепочки обработчиков и обработка события**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-$lightHandler = new LightHandler();
-$notificationHandler = new NotificationHandler();
-$logHandler = new LogHandler();
-
-$lightHandler->setNext($notificationHandler)->setNext($logHandler);
-
-$event = new Event('door_open');
-$lightHandler->handle($event);
+$invoker->executeCommands();
+$invoker->undoCommands();
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (84).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (89).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface EventHandler {
-    +handle(Event $event): void
-    +setNext(EventHandler $handler): EventHandler
+
+interface Command {
+    +execute()
+    +undo()
 }
 
-abstract class BaseEventHandler {
-    -nextHandler: EventHandler
-    +setNext(EventHandler $handler): EventHandler
-    +handle(Event $event): void
+class TransferMoneyCommand {
+    -accountFrom: string
+    -accountTo: string
+    -amount: float
+    +__construct(accountFrom: string, accountTo: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class LightHandler {
-    +handle(Event $event): void
+class WithdrawMoneyCommand {
+    -account: string
+    -amount: float
+    +__construct(account: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class NotificationHandler {
-    +handle(Event $event): void
+class DepositMoneyCommand {
+    -account: string
+    -amount: float
+    +__construct(account: string, amount: float)
+    +execute()
+    +undo()
 }
 
-class LogHandler {
-    +handle(Event $event): void
+class TransactionInvoker {
+    -commands: Command[]
+    +addCommand(command: Command)
+    +executeCommands()
+    +undoCommands()
 }
 
-class Event {
-    -type: string
-    -data: array
-    +__construct(string $type, array $data = [])
-    +getType(): string
-    +getData(): array
-}
+Command <|-- TransferMoneyCommand
+Command <|-- WithdrawMoneyCommand
+Command <|-- DepositMoneyCommand
+TransactionInvoker --> Command
 
-EventHandler <|-- BaseEventHandler
-BaseEventHandler <|-- LightHandler
-BaseEventHandler <|-- NotificationHandler
-BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+### Вывод для кейса
 
-Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.
+Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.

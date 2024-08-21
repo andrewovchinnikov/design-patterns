@@ -1,162 +1,184 @@
 # Go
 
-Представьте, что мы работаем в компании, которая разрабатывает системы мониторинга и управления умным домом. Наша задача — обрабатывать события, которые происходят в реальном времени, такие как открытие двери, включение света или изменение температуры. Мы хотим, чтобы каждое событие проходило через цепочку обработчиков, которые могут реагировать на него по-разному. Например, если дверь открывается, мы можем захотеть включить свет, отправить уведомление на телефон и записать это событие в журнал.
+Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
 
 ### Описание
 
-Паттерн Цепочка обязанностей (Chain of Responsibility) позволяет передавать запросы последовательно по цепочке обработчиков. Каждый обработчик решает, может ли он обработать запрос сам или передать его дальше по цепочке. Этот паттерн особенно полезен, когда у нас есть несколько обработчиков, которые могут реагировать на одно и то же событие.
+Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
 
 ### Пример кода на Go
 
-**1. Создание интерфейса обработчика**
+**1. Интерфейс команды**
 
-{% code title="" overflow="wrap" %}
+{% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
 import "fmt"
 
-type EventHandler interface {
-    Handle(event Event)
-    SetNext(handler EventHandler) EventHandler
+type Command interface {
+    Execute()
+    Undo()
 }
 ```
 {% endcode %}
 
-**2. Создание базового класса обработчика**
+**2. Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type BaseEventHandler struct {
-    nextHandler EventHandler
+package main
+
+type TransferMoneyCommand struct {
+    accountFrom string
+    accountTo   string
+    amount      float64
 }
 
-func (b *BaseEventHandler) SetNext(handler EventHandler) EventHandler {
-    b.nextHandler = handler
-    return handler
+func (c *TransferMoneyCommand) Execute() {
+    // Логика перевода денег
+    fmt.Printf("Перевод %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
 }
 
-func (b *BaseEventHandler) Handle(event Event) {
-    if b.nextHandler != nil {
-        b.nextHandler.Handle(event)
+func (c *TransferMoneyCommand) Undo() {
+    // Логика отмены перевода
+    fmt.Printf("Отмена перевода %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
+}
+
+type WithdrawMoneyCommand struct {
+    account string
+    amount  float64
+}
+
+func (c *WithdrawMoneyCommand) Execute() {
+    // Логика снятия денег
+    fmt.Printf("Снятие %.2f с %s\n", c.amount, c.account)
+}
+
+func (c *WithdrawMoneyCommand) Undo() {
+    // Логика отмены снятия
+    fmt.Printf("Отмена снятия %.2f с %s\n", c.amount, c.account)
+}
+
+type DepositMoneyCommand struct {
+    account string
+    amount  float64
+}
+
+func (c *DepositMoneyCommand) Execute() {
+    // Логика пополнения счета
+    fmt.Printf("Пополнение %.2f на %s\n", c.amount, c.account)
+}
+
+func (c *DepositMoneyCommand) Undo() {
+    // Логика отмены пополнения
+    fmt.Printf("Отмена пополнения %.2f на %s\n", c.amount, c.account)
+}
+```
+{% endcode %}
+
+**3. Вызывающий объект (Invoker)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type TransactionInvoker struct {
+    commands []Command
+}
+
+func (i *TransactionInvoker) AddCommand(command Command) {
+    i.commands = append(i.commands, command)
+}
+
+func (i *TransactionInvoker) ExecuteCommands() {
+    for _, command := range i.commands {
+        command.Execute()
+    }
+}
+
+func (i *TransactionInvoker) UndoCommands() {
+    for j := len(i.commands) - 1; j >= 0; j-- {
+        i.commands[j].Undo()
     }
 }
 ```
 {% endcode %}
 
-**3. Создание класса события**
+**4. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Event struct {
-    Type string
-    Data map[string]interface{}
-}
+package main
 
-func NewEvent(eventType string, data map[string]interface{}) Event {
-    return Event{Type: eventType, Data: data}
-}
-```
-{% endcode %}
-
-**4. Создание конкретных обработчиков**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type LightHandler struct {
-    BaseEventHandler
-}
-
-func (l *LightHandler) Handle(event Event) {
-    if event.Type == "door_open" {
-        fmt.Println("Turning on the light.")
-    }
-    l.BaseEventHandler.Handle(event)
-}
-
-type NotificationHandler struct {
-    BaseEventHandler
-}
-
-func (n *NotificationHandler) Handle(event Event) {
-    if event.Type == "door_open" {
-        fmt.Println("Sending notification to the phone.")
-    }
-    n.BaseEventHandler.Handle(event)
-}
-
-type LogHandler struct {
-    BaseEventHandler
-}
-
-func (l *LogHandler) Handle(event Event) {
-    fmt.Printf("Logging event: %s\n", event.Type)
-    l.BaseEventHandler.Handle(event)
-}
-```
-{% endcode %}
-
-**5. Создание цепочки обработчиков и обработка события**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
 func main() {
-    lightHandler := &LightHandler{}
-    notificationHandler := &NotificationHandler{}
-    logHandler := &LogHandler{}
+    invoker := &TransactionInvoker{}
 
-    lightHandler.SetNext(notificationHandler).SetNext(logHandler)
+    transferCommand := &TransferMoneyCommand{accountFrom: "Account1", accountTo: "Account2", amount: 100}
+    withdrawCommand := &WithdrawMoneyCommand{account: "Account1", amount: 50}
+    depositCommand := &DepositMoneyCommand{account: "Account2", amount: 150}
 
-    event := NewEvent("door_open", nil)
-    lightHandler.Handle(event)
+    invoker.AddCommand(transferCommand)
+    invoker.AddCommand(withdrawCommand)
+    invoker.AddCommand(depositCommand)
+
+    invoker.ExecuteCommands()
+    invoker.UndoCommands()
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (90).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface EventHandler {
-    +Handle(event Event)
-    +SetNext(handler EventHandler): EventHandler
+
+interface Command {
+    +Execute()
+    +Undo()
 }
 
-class BaseEventHandler {
-    -nextHandler: EventHandler
-    +SetNext(handler EventHandler): EventHandler
-    +Handle(event Event)
+class TransferMoneyCommand {
+    -accountFrom: string
+    -accountTo: string
+    -amount: float64
+    +Execute()
+    +Undo()
 }
 
-class LightHandler {
-    +Handle(event Event)
+class WithdrawMoneyCommand {
+    -account: string
+    -amount: float64
+    +Execute()
+    +Undo()
 }
 
-class NotificationHandler {
-    +Handle(event Event)
+class DepositMoneyCommand {
+    -account: string
+    -amount: float64
+    +Execute()
+    +Undo()
 }
 
-class LogHandler {
-    +Handle(event Event)
+class TransactionInvoker {
+    -commands: Command[]
+    +AddCommand(command: Command)
+    +ExecuteCommands()
+    +UndoCommands()
 }
 
-class Event {
-    -Type: string
-    -Data: map[string]interface{}
-    +NewEvent(eventType string, data map[string]interface{}): Event
-}
+Command <|-- TransferMoneyCommand
+Command <|-- WithdrawMoneyCommand
+Command <|-- DepositMoneyCommand
+TransactionInvoker --> Command
 
-EventHandler <|-- BaseEventHandler
-BaseEventHandler <|-- LightHandler
-BaseEventHandler <|-- NotificationHandler
-BaseEventHandler <|-- LogHandler
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-Мы создали систему обработки событий в реальном времени, используя паттерн Цепочка обязанностей. Каждый обработчик может реагировать на событие по-своему или передавать его дальше по цепочке. Это позволяет нам гибко добавлять новые обработчики и изменять порядок их выполнения без изменения существующего кода. Такой подход делает систему более модульной и легко расширяемой.
+Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
