@@ -6,6 +6,8 @@
 
 ### UML диаграмма
 
+<figure><img src="../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+
 ```plant-uml
 @startuml
 
