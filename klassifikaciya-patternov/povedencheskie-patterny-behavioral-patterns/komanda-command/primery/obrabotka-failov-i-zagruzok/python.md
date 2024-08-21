@@ -1,180 +1,178 @@
 # Python
 
-Представьте, что вы работаете в команде разработчиков, которая занимается созданием и поддержкой веб-приложения. Ваш сеньор-разработчик поставил задачу: переделать маршрутизацию запросов в микросервисной архитектуре. Ваша задача — сделать систему маршрутизации более гибкой и удобной для расширения. Для этого вы решили использовать паттерн "Цепочка обязанностей".
+Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+
+Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
 
 ### Описание кейса
 
-Ваше веб-приложение состоит из нескольких микросервисов, каждый из которых обрабатывает определенный тип запросов. Например, один микросервис может обрабатывать запросы к базе данных, другой — запросы к внешним API, а третий — запросы к файловой системе. Ваша цель — создать цепочку обработчиков, каждый из которых будет отвечать за маршрутизацию запросов к соответствующему микросервису.
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (83).png" alt=""><figcaption><p>UML диаграмма для паттерна "Цепочка обязанностей"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-interface RequestHandler {
-    +handleRequest(request: Request): boolean
-    +setNext(nextHandler: RequestHandler)
-}
-
-class DatabaseRequestHandler implements RequestHandler {
-    -nextHandler: RequestHandler
-    +handleRequest(request: Request): boolean
-    +setNext(nextHandler: RequestHandler)
-}
-
-class ApiRequestHandler implements RequestHandler {
-    -nextHandler: RequestHandler
-    +handleRequest(request: Request): boolean
-    +setNext(nextHandler: RequestHandler)
-}
-
-class FileSystemRequestHandler implements RequestHandler {
-    -nextHandler: RequestHandler
-    +handleRequest(request: Request): boolean
-    +setNext(nextHandler: RequestHandler)
-}
-
-RequestHandler <|-- DatabaseRequestHandler
-RequestHandler <|-- ApiRequestHandler
-RequestHandler <|-- FileSystemRequestHandler
-DatabaseRequestHandler --> ApiRequestHandler
-ApiRequestHandler --> FileSystemRequestHandler
-@enduml
-```
-{% endcode %}
+Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
 
 ### Пример кода на Python
 
-**Интерфейс RequestHandler**
+**1. Создание интерфейса команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Request:
-    def __init__(self, type, data):
-        self.type = type
-        self.data = data
+class Command(ABC):
+    @abstractmethod
+    def execute(self):
+        pass
+```
+{% endcode %}
 
-class RequestHandler(ABC):
+**2. Создание конкретных команд**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class UploadCommand(Command):
+    def __init__(self, file_manager, file_name):
+        self.file_manager = file_manager
+        self.file_name = file_name
+
+    def execute(self):
+        self.file_manager.upload(self.file_name)
+
+class DeleteCommand(Command):
+    def __init__(self, file_manager, file_name):
+        self.file_manager = file_manager
+        self.file_name = file_name
+
+    def execute(self):
+        self.file_manager.delete(self.file_name)
+
+class EditCommand(Command):
+    def __init__(self, file_manager, file_name, new_content):
+        self.file_manager = file_manager
+        self.file_name = file_name
+        self.new_content = new_content
+
+    def execute(self):
+        self.file_manager.edit(self.file_name, self.new_content)
+```
+{% endcode %}
+
+**3. Создание получателя команд**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class FileManager:
+    def upload(self, file_name):
+        print(f"Файл {file_name} загружен.")
+
+    def delete(self, file_name):
+        print(f"Файл {file_name} удален.")
+
+    def edit(self, file_name, new_content):
+        print(f"Файл {file_name} отредактирован. Новое содержимое: {new_content}")
+```
+{% endcode %}
+
+**4. Создание отправителя команд**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Invoker:
     def __init__(self):
-        self.next_handler = None
+        self.command = None
 
-    def set_next(self, handler):
-        self.next_handler = handler
+    def set_command(self, command):
+        self.command = command
 
-    @abstractmethod
-    def handle_request(self, request):
-        pass
+    def execute_command(self):
+        self.command.execute()
 ```
 {% endcode %}
 
-**Абстрактный класс AbstractRequestHandler**
+**5. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class AbstractRequestHandler(RequestHandler):
-    def handle_request(self, request):
-        if self.can_handle(request):
-            self.process(request)
-            return True
-        if self.next_handler:
-            return self.next_handler.handle_request(request)
-        return False
-
-    @abstractmethod
-    def can_handle(self, request):
-        pass
-
-    @abstractmethod
-    def process(self, request):
-        pass
-```
-{% endcode %}
-
-**Конкретный обработчик DatabaseRequestHandler**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class DatabaseRequestHandler(AbstractRequestHandler):
-    def can_handle(self, request):
-        return request.type == 'database'
-
-    def process(self, request):
-        print(f"Обработка запроса к базе данных: {request.data}")
-```
-{% endcode %}
-
-**Конкретный обработчик ApiRequestHandler**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class ApiRequestHandler(AbstractRequestHandler):
-    def can_handle(self, request):
-        return request.type == 'api'
-
-    def process(self, request):
-        print(f"Обработка запроса к внешнему API: {request.data}")
-```
-{% endcode %}
-
-**Конкретный обработчик FileSystemRequestHandler**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class FileSystemRequestHandler(AbstractRequestHandler):
-    def can_handle(self, request):
-        return request.type == 'filesystem'
-
-    def process(self, request):
-        print(f"Обработка запроса к файловой системе: {request.data}")
-```
-{% endcode %}
-
-**Использование цепочки обязанностей**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-def main():
-    # Создание цепочки обработчиков
-    file_system_handler = FileSystemRequestHandler()
-    api_handler = ApiRequestHandler()
-    database_handler = DatabaseRequestHandler()
-
-    database_handler.set_next(api_handler)
-    api_handler.set_next(file_system_handler)
-
-    # Пример использования
-    requests = [
-        Request(type='database', data='SELECT * FROM users'),
-        Request(type='api', data='GET /api/users'),
-        Request(type='filesystem', data='READ /path/to/file'),
-    ]
-
-    for request in requests:
-        database_handler.handle_request(request)
-
 if __name__ == "__main__":
-    main()
+    # Создаем менеджер файлов
+    file_manager = FileManager()
+
+    # Создаем команды
+    upload_command = UploadCommand(file_manager, 'file1.txt')
+    delete_command = DeleteCommand(file_manager, 'file2.txt')
+    edit_command = EditCommand(file_manager, 'file3.txt', 'Новое содержимое')
+
+    # Создаем отправителя команд
+    invoker = Invoker()
+
+    # Устанавливаем и выполняем команду загрузки
+    invoker.set_command(upload_command)
+    invoker.execute_command()
+
+    # Устанавливаем и выполняем команду удаления
+    invoker.set_command(delete_command)
+    invoker.execute_command()
+
+    # Устанавливаем и выполняем команду редактирования
+    invoker.set_command(edit_command)
+    invoker.execute_command()
 ```
 {% endcode %}
 
-### Объяснение кода
+### UML диаграмма
 
-1. **Интерфейс RequestHandler**:
-   * Определяет методы `handle_request` и `set_next`, которые должны быть реализованы всеми обработчиками.
-2. **Абстрактный класс AbstractRequestHandler**:
-   * Реализует метод `set_next` для установки следующего обработчика в цепочке.
-   * Метод `handle_request` проверяет, может ли текущий обработчик обработать запрос. Если нет, он передает запрос следующему обработчику.
-   * Абстрактные методы `can_handle` и `process` должны быть реализованы в конкретных обработчиках.
-3. **Конкретные обработчики**:
-   * `DatabaseRequestHandler`, `ApiRequestHandler`, `FileSystemRequestHandler` реализуют методы `can_handle` и `process` для обработки соответствующих типов запросов.
-4. **Использование цепочки обязанностей**:
-   * Создаются экземпляры обработчиков и устанавливается цепочка.
-   * При возникновении запроса, он передается в цепочку обработчиков, где каждый обработчик проверяет, может ли он обработать запрос.
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
 
-### Вывод
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface Command {
+    +execute()
+}
 
-Паттерн "Цепочка обязанностей" позволяет гибко и эффективно маршрутизировать запросы в микросервисной архитектуре. Этот подход упрощает добавление новых обработчиков и делает код более читаемым и поддерживаемым. В данном кейсе мы показали, как можно использовать этот паттерн для маршрутизации запросов к базе данных, внешним API и файловой системе.
+class UploadCommand {
+    -file_manager: FileManager
+    -file_name: String
+    +__init__(file_manager: FileManager, file_name: String)
+    +execute()
+}
+
+class DeleteCommand {
+    -file_manager: FileManager
+    -file_name: String
+    +__init__(file_manager: FileManager, file_name: String)
+    +execute()
+}
+
+class EditCommand {
+    -file_manager: FileManager
+    -file_name: String
+    -new_content: String
+    +__init__(file_manager: FileManager, file_name: String, new_content: String)
+    +execute()
+}
+
+class FileManager {
+    +upload(file_name: String)
+    +delete(file_name: String)
+    +edit(file_name: String, new_content: String)
+}
+
+class Invoker {
+    -command: Command
+    +__init__()
+    +set_command(command: Command)
+    +execute_command()
+}
+
+Command <|-- UploadCommand
+Command <|-- DeleteCommand
+Command <|-- EditCommand
+UploadCommand --> FileManager
+DeleteCommand --> FileManager
+EditCommand --> FileManager
+Invoker --> Command
+@enduml
+```
+{% endcode %}
+
+### Вывод для кейса
+
+Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
