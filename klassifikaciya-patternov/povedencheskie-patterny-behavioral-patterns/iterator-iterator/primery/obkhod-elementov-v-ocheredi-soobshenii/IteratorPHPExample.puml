@@ -1,0 +1,35 @@
+@startuml
+
+interface Iterator {
+    +first(): void
+    +next(): void
+    +isDone(): boolean
+    +currentItem(): any
+}
+
+class MessageQueueIterator {
+    -queue: List<any>
+    -index: int
+    +__construct(queue: List<any>): void
+    +first(): void
+    +next(): void
+    +isDone(): boolean
+    +currentItem(): any
+}
+
+interface Aggregate {
+    +createIterator(): Iterator
+}
+
+class MessageQueue {
+    -messages: List<any>
+    +__construct(): void
+    +addMessage(message: any): void
+    +createIterator(): Iterator
+}
+
+Iterator <|-- MessageQueueIterator
+Aggregate <|-- MessageQueue
+MessageQueue --> MessageQueueIterator: <<create>>
+
+@enduml

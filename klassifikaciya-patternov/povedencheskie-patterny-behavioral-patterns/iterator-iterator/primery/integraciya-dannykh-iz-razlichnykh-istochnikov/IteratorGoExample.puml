@@ -1,0 +1,27 @@
+@startuml
+
+interface DataIterator {
+    +HasNext() bool
+    +Next() map[string]interface{}
+}
+
+class MySQLDataIterator {
+    -data: []map[string]interface{}
+    -position: int
+    +NewMySQLDataIterator(data: []map[string]interface{}): MySQLDataIterator
+    +HasNext(): bool
+    +Next(): map[string]interface{}
+}
+
+class APIDataIterator {
+    -data: []map[string]interface{}
+    -position: int
+    +NewAPIDataIterator(data: []map[string]interface{}): APIDataIterator
+    +HasNext(): bool
+    +Next(): map[string]interface{}
+}
+
+DataIterator <|-- MySQLDataIterator
+DataIterator <|-- APIDataIterator
+
+@enduml

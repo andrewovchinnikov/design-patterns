@@ -1,0 +1,25 @@
+@startuml
+interface Iterator {
+    +HasNext(): bool
+    +Next(): any
+}
+
+interface Aggregate {
+    +CreateIterator(): Iterator
+}
+
+class SensorDataCollection implements Aggregate {
+    -data: array
+    +AddData(data: any): void
+    +CreateIterator(): SensorDataIterator
+}
+
+class SensorDataIterator implements Iterator {
+    -data: array
+    -index: int
+    +HasNext(): bool
+    +Next(): any
+}
+
+SensorDataCollection --> SensorDataIterator: CreateIterator
+@enduml

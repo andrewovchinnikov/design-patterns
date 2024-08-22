@@ -1,0 +1,27 @@
+@startuml
+
+interface DataIterator {
+    +has_next()
+    +next()
+}
+
+class MySQLDataIterator {
+    -data
+    -position
+    +__init__(data)
+    +has_next()
+    +next()
+}
+
+class APIDataIterator {
+    -data
+    -position
+    +__init__(data)
+    +has_next()
+    +next()
+}
+
+DataIterator <|-- MySQLDataIterator
+DataIterator <|-- APIDataIterator
+
+@enduml

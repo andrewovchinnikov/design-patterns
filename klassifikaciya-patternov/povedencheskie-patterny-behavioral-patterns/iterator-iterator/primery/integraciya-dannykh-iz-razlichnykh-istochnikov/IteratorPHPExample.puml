@@ -1,0 +1,36 @@
+@startuml
+
+interface DataIterator {
+    +current()
+    +key()
+    +next()
+    +rewind()
+    +valid()
+}
+
+class MySQLDataIterator {
+    -data
+    -position
+    +__construct(data)
+    +current()
+    +key()
+    +next()
+    +rewind()
+    +valid()
+}
+
+class APIDataIterator {
+    -data
+    -position
+    +__construct(data)
+    +current()
+    +key()
+    +next()
+    +rewind()
+    +valid()
+}
+
+DataIterator <|-- MySQLDataIterator
+DataIterator <|-- APIDataIterator
+
+@enduml
