@@ -6,6 +6,8 @@
 
 ### UML диаграмма
 
+<figure><img src="../../.gitbook/assets/image (92).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plant-uml
 @startuml

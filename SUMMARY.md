@@ -216,7 +216,7 @@
         * [Go](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/komanda-command/primery/upravlenie-tranzakciyami-v-baze-dannykh/go.md)
         * [Python](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/komanda-command/primery/upravlenie-tranzakciyami-v-baze-dannykh/python.md)
   * [Интерпретатор (Interpreter)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/interpretator-interpreter.md)
-  * [Итератор (Iterator)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/iterator-iterator/README.md)
+  * [Итератор (Iterator)](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/iterator-iterator.md)
     * [Примеры](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/iterator-iterator/primery/README.md)
       * [Обход элементов в очереди сообщений](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/iterator-iterator/primery/obkhod-elementov-v-ocheredi-soobshenii/README.md)
         * [PHP](klassifikaciya-patternov/povedencheskie-patterny-behavioral-patterns/iterator-iterator/primery/obkhod-elementov-v-ocheredi-soobshenii/php.md)
