@@ -1,52 +1,14 @@
 # Go
 
-Представьте, что мы разрабатываем приложение для управления состоянием различных компонентов системы. Наше приложение должно уметь включать и выключать различные компоненты, такие как серверы, базы данных и другие сервисы. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
-
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+Мы — команда разработчиков, работающая над веб-приложением для управления очередями сообщений. Наша задача — обработать все сообщения в очереди и выполнить определенные действия для каждого сообщения. Для этого мы будем использовать паттерн "Итератор", который позволит нам последовательно обрабатывать элементы очереди, не заботясь о её внутренней структуре.
 
 ### Описание кейса
 
-Мы создадим систему управления состоянием приложения, которая будет включать и выключать компоненты. Мы будем использовать паттерн "Команда" для инкапсуляции команд включения и выключения.
+Мы хотим создать систему, которая будет обрабатывать сообщения из очереди. Каждое сообщение может содержать различные данные, и нам нужно выполнить определенные действия для каждого сообщения. Паттерн "Итератор" поможет нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
 
 ### Пример кода на Go
 
-**1. Создание интерфейса команды**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Command interface {
-    Execute()
-}
-```
-{% endcode %}
-
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type StartCommand struct {
-    component *Component
-}
-
-func (c *StartCommand) Execute() {
-    c.component.Start()
-}
-
-type StopCommand struct {
-    component *Component
-}
-
-func (c *StopCommand) Execute() {
-    c.component.Stop()
-}
-```
-{% endcode %}
-
-**3. Создание получателя команд**
+**1. Определение интерфейса Iterator**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -54,110 +16,142 @@ package main
 
 import "fmt"
 
-type Component struct {
-    name string
-}
-
-func (c *Component) Start() {
-    fmt.Printf("Компонент %s запущен.\n", c.name)
-}
-
-func (c *Component) Stop() {
-    fmt.Printf("Компонент %s остановлен.\n", c.name)
+type Iterator interface {
+    First()
+    Next()
+    IsDone() bool
+    CurrentItem() interface{}
 }
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**2. Определение интерфейса Aggregate**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-type Invoker struct {
-    command Command
-}
-
-func (i *Invoker) SetCommand(command Command) {
-    i.command = command
-}
-
-func (i *Invoker) ExecuteCommand() {
-    i.command.Execute()
+type Aggregate interface {
+    CreateIterator() Iterator
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**3. Реализация конкретного итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
+type MessageQueueIterator struct {
+    queue  []interface{}
+    index  int
+}
 
+func (i *MessageQueueIterator) First() {
+    i.index = 0
+}
+
+func (i *MessageQueueIterator) Next() {
+    i.index++
+}
+
+func (i *MessageQueueIterator) IsDone() bool {
+    return i.index >= len(i.queue)
+}
+
+func (i *MessageQueueIterator) CurrentItem() interface{} {
+    if i.IsDone() {
+        return nil
+    }
+    return i.queue[i.index]
+}
+```
+{% endcode %}
+
+**4. Реализация конкретного агрегата**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type MessageQueue struct {
+    messages []interface{}
+}
+
+func (q *MessageQueue) AddMessage(message interface{}) {
+    q.messages = append(q.messages, message)
+}
+
+func (q *MessageQueue) CreateIterator() Iterator {
+    return &MessageQueueIterator{queue: q.messages}
+}
+```
+{% endcode %}
+
+**5. Использование итератора для обработки сообщений**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
 func main() {
-    // Создаем компонент
-    component := &Component{name: "Сервер"}
+    // Создаем очередь сообщений
+    messageQueue := &MessageQueue{}
+    messageQueue.AddMessage("Сообщение 1")
+    messageQueue.AddMessage("Сообщение 2")
+    messageQueue.AddMessage("Сообщение 3")
 
-    // Создаем команды
-    startCommand := &StartCommand{component: component}
-    stopCommand := &StopCommand{component: component}
+    // Создаем итератор для очереди
+    iterator := messageQueue.CreateIterator()
 
-    // Создаем отправителя команд
-    invoker := &Invoker{}
-
-    // Устанавливаем и выполняем команду запуска
-    invoker.SetCommand(startCommand)
-    invoker.ExecuteCommand()
-
-    // Устанавливаем и выполняем команду остановки
-    invoker.SetCommand(stopCommand)
-    invoker.ExecuteCommand()
+    // Обрабатываем сообщения
+    for iterator.First(); !iterator.IsDone(); iterator.Next() {
+        message := iterator.CurrentItem()
+        fmt.Printf("Обработка сообщения: %v\n", message)
+    }
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (87).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +Execute()
+
+interface Iterator {
+    +First(): void
+    +Next(): void
+    +IsDone(): boolean
+    +CurrentItem(): any
 }
 
-class StartCommand {
-    -component: Component
-    +Execute()
+class MessageQueueIterator {
+    -queue: List<any>
+    -index: int
+    +First(): void
+    +Next(): void
+    +IsDone(): boolean
+    +CurrentItem(): any
 }
 
-class StopCommand {
-    -component: Component
-    +Execute()
+interface Aggregate {
+    +CreateIterator(): Iterator
 }
 
-class Component {
-    -name: String
-    +Start()
-    +Stop()
+class MessageQueue {
+    -messages: List<any>
+    +AddMessage(message: any): void
+    +CreateIterator(): Iterator
 }
 
-class Invoker {
-    -command: Command
-    +SetCommand(command: Command)
-    +ExecuteCommand()
-}
+Iterator <|-- MessageQueueIterator
+Aggregate <|-- MessageQueue
+MessageQueue --> MessageQueueIterator: <<create>>
 
-Command <|-- StartCommand
-Command <|-- StopCommand
-StartCommand --> Component
-StopCommand --> Component
-Invoker --> Command
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять состоянием компонентов нашего приложения. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для запуска и остановки компонентов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять состоянием наших компонентов и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели применение паттерна "Итератор" для обработки сообщений в очереди. Мы создали интерфейсы `Iterator` и `Aggregate`, а также их конкретные реализации `MessageQueueIterator` и `MessageQueue`. Это позволило нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
+
+Паттерн "Итератор" оказался очень полезным для последовательной обработки элементов коллекции, не заботясь о её внутренней структуре. Это упрощает код и делает его более гибким и поддерживаемым.
+
+Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн "Итератор" в ваших проектах!
