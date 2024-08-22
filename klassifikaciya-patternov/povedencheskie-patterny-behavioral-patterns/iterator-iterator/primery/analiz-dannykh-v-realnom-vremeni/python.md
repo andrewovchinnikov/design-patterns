@@ -1,178 +1,134 @@
 # Python
 
-Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
-
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+Мы работаем в компании, которая занимается анализом данных в реальном времени. Наша задача — создать систему, которая будет собирать данные с различных сенсоров и анализировать их. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы мы могли добавлять новые типы сенсоров и методы анализа данных без необходимости переписывать весь код.
 
 ### Описание кейса
 
-Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
+Для решения этой задачи мы будем использовать паттерн проектирования "Итератор". Этот паттерн позволяет нам перебирать элементы коллекции без необходимости знать её внутреннюю структуру. В нашем случае, коллекцией будут данные, поступающие с сенсоров, а итератор будет использоваться для их последовательного анализа.
 
 ### Пример кода на Python
 
-**1. Создание интерфейса команды**
+**Шаг 1: Определение интерфейса итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Command(ABC):
+class Iterator(ABC):
     @abstractmethod
-    def execute(self):
+    def has_next(self):
+        pass
+
+    @abstractmethod
+    def next(self):
         pass
 ```
 {% endcode %}
 
-**2. Создание конкретных команд**
+**Шаг 2: Определение интерфейса коллекции**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class UploadCommand(Command):
-    def __init__(self, file_manager, file_name):
-        self.file_manager = file_manager
-        self.file_name = file_name
-
-    def execute(self):
-        self.file_manager.upload(self.file_name)
-
-class DeleteCommand(Command):
-    def __init__(self, file_manager, file_name):
-        self.file_manager = file_manager
-        self.file_name = file_name
-
-    def execute(self):
-        self.file_manager.delete(self.file_name)
-
-class EditCommand(Command):
-    def __init__(self, file_manager, file_name, new_content):
-        self.file_manager = file_manager
-        self.file_name = file_name
-        self.new_content = new_content
-
-    def execute(self):
-        self.file_manager.edit(self.file_name, self.new_content)
+class Aggregate(ABC):
+    @abstractmethod
+    def create_iterator(self):
+        pass
 ```
 {% endcode %}
 
-**3. Создание получателя команд**
+**Шаг 3: Реализация коллекции данных сенсоров**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class FileManager:
-    def upload(self, file_name):
-        print(f"Файл {file_name} загружен.")
-
-    def delete(self, file_name):
-        print(f"Файл {file_name} удален.")
-
-    def edit(self, file_name, new_content):
-        print(f"Файл {file_name} отредактирован. Новое содержимое: {new_content}")
-```
-{% endcode %}
-
-**4. Создание отправителя команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Invoker:
+class SensorDataCollection(Aggregate):
     def __init__(self):
-        self.command = None
+        self.data = []
 
-    def set_command(self, command):
-        self.command = command
+    def add_data(self, data):
+        self.data.append(data)
 
-    def execute_command(self):
-        self.command.execute()
+    def create_iterator(self):
+        return SensorDataIterator(self.data)
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 4: Реализация итератора для данных сенсоров**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-if __name__ == "__main__":
-    # Создаем менеджер файлов
-    file_manager = FileManager()
+class SensorDataIterator(Iterator):
+    def __init__(self, data):
+        self.data = data
+        self.index = 0
 
-    # Создаем команды
-    upload_command = UploadCommand(file_manager, 'file1.txt')
-    delete_command = DeleteCommand(file_manager, 'file2.txt')
-    edit_command = EditCommand(file_manager, 'file3.txt', 'Новое содержимое')
+    def has_next(self):
+        return self.index < len(self.data)
 
-    # Создаем отправителя команд
-    invoker = Invoker()
+    def next(self):
+        if self.has_next():
+            data = self.data[self.index]
+            self.index += 1
+            return data
+        return None
+```
+{% endcode %}
 
-    # Устанавливаем и выполняем команду загрузки
-    invoker.set_command(upload_command)
-    invoker.execute_command()
+**Шаг 5: Использование итератора для анализа данных**
 
-    # Устанавливаем и выполняем команду удаления
-    invoker.set_command(delete_command)
-    invoker.execute_command()
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+def analyze_data(collection):
+    iterator = collection.create_iterator()
+    while iterator.has_next():
+        data = iterator.next()
+        # Анализируем данные
+        print(f"Анализируем данные: {data}")
 
-    # Устанавливаем и выполняем команду редактирования
-    invoker.set_command(edit_command)
-    invoker.execute_command()
+# Пример использования
+collection = SensorDataCollection()
+collection.add_data("Данные с сенсора 1")
+collection.add_data("Данные с сенсора 2")
+collection.add_data("Данные с сенсора 3")
+
+analyze_data(collection)
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +execute()
+interface Iterator {
+    +has_next(): bool
+    +next(): any
 }
 
-class UploadCommand {
-    -file_manager: FileManager
-    -file_name: String
-    +__init__(file_manager: FileManager, file_name: String)
-    +execute()
+interface Aggregate {
+    +create_iterator(): Iterator
 }
 
-class DeleteCommand {
-    -file_manager: FileManager
-    -file_name: String
-    +__init__(file_manager: FileManager, file_name: String)
-    +execute()
+class SensorDataCollection implements Aggregate {
+    -data: list
+    +add_data(data: any): void
+    +create_iterator(): SensorDataIterator
 }
 
-class EditCommand {
-    -file_manager: FileManager
-    -file_name: String
-    -new_content: String
-    +__init__(file_manager: FileManager, file_name: String, new_content: String)
-    +execute()
+class SensorDataIterator implements Iterator {
+    -data: list
+    -index: int
+    +__init__(data: list): void
+    +has_next(): bool
+    +next(): any
 }
 
-class FileManager {
-    +upload(file_name: String)
-    +delete(file_name: String)
-    +edit(file_name: String, new_content: String)
-}
-
-class Invoker {
-    -command: Command
-    +__init__()
-    +set_command(command: Command)
-    +execute_command()
-}
-
-Command <|-- UploadCommand
-Command <|-- DeleteCommand
-Command <|-- EditCommand
-UploadCommand --> FileManager
-DeleteCommand --> FileManager
-EditCommand --> FileManager
-Invoker --> Command
+SensorDataCollection --> SensorDataIterator: create_iterator
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
+Использование паттерна "Итератор" позволяет нам создать гибкую и расширяемую систему для анализа данных в реальном времени. Мы можем легко добавлять новые типы данных и методы анализа, не изменяя существующий код. Это делает нашу систему более устойчивой к изменениям и упрощает её поддержку.

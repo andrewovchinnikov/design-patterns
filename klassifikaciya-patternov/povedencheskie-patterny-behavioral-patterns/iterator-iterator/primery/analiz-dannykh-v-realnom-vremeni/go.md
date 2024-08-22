@@ -1,62 +1,14 @@
 # Go
 
-Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
-
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+Мы работаем в компании, которая занимается анализом данных в реальном времени. Наша задача — создать систему, которая будет собирать данные с различных сенсоров и анализировать их. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы мы могли добавлять новые типы сенсоров и методы анализа данных без необходимости переписывать весь код.
 
 ### Описание кейса
 
-Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
+Для решения этой задачи мы будем использовать паттерн проектирования "Итератор". Этот паттерн позволяет нам перебирать элементы коллекции без необходимости знать её внутреннюю структуру. В нашем случае, коллекцией будут данные, поступающие с сенсоров, а итератор будет использоваться для их последовательного анализа.
 
 ### Пример кода на Go
 
-**1. Создание интерфейса команды**
-
-```go
-package main
-
-type Command interface {
-    Execute()
-}
-```
-
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type UploadCommand struct {
-    fileManager *FileManager
-    fileName   string
-}
-
-func (c *UploadCommand) Execute() {
-    c.fileManager.Upload(c.fileName)
-}
-
-type DeleteCommand struct {
-    fileManager *FileManager
-    fileName    string
-}
-
-func (c *DeleteCommand) Execute() {
-    c.fileManager.Delete(c.fileName)
-}
-
-type EditCommand struct {
-    fileManager *FileManager
-    fileName    string
-    newContent  string
-}
-
-func (c *EditCommand) Execute() {
-    c.fileManager.Edit(c.fileName, c.newContent)
-}
-```
-{% endcode %}
-
-**3. Создание получателя команд**
+**Шаг 1: Определение интерфейса итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -64,131 +16,121 @@ package main
 
 import "fmt"
 
-type FileManager struct{}
-
-func (f *FileManager) Upload(fileName string) {
-    fmt.Printf("Файл %s загружен.\n", fileName)
-}
-
-func (f *FileManager) Delete(fileName string) {
-    fmt.Printf("Файл %s удален.\n", fileName)
-}
-
-func (f *FileManager) Edit(fileName, newContent string) {
-    fmt.Printf("Файл %s отредактирован. Новое содержимое: %s\n", fileName, newContent)
+type Iterator interface {
+    HasNext() bool
+    Next() interface{}
 }
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**Шаг 2: Определение интерфейса коллекции**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-type Invoker struct {
-    command Command
-}
-
-func (i *Invoker) SetCommand(command Command) {
-    i.command = command
-}
-
-func (i *Invoker) ExecuteCommand() {
-    i.command.Execute()
+type Aggregate interface {
+    CreateIterator() Iterator
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 3: Реализация коллекции данных сенсоров**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
+type SensorDataCollection struct {
+    data []interface{}
+}
+
+func (c *SensorDataCollection) AddData(data interface{}) {
+    c.data = append(c.data, data)
+}
+
+func (c *SensorDataCollection) CreateIterator() Iterator {
+    return &SensorDataIterator{data: c.data}
+}
+```
+{% endcode %}
+
+**Шаг 4: Реализация итератора для данных сенсоров**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type SensorDataIterator struct {
+    data  []interface{}
+    index int
+}
+
+func (i *SensorDataIterator) HasNext() bool {
+    return i.index < len(i.data)
+}
+
+func (i *SensorDataIterator) Next() interface{} {
+    if i.HasNext() {
+        data := i.data[i.index]
+        i.index++
+        return data
+    }
+    return nil
+}
+```
+{% endcode %}
+
+**Шаг 5: Использование итератора для анализа данных**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+func analyzeData(collection Aggregate) {
+    iterator := collection.CreateIterator()
+    for iterator.HasNext() {
+        data := iterator.Next()
+        // Анализируем данные
+        fmt.Printf("Анализируем данные: %v\n", data)
+    }
+}
 
 func main() {
-    // Создаем менеджер файлов
-    fileManager := &FileManager{}
+    collection := &SensorDataCollection{}
+    collection.AddData("Данные с сенсора 1")
+    collection.AddData("Данные с сенсора 2")
+    collection.AddData("Данные с сенсора 3")
 
-    // Создаем команды
-    uploadCommand := &UploadCommand{fileManager: fileManager, fileName: "file1.txt"}
-    deleteCommand := &DeleteCommand{fileManager: fileManager, fileName: "file2.txt"}
-    editCommand := &EditCommand{fileManager: fileManager, fileName: "file3.txt", newContent: "Новое содержимое"}
-
-    // Создаем отправителя команд
-    invoker := &Invoker{}
-
-    // Устанавливаем и выполняем команду загрузки
-    invoker.SetCommand(uploadCommand)
-    invoker.ExecuteCommand()
-
-    // Устанавливаем и выполняем команду удаления
-    invoker.SetCommand(deleteCommand)
-    invoker.ExecuteCommand()
-
-    // Устанавливаем и выполняем команду редактирования
-    invoker.SetCommand(editCommand)
-    invoker.ExecuteCommand()
+    analyzeData(collection)
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +Execute()
+interface Iterator {
+    +HasNext(): bool
+    +Next(): any
 }
 
-class UploadCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__init__(fileManager: FileManager, fileName: String)
-    +Execute()
+interface Aggregate {
+    +CreateIterator(): Iterator
 }
 
-class DeleteCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__init__(fileManager: FileManager, fileName: String)
-    +Execute()
+class SensorDataCollection implements Aggregate {
+    -data: array
+    +AddData(data: any): void
+    +CreateIterator(): SensorDataIterator
 }
 
-class EditCommand {
-    -fileManager: FileManager
-    -fileName: String
-    -newContent: String
-    +__init__(fileManager: FileManager, fileName: String, newContent: String)
-    +Execute()
+class SensorDataIterator implements Iterator {
+    -data: array
+    -index: int
+    +HasNext(): bool
+    +Next(): any
 }
 
-class FileManager {
-    +Upload(fileName: String)
-    +Delete(fileName: String)
-    +Edit(fileName: String, newContent: String)
-}
-
-class Invoker {
-    -command: Command
-    +SetCommand(command: Command)
-    +ExecuteCommand()
-}
-
-Command <|-- UploadCommand
-Command <|-- DeleteCommand
-Command <|-- EditCommand
-UploadCommand --> FileManager
-DeleteCommand --> FileManager
-EditCommand --> FileManager
-Invoker --> Command
+SensorDataCollection --> SensorDataIterator: CreateIterator
 @enduml
 ```
-{% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
+Использование паттерна "Итератор" позволяет нам создать гибкую и расширяемую систему для анализа данных в реальном времени. Мы можем легко добавлять новые типы данных и методы анализа, не изменяя существующий код. Это делает нашу систему более устойчивой к изменениям и упрощает её поддержку.

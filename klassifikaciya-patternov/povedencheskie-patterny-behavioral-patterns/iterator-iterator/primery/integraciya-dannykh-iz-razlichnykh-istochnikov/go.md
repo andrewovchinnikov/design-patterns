@@ -1,14 +1,14 @@
 # Go
 
-Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающих в команде по интеграции данных из различных источников. Наша задача — собрать данные из нескольких баз данных и предоставить их в едином формате для дальнейшего анализа. Для этого мы будем использовать паттерн ООП "Итератор", который позволяет нам последовательно проходить по элементам коллекции без необходимости знать её внутреннюю структуру.
 
-### Описание
+### Описание кейса
 
-Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
+Мы хотим создать систему, которая будет собирать данные из двух различных источников: базы данных MySQL и API-сервиса. Мы будем использовать паттерн Итератор для того, чтобы абстрагироваться от конкретных деталей получения данных и предоставить единый интерфейс для их обработки.
 
 ### Пример кода на Go
 
-**1. Интерфейс команды**
+**1. Создание интерфейса Итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -16,169 +16,142 @@ package main
 
 import "fmt"
 
-type Command interface {
-    Execute()
-    Undo()
+type DataIterator interface {
+    HasNext() bool
+    Next() map[string]interface{}
 }
 ```
 {% endcode %}
 
-**2. Конкретные команды**
+**2. Реализация Итератора для базы данных MySQL**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-type TransferMoneyCommand struct {
-    accountFrom string
-    accountTo   string
-    amount      float64
+type MySQLDataIterator struct {
+    data     []map[string]interface{}
+    position int
 }
 
-func (c *TransferMoneyCommand) Execute() {
-    // Логика перевода денег
-    fmt.Printf("Перевод %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
+func NewMySQLDataIterator(data []map[string]interface{}) *MySQLDataIterator {
+    return &MySQLDataIterator{data: data, position: 0}
 }
 
-func (c *TransferMoneyCommand) Undo() {
-    // Логика отмены перевода
-    fmt.Printf("Отмена перевода %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
+func (i *MySQLDataIterator) HasNext() bool {
+    return i.position < len(i.data)
 }
 
-type WithdrawMoneyCommand struct {
-    account string
-    amount  float64
-}
-
-func (c *WithdrawMoneyCommand) Execute() {
-    // Логика снятия денег
-    fmt.Printf("Снятие %.2f с %s\n", c.amount, c.account)
-}
-
-func (c *WithdrawMoneyCommand) Undo() {
-    // Логика отмены снятия
-    fmt.Printf("Отмена снятия %.2f с %s\n", c.amount, c.account)
-}
-
-type DepositMoneyCommand struct {
-    account string
-    amount  float64
-}
-
-func (c *DepositMoneyCommand) Execute() {
-    // Логика пополнения счета
-    fmt.Printf("Пополнение %.2f на %s\n", c.amount, c.account)
-}
-
-func (c *DepositMoneyCommand) Undo() {
-    // Логика отмены пополнения
-    fmt.Printf("Отмена пополнения %.2f на %s\n", c.amount, c.account)
+func (i *MySQLDataIterator) Next() map[string]interface{} {
+    if !i.HasNext() {
+        return nil
+    }
+    item := i.data[i.position]
+    i.position++
+    return item
 }
 ```
 {% endcode %}
 
-**3. Вызывающий объект (Invoker)**
+**3. Реализация Итератора для API-сервиса**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-type TransactionInvoker struct {
-    commands []Command
+type APIDataIterator struct {
+    data     []map[string]interface{}
+    position int
 }
 
-func (i *TransactionInvoker) AddCommand(command Command) {
-    i.commands = append(i.commands, command)
+func NewAPIDataIterator(data []map[string]interface{}) *APIDataIterator {
+    return &APIDataIterator{data: data, position: 0}
 }
 
-func (i *TransactionInvoker) ExecuteCommands() {
-    for _, command := range i.commands {
-        command.Execute()
+func (i *APIDataIterator) HasNext() bool {
+    return i.position < len(i.data)
+}
+
+func (i *APIDataIterator) Next() map[string]interface{} {
+    if !i.HasNext() {
+        return nil
+    }
+    item := i.data[i.position]
+    i.position++
+    return item
+}
+```
+{% endcode %}
+
+**4. Использование Итераторов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+func processData(iterator DataIterator) {
+    for iterator.HasNext() {
+        item := iterator.Next()
+        fmt.Printf("ID: %v, Name: %v\n", item["id"], item["name"])
     }
 }
-
-func (i *TransactionInvoker) UndoCommands() {
-    for j := len(i.commands) - 1; j >= 0; j-- {
-        i.commands[j].Undo()
-    }
-}
-```
-{% endcode %}
-
-**4. Пример использования**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
 
 func main() {
-    invoker := &TransactionInvoker{}
+    // Пример данных из MySQL
+    mysqlData := []map[string]interface{}{
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "Bob"},
+    }
 
-    transferCommand := &TransferMoneyCommand{accountFrom: "Account1", accountTo: "Account2", amount: 100}
-    withdrawCommand := &WithdrawMoneyCommand{account: "Account1", amount: 50}
-    depositCommand := &DepositMoneyCommand{account: "Account2", amount: 150}
+    // Пример данных из API
+    apiData := []map[string]interface{}{
+        {"id": 3, "name": "Charlie"},
+        {"id": 4, "name": "David"},
+    }
 
-    invoker.AddCommand(transferCommand)
-    invoker.AddCommand(withdrawCommand)
-    invoker.AddCommand(depositCommand)
+    // Создание итераторов
+    mysqlIterator := NewMySQLDataIterator(mysqlData)
+    apiIterator := NewAPIDataIterator(apiData)
 
-    invoker.ExecuteCommands()
-    invoker.UndoCommands()
+    // Обработка данных из MySQL
+    processData(mysqlIterator)
+
+    // Обработка данных из API
+    processData(apiIterator)
 }
 ```
 {% endcode %}
 
-### UML диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (90).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (4).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Command {
-    +Execute()
-    +Undo()
+interface DataIterator {
+    +HasNext() bool
+    +Next() map[string]interface{}
 }
 
-class TransferMoneyCommand {
-    -accountFrom: string
-    -accountTo: string
-    -amount: float64
-    +Execute()
-    +Undo()
+class MySQLDataIterator {
+    -data: []map[string]interface{}
+    -position: int
+    +NewMySQLDataIterator(data: []map[string]interface{}): MySQLDataIterator
+    +HasNext(): bool
+    +Next(): map[string]interface{}
 }
 
-class WithdrawMoneyCommand {
-    -account: string
-    -amount: float64
-    +Execute()
-    +Undo()
+class APIDataIterator {
+    -data: []map[string]interface{}
+    -position: int
+    +NewAPIDataIterator(data: []map[string]interface{}): APIDataIterator
+    +HasNext(): bool
+    +Next(): map[string]interface{}
 }
 
-class DepositMoneyCommand {
-    -account: string
-    -amount: float64
-    +Execute()
-    +Undo()
-}
-
-class TransactionInvoker {
-    -commands: Command[]
-    +AddCommand(command: Command)
-    +ExecuteCommands()
-    +UndoCommands()
-}
-
-Command <|-- TransferMoneyCommand
-Command <|-- WithdrawMoneyCommand
-Command <|-- DepositMoneyCommand
-TransactionInvoker --> Command
+DataIterator <|-- MySQLDataIterator
+DataIterator <|-- APIDataIterator
 
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+#### Вывод
 
-Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
+В этом кейсе мы использовали паттерн Итератор для создания единого интерфейса для обработки данных из различных источников. Это позволило нам абстрагироваться от конкретных деталей получения данных и предоставить единый способ их обработки. Такой подход упрощает код, делает его более гибким и легким для расширения в будущем.

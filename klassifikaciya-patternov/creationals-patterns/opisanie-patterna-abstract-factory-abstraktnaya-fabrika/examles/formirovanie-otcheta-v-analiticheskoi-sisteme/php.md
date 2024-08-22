@@ -1,6 +1,6 @@
 # PHP
 
-<figure><img src="../../../../../.gitbook/assets/image (5).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Абстрактная фабрика" в аналитической системе для формирования отчета</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (5) (1).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Абстрактная фабрика" в аналитической системе для формирования отчета</p></figcaption></figure>
 
 Кейс:
 

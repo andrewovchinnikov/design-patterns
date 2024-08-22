@@ -1,203 +1,146 @@
 # PHP
 
-Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
-
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+Мы работаем в компании, которая занимается анализом данных в реальном времени. Наша задача — создать систему, которая будет собирать данные с различных сенсоров и анализировать их. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы мы могли добавлять новые типы сенсоров и методы анализа данных без необходимости переписывать весь код.
 
 ### Описание кейса
 
-Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
+Для решения этой задачи мы будем использовать паттерн проектирования "Итератор". Этот паттерн позволяет нам перебирать элементы коллекции без необходимости знать её внутреннюю структуру. В нашем случае, коллекцией будут данные, поступающие с сенсоров, а итератор будет использоваться для их последовательного анализа.
 
 ### Пример кода на PHP
 
-**1. Создание интерфейса команды**
+**Шаг 1: Определение интерфейса итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-interface Command {
-    public function execute();
+interface Iterator {
+    public function hasNext();
+    public function next();
 }
+?>
 ```
 {% endcode %}
 
-**2. Создание конкретных команд**
+**Шаг 2: Определение интерфейса коллекции**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class UploadCommand implements Command {
-    private $fileManager;
-    private $fileName;
-
-    public function __construct($fileManager, $fileName) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
-    }
-
-    public function execute() {
-        $this->fileManager->upload($this->fileName);
-    }
+interface Aggregate {
+    public function createIterator();
 }
-
-class DeleteCommand implements Command {
-    private $fileManager;
-    private $fileName;
-
-    public function __construct($fileManager, $fileName) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
-    }
-
-    public function execute() {
-        $this->fileManager->delete($this->fileName);
-    }
-}
-
-class EditCommand implements Command {
-    private $fileManager;
-    private $fileName;
-    private $newContent;
-
-    public function __construct($fileManager, $fileName, $newContent) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
-        $this->newContent = $newContent;
-    }
-
-    public function execute() {
-        $this->fileManager->edit($this->fileName, $this->newContent);
-    }
-}
+?>
 ```
 {% endcode %}
 
-**3. Создание получателя команд**
+**Шаг 3: Реализация коллекции данных сенсоров**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class FileManager {
-    public function upload($fileName) {
-        echo "Файл {$fileName} загружен.\n";
+class SensorDataCollection implements Aggregate {
+    private $data = [];
+
+    public function addData($data) {
+        $this->data[] = $data;
     }
 
-    public function delete($fileName) {
-        echo "Файл {$fileName} удален.\n";
-    }
-
-    public function edit($fileName, $newContent) {
-        echo "Файл {$fileName} отредактирован. Новое содержимое: {$newContent}\n";
+    public function createIterator() {
+        return new SensorDataIterator($this->data);
     }
 }
+?>
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**Шаг 4: Реализация итератора для данных сенсоров**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-class Invoker {
-    private $command;
+class SensorDataIterator implements Iterator {
+    private $data;
+    private $index = 0;
 
-    public function setCommand(Command $command) {
-        $this->command = $command;
+    public function __construct($data) {
+        $this->data = $data;
     }
 
-    public function executeCommand() {
-        $this->command->execute();
+    public function hasNext() {
+        return $this->index < count($this->data);
+    }
+
+    public function next() {
+        if ($this->hasNext()) {
+            return $this->data[$this->index++];
+        }
+        return null;
     }
 }
+?>
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 5: Использование итератора для анализа данных**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-// Создаем менеджер файлов
-$fileManager = new FileManager();
+function analyzeData(Aggregate $collection) {
+    $iterator = $collection->createIterator();
+    while ($iterator->hasNext()) {
+        $data = $iterator->next();
+        // Анализируем данные
+        echo "Анализируем данные: " . $data . "\n";
+    }
+}
 
-// Создаем команды
-$uploadCommand = new UploadCommand($fileManager, 'file1.txt');
-$deleteCommand = new DeleteCommand($fileManager, 'file2.txt');
-$editCommand = new EditCommand($fileManager, 'file3.txt', 'Новое содержимое');
+// Пример использования
+$collection = new SensorDataCollection();
+$collection->addData("Данные с сенсора 1");
+$collection->addData("Данные с сенсора 2");
+$collection->addData("Данные с сенсора 3");
 
-// Создаем отправителя команд
-$invoker = new Invoker();
-
-// Устанавливаем и выполняем команду загрузки
-$invoker->setCommand($uploadCommand);
-$invoker->executeCommand();
-
-// Устанавливаем и выполняем команду удаления
-$invoker->setCommand($deleteCommand);
-$invoker->executeCommand();
-
-// Устанавливаем и выполняем команду редактирования
-$invoker->setCommand($editCommand);
-$invoker->executeCommand();
+analyzeData($collection);
+?>
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +execute()
+interface Iterator {
+    +hasNext(): bool
+    +next(): any
 }
 
-class UploadCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__construct(fileManager: FileManager, fileName: String)
-    +execute()
+interface Aggregate {
+    +createIterator(): Iterator
 }
 
-class DeleteCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__construct(fileManager: FileManager, fileName: String)
-    +execute()
+class SensorDataCollection implements Aggregate {
+    -data: array
+    +addData(data: any): void
+    +createIterator(): SensorDataIterator
 }
 
-class EditCommand {
-    -fileManager: FileManager
-    -fileName: String
-    -newContent: String
-    +__construct(fileManager: FileManager, fileName: String, newContent: String)
-    +execute()
+class SensorDataIterator implements Iterator {
+    -data: array
+    -index: int
+    +__construct(data: array): void
+    +hasNext(): bool
+    +next(): any
 }
 
-class FileManager {
-    +upload(fileName: String)
-    +delete(fileName: String)
-    +edit(fileName: String, newContent: String)
-}
-
-class Invoker {
-    -command: Command
-    +setCommand(command: Command)
-    +executeCommand()
-}
-
-Command <|-- UploadCommand
-Command <|-- DeleteCommand
-Command <|-- EditCommand
-UploadCommand --> FileManager
-DeleteCommand --> FileManager
-EditCommand --> FileManager
-Invoker --> Command
+SensorDataCollection --> SensorDataIterator: createIterator
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
+Использование паттерна "Итератор" позволяет нам создать гибкую и расширяемую систему для анализа данных в реальном времени. Мы можем легко добавлять новые типы данных и методы анализа, не изменяя существующий код. Это делает нашу систему более устойчивой к изменениям и упрощает её поддержку.

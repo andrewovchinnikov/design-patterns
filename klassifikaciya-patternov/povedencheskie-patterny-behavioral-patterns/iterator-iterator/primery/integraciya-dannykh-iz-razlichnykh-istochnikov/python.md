@@ -1,172 +1,142 @@
 # Python
 
-Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающих в команде по интеграции данных из различных источников. Наша задача — собрать данные из нескольких баз данных и предоставить их в едином формате для дальнейшего анализа. Для этого мы будем использовать паттерн ООП "Итератор", который позволяет нам последовательно проходить по элементам коллекции без необходимости знать её внутреннюю структуру.
 
-### Описание
+### Описание кейса
 
-Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
+Мы хотим создать систему, которая будет собирать данные из двух различных источников: базы данных MySQL и API-сервиса. Мы будем использовать паттерн Итератор для того, чтобы абстрагироваться от конкретных деталей получения данных и предоставить единый интерфейс для их обработки.
 
 ### Пример кода на Python
 
-**1. Интерфейс команды**
+**1. Создание интерфейса Итератора**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Command(ABC):
+class DataIterator(ABC):
     @abstractmethod
-    def execute(self):
+    def has_next(self):
         pass
 
     @abstractmethod
-    def undo(self):
+    def next(self):
         pass
 ```
 {% endcode %}
 
-**2. Конкретные команды**
+**2. Реализация Итератора для базы данных MySQL**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class TransferMoneyCommand(Command):
-    def __init__(self, account_from, account_to, amount):
-        self.account_from = account_from
-        self.account_to = account_to
-        self.amount = amount
+class MySQLDataIterator(DataIterator):
+    def __init__(self, data):
+        self.data = data
+        self.position = 0
 
-    def execute(self):
-        # Логика перевода денег
-        print(f"Перевод {self.amount} с {self.account_from} на {self.account_to}")
+    def has_next(self):
+        return self.position < len(self.data)
 
-    def undo(self):
-        # Логика отмены перевода
-        print(f"Отмена перевода {self.amount} с {self.account_from} на {self.account_to}")
-
-class WithdrawMoneyCommand(Command):
-    def __init__(self, account, amount):
-        self.account = account
-        self.amount = amount
-
-    def execute(self):
-        # Логика снятия денег
-        print(f"Снятие {self.amount} с {self.account}")
-
-    def undo(self):
-        # Логика отмены снятия
-        print(f"Отмена снятия {self.amount} с {self.account}")
-
-class DepositMoneyCommand(Command):
-    def __init__(self, account, amount):
-        self.account = account
-        self.amount = amount
-
-    def execute(self):
-        # Логика пополнения счета
-        print(f"Пополнение {self.amount} на {self.account}")
-
-    def undo(self):
-        # Логика отмены пополнения
-        print(f"Отмена пополнения {self.amount} на {self.account}")
+    def next(self):
+        if not self.has_next():
+            return None
+        item = self.data[self.position]
+        self.position += 1
+        return item
 ```
 {% endcode %}
 
-**3. Вызывающий объект (Invoker)**
+**3. Реализация Итератора для API-сервиса**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class TransactionInvoker:
-    def __init__(self):
-        self.commands = []
+class APIDataIterator(DataIterator):
+    def __init__(self, data):
+        self.data = data
+        self.position = 0
 
-    def add_command(self, command):
-        self.commands.append(command)
+    def has_next(self):
+        return self.position < len(self.data)
 
-    def execute_commands(self):
-        for command in self.commands:
-            command.execute()
-
-    def undo_commands(self):
-        for command in reversed(self.commands):
-            command.undo()
+    def next(self):
+        if not self.has_next():
+            return None
+        item = self.data[self.position]
+        self.position += 1
+        return item
 ```
 {% endcode %}
 
-**4. Пример использования**
+**4. Использование Итераторов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
+def process_data(iterator):
+    while iterator.has_next():
+        item = iterator.next()
+        print(f"ID: {item['id']}, Name: {item['name']}")
+
 if __name__ == "__main__":
-    invoker = TransactionInvoker()
+    # Пример данных из MySQL
+    mysql_data = [
+        {"id": 1, "name": "Alice"},
+        {"id": 2, "name": "Bob"},
+    ]
 
-    transfer_command = TransferMoneyCommand('Account1', 'Account2', 100)
-    withdraw_command = WithdrawMoneyCommand('Account1', 50)
-    deposit_command = DepositMoneyCommand('Account2', 150)
+    # Пример данных из API
+    api_data = [
+        {"id": 3, "name": "Charlie"},
+        {"id": 4, "name": "David"},
+    ]
 
-    invoker.add_command(transfer_command)
-    invoker.add_command(withdraw_command)
-    invoker.add_command(deposit_command)
+    # Создание итераторов
+    mysql_iterator = MySQLDataIterator(mysql_data)
+    api_iterator = APIDataIterator(api_data)
 
-    invoker.execute_commands()
-    invoker.undo_commands()
+    # Обработка данных из MySQL
+    process_data(mysql_iterator)
+
+    # Обработка данных из API
+    process_data(api_iterator)
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (91).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (5).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Command {
-    +execute()
-    +undo()
+interface DataIterator {
+    +has_next()
+    +next()
 }
 
-class TransferMoneyCommand {
-    -account_from: string
-    -account_to: string
-    -amount: float
-    +__init__(account_from: string, account_to: string, amount: float)
-    +execute()
-    +undo()
+class MySQLDataIterator {
+    -data
+    -position
+    +__init__(data)
+    +has_next()
+    +next()
 }
 
-class WithdrawMoneyCommand {
-    -account: string
-    -amount: float
-    +__init__(account: string, amount: float)
-    +execute()
-    +undo()
+class APIDataIterator {
+    -data
+    -position
+    +__init__(data)
+    +has_next()
+    +next()
 }
 
-class DepositMoneyCommand {
-    -account: string
-    -amount: float
-    +__init__(account: string, amount: float)
-    +execute()
-    +undo()
-}
-
-class TransactionInvoker {
-    -commands: Command[]
-    +__init__()
-    +add_command(command: Command)
-    +execute_commands()
-    +undo_commands()
-}
-
-Command <|-- TransferMoneyCommand
-Command <|-- WithdrawMoneyCommand
-Command <|-- DepositMoneyCommand
-TransactionInvoker --> Command
+DataIterator <|-- MySQLDataIterator
+DataIterator <|-- APIDataIterator
 
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
+В этом кейсе мы использовали паттерн Итератор для создания единого интерфейса для обработки данных из различных источников. Это позволило нам абстрагироваться от конкретных деталей получения данных и предоставить единый способ их обработки. Такой подход упрощает код, делает его более гибким и легким для расширения в будущем.
