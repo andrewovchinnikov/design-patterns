@@ -1,194 +1,193 @@
 # PHP
 
-Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающих над созданием системы автоматического тестирования. Наша задача — разработать инструмент, который позволит пользователям задавать сценарии тестирования в простом и понятном формате. Эти сценарии должны быть интерпретированы и выполнены нашей системой.
 
-### Описание
+#### Описание кейса
 
-Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
+Наша система должна уметь интерпретировать пользовательские сценарии тестирования, записанные в виде текстовых команд. Например, пользователь может задать сценарий в виде:
+
+```
+открыть страницу http://example.com
+нажать кнопку "Войти"
+ввести текст "username" в поле "Имя пользователя"
+ввести текст "password" в поле "Пароль"
+нажать кнопку "Отправить"
+```
+
+Для решения этой задачи мы будем использовать паттерн проектирования "Интерпретатор". Этот паттерн позволяет определить представление грамматики для заданного языка и интерпретировать предложения этого языка.
+
+### Применение паттерна
+
+Паттерн "Интерпретатор" поможет нам создать структуру, которая будет разбирать и выполнять команды из пользовательских сценариев. Мы создадим абстрактные классы для команд и конкретные классы для каждой команды (открыть страницу, нажать кнопку, ввести текст и т.д.).
 
 ### Пример кода на PHP
 
-**1. Интерфейс команды**
+**Абстрактный класс команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-
-interface Command {
-    public function execute();
-    public function undo();
+abstract class Command {
+    abstract public function interpret(Context $context);
 }
 ```
 {% endcode %}
 
-**2. Конкретные команды**
+**Контекст**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
+class Context {
+    private $output;
 
-class TransferMoneyCommand implements Command {
-    private $accountFrom;
-    private $accountTo;
-    private $amount;
-
-    public function __construct($accountFrom, $accountTo, $amount) {
-        $this->accountFrom = $accountFrom;
-        $this->accountTo = $accountTo;
-        $this->amount = $amount;
+    public function __construct() {
+        $this->output = [];
     }
 
-    public function execute() {
-        // Логика перевода денег
-        echo "Перевод $this->amount с $this->accountFrom на $this->accountTo\n";
+    public function addOutput($message) {
+        $this->output[] = $message;
     }
 
-    public function undo() {
-        // Логика отмены перевода
-        echo "Отмена перевода $this->amount с $this->accountFrom на $this->accountTo\n";
-    }
-}
-
-class WithdrawMoneyCommand implements Command {
-    private $account;
-    private $amount;
-
-    public function __construct($account, $amount) {
-        $this->account = $account;
-        $this->amount = $amount;
-    }
-
-    public function execute() {
-        // Логика снятия денег
-        echo "Снятие $this->amount с $this->account\n";
-    }
-
-    public function undo() {
-        // Логика отмены снятия
-        echo "Отмена снятия $this->amount с $this->account\n";
-    }
-}
-
-class DepositMoneyCommand implements Command {
-    private $account;
-    private $amount;
-
-    public function __construct($account, $amount) {
-        $this->account = $account;
-        $this->amount = $amount;
-    }
-
-    public function execute() {
-        // Логика пополнения счета
-        echo "Пополнение $this->amount на $this->account\n";
-    }
-
-    public function undo() {
-        // Логика отмены пополнения
-        echo "Отмена пополнения $this->amount на $this->account\n";
+    public function getOutput() {
+        return $this->output;
     }
 }
 ```
 {% endcode %}
 
-**3. Вызывающий объект (Invoker)**
+**Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
+class OpenPageCommand extends Command {
+    private $url;
 
-class TransactionInvoker {
-    private $commands = [];
-
-    public function addCommand(Command $command) {
-        $this->commands[] = $command;
+    public function __construct($url) {
+        $this->url = $url;
     }
 
-    public function executeCommands() {
+    public function interpret(Context $context) {
+        $context->addOutput("Открываю страницу: " . $this->url);
+    }
+}
+
+class ClickButtonCommand extends Command {
+    private $buttonName;
+
+    public function __construct($buttonName) {
+        $this->buttonName = $buttonName;
+    }
+
+    public function interpret(Context $context) {
+        $context->addOutput("Нажимаю кнопку: " . $this->buttonName);
+    }
+}
+
+class EnterTextCommand extends Command {
+    private $text;
+    private $fieldName;
+
+    public function __construct($text, $fieldName) {
+        $this->text = $text;
+        $this->fieldName = $fieldName;
+    }
+
+    public function interpret(Context $context) {
+        $context->addOutput("Ввожу текст '" . $this->text . "' в поле '" . $this->fieldName . "'");
+    }
+}
+```
+{% endcode %}
+
+**Интерпретатор**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Interpreter {
+    private $commands;
+
+    public function __construct($commands) {
+        $this->commands = $commands;
+    }
+
+    public function interpret(Context $context) {
         foreach ($this->commands as $command) {
-            $command->execute();
-        }
-    }
-
-    public function undoCommands() {
-        foreach (array_reverse($this->commands) as $command) {
-            $command->undo();
+            $command->interpret($context);
         }
     }
 }
 ```
 {% endcode %}
 
-**4. Пример использования**
+### **Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
+$context = new Context();
 
-$invoker = new TransactionInvoker();
+$commands = [
+    new OpenPageCommand("http://example.com"),
+    new ClickButtonCommand("Войти"),
+    new EnterTextCommand("username", "Имя пользователя"),
+    new EnterTextCommand("password", "Пароль"),
+    new ClickButtonCommand("Отправить")
+];
 
-$transferCommand = new TransferMoneyCommand('Account1', 'Account2', 100);
-$withdrawCommand = new WithdrawMoneyCommand('Account1', 50);
-$depositCommand = new DepositMoneyCommand('Account2', 150);
+$interpreter = new Interpreter($commands);
+$interpreter->interpret($context);
 
-$invoker->addCommand($transferCommand);
-$invoker->addCommand($withdrawCommand);
-$invoker->addCommand($depositCommand);
-
-$invoker->executeCommands();
-$invoker->undoCommands();
+print_r($context->getOutput());
 ```
 {% endcode %}
 
-### UML диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (89).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (95).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Command {
-    +execute()
-    +undo()
+abstract class Command {
+    +interpret(context: Context): void
 }
 
-class TransferMoneyCommand {
-    -accountFrom: string
-    -accountTo: string
-    -amount: float
-    +__construct(accountFrom: string, accountTo: string, amount: float)
-    +execute()
-    +undo()
+class Context {
+    -output: List<String>
+    +addOutput(message: String): void
+    +getOutput(): List<String>
 }
 
-class WithdrawMoneyCommand {
-    -account: string
-    -amount: float
-    +__construct(account: string, amount: float)
-    +execute()
-    +undo()
+class OpenPageCommand {
+    -url: String
+    +__construct(url: String): void
+    +interpret(context: Context): void
 }
 
-class DepositMoneyCommand {
-    -account: string
-    -amount: float
-    +__construct(account: string, amount: float)
-    +execute()
-    +undo()
+class ClickButtonCommand {
+    -buttonName: String
+    +__construct(buttonName: String): void
+    +interpret(context: Context): void
 }
 
-class TransactionInvoker {
-    -commands: Command[]
-    +addCommand(command: Command)
-    +executeCommands()
-    +undoCommands()
+class EnterTextCommand {
+    -text: String
+    -fieldName: String
+    +__construct(text: String, fieldName: String): void
+    +interpret(context: Context): void
 }
 
-Command <|-- TransferMoneyCommand
-Command <|-- WithdrawMoneyCommand
-Command <|-- DepositMoneyCommand
-TransactionInvoker --> Command
+class Interpreter {
+    -commands: List<Command>
+    +__construct(commands: List<Command>): void
+    +interpret(context: Context): void
+}
+
+Command <|-- OpenPageCommand
+Command <|-- ClickButtonCommand
+Command <|-- EnterTextCommand
+
+Interpreter --> Command
+Interpreter --> Context
 
 @enduml
 ```
@@ -196,4 +195,4 @@ TransactionInvoker --> Command
 
 ### Вывод для кейса
 
-Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
+Использование паттерна "Интерпретатор" позволило нам создать гибкую и расширяемую систему для интерпретации пользовательских сценариев тестирования. Мы определили абстрактный класс команды и конкретные классы для каждой команды, что позволяет легко добавлять новые команды в будущем. Контекст хранит результаты выполнения команд, а интерпретатор управляет процессом выполнения сценария. Этот подход делает систему более модульной и удобной для поддержки.

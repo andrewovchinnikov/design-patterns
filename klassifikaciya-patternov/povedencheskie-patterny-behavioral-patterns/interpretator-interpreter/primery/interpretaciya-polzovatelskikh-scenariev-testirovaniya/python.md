@@ -1,14 +1,28 @@
 # Python
 
-Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающих над созданием системы автоматического тестирования. Наша задача — разработать инструмент, который позволит пользователям задавать сценарии тестирования в простом и понятном формате. Эти сценарии должны быть интерпретированы и выполнены нашей системой.
 
-### Описание
+### Описание кейса
 
-Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
+Наша система должна уметь интерпретировать пользовательские сценарии тестирования, записанные в виде текстовых команд. Например, пользователь может задать сценарий в виде:
 
-### Пример кода на Python
+```
+открыть страницу http://example.com
+нажать кнопку "Войти"
+ввести текст "username" в поле "Имя пользователя"
+ввести текст "password" в поле "Пароль"
+нажать кнопку "Отправить"
+```
 
-**1. Интерфейс команды**
+Для решения этой задачи мы будем использовать паттерн проектирования "Интерпретатор". Этот паттерн позволяет определить представление грамматики для заданного языка и интерпретировать предложения этого языка.
+
+### Применение паттерна
+
+Паттерн "Интерпретатор" поможет нам создать структуру, которая будет разбирать и выполнять команды из пользовательских сценариев. Мы создадим абстрактные классы для команд и конкретные классы для каждой команды (открыть страницу, нажать кнопку, ввести текст и т.д.).
+
+#### Пример кода на Python
+
+**Абстрактный класс команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
@@ -16,152 +30,141 @@ from abc import ABC, abstractmethod
 
 class Command(ABC):
     @abstractmethod
-    def execute(self):
-        pass
-
-    @abstractmethod
-    def undo(self):
+    def interpret(self, context):
         pass
 ```
 {% endcode %}
 
-**2. Конкретные команды**
+**Контекст**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class TransferMoneyCommand(Command):
-    def __init__(self, account_from, account_to, amount):
-        self.account_from = account_from
-        self.account_to = account_to
-        self.amount = amount
-
-    def execute(self):
-        # Логика перевода денег
-        print(f"Перевод {self.amount} с {self.account_from} на {self.account_to}")
-
-    def undo(self):
-        # Логика отмены перевода
-        print(f"Отмена перевода {self.amount} с {self.account_from} на {self.account_to}")
-
-class WithdrawMoneyCommand(Command):
-    def __init__(self, account, amount):
-        self.account = account
-        self.amount = amount
-
-    def execute(self):
-        # Логика снятия денег
-        print(f"Снятие {self.amount} с {self.account}")
-
-    def undo(self):
-        # Логика отмены снятия
-        print(f"Отмена снятия {self.amount} с {self.account}")
-
-class DepositMoneyCommand(Command):
-    def __init__(self, account, amount):
-        self.account = account
-        self.amount = amount
-
-    def execute(self):
-        # Логика пополнения счета
-        print(f"Пополнение {self.amount} на {self.account}")
-
-    def undo(self):
-        # Логика отмены пополнения
-        print(f"Отмена пополнения {self.amount} на {self.account}")
-```
-{% endcode %}
-
-**3. Вызывающий объект (Invoker)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class TransactionInvoker:
+class Context:
     def __init__(self):
-        self.commands = []
+        self.output = []
 
-    def add_command(self, command):
-        self.commands.append(command)
+    def add_output(self, message):
+        self.output.append(message)
 
-    def execute_commands(self):
-        for command in self.commands:
-            command.execute()
-
-    def undo_commands(self):
-        for command in reversed(self.commands):
-            command.undo()
+    def get_output(self):
+        return self.output
 ```
 {% endcode %}
 
-**4. Пример использования**
+**Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
+```python
+class OpenPageCommand(Command):
+    def __init__(self, url):
+        self.url = url
+
+    def interpret(self, context):
+        context.add_output(f"Открываю страницу: {self.url}")
+
+class ClickButtonCommand(Command):
+    def __init__(self, button_name):
+        self.button_name = button_name
+
+    def interpret(self, context):
+        context.add_output(f"Нажимаю кнопку: {self.button_name}")
+
+class EnterTextCommand(Command):
+    def __init__(self, text, field_name):
+        self.text = text
+        self.field_name = field_name
+
+    def interpret(self, context):
+        context.add_output(f"Ввожу текст '{self.text}' в поле '{self.field_name}'")
+```
+{% endcode %}
+
+**Интерпретатор**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Interpreter:
+    def __init__(self, commands):
+        self.commands = commands
+
+    def interpret(self, context):
+        for command in self.commands:
+            command.interpret(context)
+```
+{% endcode %}
+
+### **Пример использования**
+
+{% code lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    invoker = TransactionInvoker()
+    context = Context()
 
-    transfer_command = TransferMoneyCommand('Account1', 'Account2', 100)
-    withdraw_command = WithdrawMoneyCommand('Account1', 50)
-    deposit_command = DepositMoneyCommand('Account2', 150)
+    commands = [
+        OpenPageCommand("http://example.com"),
+        ClickButtonCommand("Войти"),
+        EnterTextCommand("username", "Имя пользователя"),
+        EnterTextCommand("password", "Пароль"),
+        ClickButtonCommand("Отправить")
+    ]
 
-    invoker.add_command(transfer_command)
-    invoker.add_command(withdraw_command)
-    invoker.add_command(deposit_command)
+    interpreter = Interpreter(commands)
+    interpreter.interpret(context)
 
-    invoker.execute_commands()
-    invoker.undo_commands()
+    for output in context.get_output():
+        print(output)
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (91).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (94).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Command {
-    +execute()
-    +undo()
+abstract class Command {
+    +interpret(context: Context): void
 }
 
-class TransferMoneyCommand {
-    -account_from: string
-    -account_to: string
-    -amount: float
-    +__init__(account_from: string, account_to: string, amount: float)
-    +execute()
-    +undo()
+class Context {
+    -output: List<String>
+    +add_output(message: String): void
+    +get_output(): List<String>
 }
 
-class WithdrawMoneyCommand {
-    -account: string
-    -amount: float
-    +__init__(account: string, amount: float)
-    +execute()
-    +undo()
+class OpenPageCommand {
+    -url: String
+    +__init__(url: String): void
+    +interpret(context: Context): void
 }
 
-class DepositMoneyCommand {
-    -account: string
-    -amount: float
-    +__init__(account: string, amount: float)
-    +execute()
-    +undo()
+class ClickButtonCommand {
+    -button_name: String
+    +__init__(button_name: String): void
+    +interpret(context: Context): void
 }
 
-class TransactionInvoker {
-    -commands: Command[]
-    +__init__()
-    +add_command(command: Command)
-    +execute_commands()
-    +undo_commands()
+class EnterTextCommand {
+    -text: String
+    -field_name: String
+    +__init__(text: String, field_name: String): void
+    +interpret(context: Context): void
 }
 
-Command <|-- TransferMoneyCommand
-Command <|-- WithdrawMoneyCommand
-Command <|-- DepositMoneyCommand
-TransactionInvoker --> Command
+class Interpreter {
+    -commands: List<Command>
+    +__init__(commands: List<Command>): void
+    +interpret(context: Context): void
+}
+
+Command <|-- OpenPageCommand
+Command <|-- ClickButtonCommand
+Command <|-- EnterTextCommand
+
+Interpreter --> Command
+Interpreter --> Context
 
 @enduml
 ```
@@ -169,4 +172,4 @@ TransactionInvoker --> Command
 
 ### Вывод для кейса
 
-Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
+Использование паттерна "Интерпретатор" позволило нам создать гибкую и расширяемую систему для интерпретации пользовательских сценариев тестирования. Мы определили абстрактный класс команды и конкретные классы для каждой команды, что позволяет легко добавлять новые команды в будущем. Контекст хранит результаты выполнения команд, а интерпретатор управляет процессом выполнения сценария. Этот подход делает систему более модульной и удобной для поддержки.

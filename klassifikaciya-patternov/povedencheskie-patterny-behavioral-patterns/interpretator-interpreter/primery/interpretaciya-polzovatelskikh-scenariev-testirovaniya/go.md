@@ -1,14 +1,28 @@
 # Go
 
-Представьте, что мы работаем в компании, которая разрабатывает программное обеспечение для управления финансовыми операциями. Наша задача — создать систему, которая позволяет выполнять различные транзакции в базе данных, такие как перевод денег между счетами, снятие наличных и пополнение счета. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы в будущем можно было добавлять новые типы транзакций без изменения существующего кода.
+Представьте, что мы — команда разработчиков, работающих над созданием системы автоматического тестирования. Наша задача — разработать инструмент, который позволит пользователям задавать сценарии тестирования в простом и понятном формате. Эти сценарии должны быть интерпретированы и выполнены нашей системой.
 
-### Описание
+### Описание кейса
 
-Паттерн Команда (Command) позволяет инкапсулировать запрос на выполнение операции в виде объекта. Это позволяет параметризовать объекты с операциями, задавать очередь операций, хранить историю выполнения операций и поддерживать отмену операций.
+Наша система должна уметь интерпретировать пользовательские сценарии тестирования, записанные в виде текстовых команд. Например, пользователь может задать сценарий в виде:
+
+```
+открыть страницу http://example.com
+нажать кнопку "Войти"
+ввести текст "username" в поле "Имя пользователя"
+ввести текст "password" в поле "Пароль"
+нажать кнопку "Отправить"
+```
+
+Для решения этой задачи мы будем использовать паттерн проектирования "Интерпретатор". Этот паттерн позволяет определить представление грамматики для заданного языка и интерпретировать предложения этого языка.
+
+### Применение паттерна
+
+Паттерн "Интерпретатор" поможет нам создать структуру, которая будет разбирать и выполнять команды из пользовательских сценариев. Мы создадим абстрактные классы для команд и конкретные классы для каждой команды (открыть страницу, нажать кнопку, ввести текст и т.д.).
 
 ### Пример кода на Go
 
-**1. Интерфейс команды**
+**Абстрактный интерфейс команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -17,163 +31,154 @@ package main
 import "fmt"
 
 type Command interface {
-    Execute()
-    Undo()
+    Interpret(context *Context)
 }
 ```
 {% endcode %}
 
-**2. Конкретные команды**
+**Контекст**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-type TransferMoneyCommand struct {
-    accountFrom string
-    accountTo   string
-    amount      float64
+type Context struct {
+    Output []string
 }
 
-func (c *TransferMoneyCommand) Execute() {
-    // Логика перевода денег
-    fmt.Printf("Перевод %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
+func (c *Context) AddOutput(message string) {
+    c.Output = append(c.Output, message)
 }
 
-func (c *TransferMoneyCommand) Undo() {
-    // Логика отмены перевода
-    fmt.Printf("Отмена перевода %.2f с %s на %s\n", c.amount, c.accountFrom, c.accountTo)
-}
-
-type WithdrawMoneyCommand struct {
-    account string
-    amount  float64
-}
-
-func (c *WithdrawMoneyCommand) Execute() {
-    // Логика снятия денег
-    fmt.Printf("Снятие %.2f с %s\n", c.amount, c.account)
-}
-
-func (c *WithdrawMoneyCommand) Undo() {
-    // Логика отмены снятия
-    fmt.Printf("Отмена снятия %.2f с %s\n", c.amount, c.account)
-}
-
-type DepositMoneyCommand struct {
-    account string
-    amount  float64
-}
-
-func (c *DepositMoneyCommand) Execute() {
-    // Логика пополнения счета
-    fmt.Printf("Пополнение %.2f на %s\n", c.amount, c.account)
-}
-
-func (c *DepositMoneyCommand) Undo() {
-    // Логика отмены пополнения
-    fmt.Printf("Отмена пополнения %.2f на %s\n", c.amount, c.account)
+func (c *Context) GetOutput() []string {
+    return c.Output
 }
 ```
 {% endcode %}
 
-**3. Вызывающий объект (Invoker)**
+**Конкретные команды**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
-type TransactionInvoker struct {
-    commands []Command
+type OpenPageCommand struct {
+    Url string
 }
 
-func (i *TransactionInvoker) AddCommand(command Command) {
-    i.commands = append(i.commands, command)
+func (c *OpenPageCommand) Interpret(context *Context) {
+    context.AddOutput("Открываю страницу: " + c.Url)
 }
 
-func (i *TransactionInvoker) ExecuteCommands() {
-    for _, command := range i.commands {
-        command.Execute()
-    }
+type ClickButtonCommand struct {
+    ButtonName string
 }
 
-func (i *TransactionInvoker) UndoCommands() {
-    for j := len(i.commands) - 1; j >= 0; j-- {
-        i.commands[j].Undo()
+func (c *ClickButtonCommand) Interpret(context *Context) {
+    context.AddOutput("Нажимаю кнопку: " + c.ButtonName)
+}
+
+type EnterTextCommand struct {
+    Text     string
+    FieldName string
+}
+
+func (c *EnterTextCommand) Interpret(context *Context) {
+    context.AddOutput("Ввожу текст '" + c.Text + "' в поле '" + c.FieldName + "'")
+}
+```
+{% endcode %}
+
+**Интерпретатор**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Interpreter struct {
+    Commands []Command
+}
+
+func (i *Interpreter) Interpret(context *Context) {
+    for _, command := range i.Commands {
+        command.Interpret(context)
     }
 }
 ```
 {% endcode %}
 
-**4. Пример использования**
+**Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
 func main() {
-    invoker := &TransactionInvoker{}
+    context := &Context{}
 
-    transferCommand := &TransferMoneyCommand{accountFrom: "Account1", accountTo: "Account2", amount: 100}
-    withdrawCommand := &WithdrawMoneyCommand{account: "Account1", amount: 50}
-    depositCommand := &DepositMoneyCommand{account: "Account2", amount: 150}
+    commands := []Command{
+        &OpenPageCommand{Url: "http://example.com"},
+        &ClickButtonCommand{ButtonName: "Войти"},
+        &EnterTextCommand{Text: "username", FieldName: "Имя пользователя"},
+        &EnterTextCommand{Text: "password", FieldName: "Пароль"},
+        &ClickButtonCommand{ButtonName: "Отправить"},
+    }
 
-    invoker.AddCommand(transferCommand)
-    invoker.AddCommand(withdrawCommand)
-    invoker.AddCommand(depositCommand)
+    interpreter := &Interpreter{Commands: commands}
+    interpreter.Interpret(context)
 
-    invoker.ExecuteCommands()
-    invoker.UndoCommands()
+    for _, output := range context.GetOutput() {
+        fmt.Println(output)
+    }
 }
 ```
 {% endcode %}
 
-### UML диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (90).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (96).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
 interface Command {
-    +Execute()
-    +Undo()
+    +Interpret(context: Context): void
 }
 
-class TransferMoneyCommand {
-    -accountFrom: string
-    -accountTo: string
-    -amount: float64
-    +Execute()
-    +Undo()
+class Context {
+    -output: List<String>
+    +AddOutput(message: String): void
+    +GetOutput(): List<String>
 }
 
-class WithdrawMoneyCommand {
-    -account: string
-    -amount: float64
-    +Execute()
-    +Undo()
+class OpenPageCommand {
+    -url: String
+    +Interpret(context: Context): void
 }
 
-class DepositMoneyCommand {
-    -account: string
-    -amount: float64
-    +Execute()
-    +Undo()
+class ClickButtonCommand {
+    -buttonName: String
+    +Interpret(context: Context): void
 }
 
-class TransactionInvoker {
-    -commands: Command[]
-    +AddCommand(command: Command)
-    +ExecuteCommands()
-    +UndoCommands()
+class EnterTextCommand {
+    -text: String
+    -fieldName: String
+    +Interpret(context: Context): void
 }
 
-Command <|-- TransferMoneyCommand
-Command <|-- WithdrawMoneyCommand
-Command <|-- DepositMoneyCommand
-TransactionInvoker --> Command
+class Interpreter {
+    -commands: List<Command>
+    +Interpret(context: Context): void
+}
+
+Command <|-- OpenPageCommand
+Command <|-- ClickButtonCommand
+Command <|-- EnterTextCommand
+
+Interpreter --> Command
+Interpreter --> Context
 
 @enduml
 ```
@@ -181,4 +186,4 @@ TransactionInvoker --> Command
 
 ### Вывод для кейса
 
-Использование паттерна Команда позволяет нам гибко управлять различными транзакциями в базе данных. Мы можем легко добавлять новые типы транзакций, не изменяя существующий код. Это делает нашу систему более модульной и удобной для расширения. Кроме того, паттерн Команда позволяет нам легко реализовать функции отмены операций, что является важным аспектом для финансовых систем.
+Использование паттерна "Интерпретатор" позволило нам создать гибкую и расширяемую систему для интерпретации пользовательских сценариев тестирования. Мы определили абстрактный интерфейс команды и конкретные классы для каждой команды, что позволяет легко добавлять новые команды в будущем. Контекст хранит результаты выполнения команд, а интерпретатор управляет процессом выполнения сценария. Этот подход делает систему более модульной и удобной для поддержки.
