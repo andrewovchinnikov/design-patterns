@@ -1,62 +1,14 @@
 # Go
 
-Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+Представьте, что мы разрабатываем систему управления заказами для интернет-магазина. Наша система должна позволять администраторам задавать правила бизнес-логики для обработки заказов. Например, если сумма заказа превышает определенную величину, то применяется скидка, или если заказ содержит определенные товары, то применяется бесплатная доставка.
 
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
-
-### Описание кейса
-
-Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
+Для реализации этой функциональности мы будем использовать паттерн "Интерпретатор". Этот паттерн позволяет нам создать язык для описания правил бизнес-логики и интерпретатор для их выполнения.
 
 ### Пример кода на Go
 
-**1. Создание интерфейса команды**
+**Шаг 1: Создание контекста**
 
-```go
-package main
-
-type Command interface {
-    Execute()
-}
-```
-
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type UploadCommand struct {
-    fileManager *FileManager
-    fileName   string
-}
-
-func (c *UploadCommand) Execute() {
-    c.fileManager.Upload(c.fileName)
-}
-
-type DeleteCommand struct {
-    fileManager *FileManager
-    fileName    string
-}
-
-func (c *DeleteCommand) Execute() {
-    c.fileManager.Delete(c.fileName)
-}
-
-type EditCommand struct {
-    fileManager *FileManager
-    fileName    string
-    newContent  string
-}
-
-func (c *EditCommand) Execute() {
-    c.fileManager.Edit(c.fileName, c.newContent)
-}
-```
-{% endcode %}
-
-**3. Создание получателя команд**
+Контекст будет содержать информацию о текущем заказе и методы для получения этой информации.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -64,131 +16,172 @@ package main
 
 import "fmt"
 
-type FileManager struct{}
-
-func (f *FileManager) Upload(fileName string) {
-    fmt.Printf("Файл %s загружен.\n", fileName)
+type Order struct {
+    TotalAmount float64
+    Products    []string
 }
 
-func (f *FileManager) Delete(fileName string) {
-    fmt.Printf("Файл %s удален.\n", fileName)
+type Context struct {
+    Order Order
 }
 
-func (f *FileManager) Edit(fileName, newContent string) {
-    fmt.Printf("Файл %s отредактирован. Новое содержимое: %s\n", fileName, newContent)
-}
-```
-{% endcode %}
-
-**4. Создание отправителя команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Invoker struct {
-    command Command
-}
-
-func (i *Invoker) SetCommand(command Command) {
-    i.command = command
-}
-
-func (i *Invoker) ExecuteCommand() {
-    i.command.Execute()
+func (c *Context) GetOrder() Order {
+    return c.Order
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 2: Создание абстрактного выражения**
+
+Абстрактное выражение будет содержать метод `Interpret`, который будет реализован в конкретных выражениях.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
+type AbstractExpression interface {
+    Interpret(context *Context) bool
+}
+```
+{% endcode %}
 
+**Шаг 3: Создание конечных выражений**
+
+Конечные выражения будут реализовывать метод `Interpret` для конкретных условий.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type OrderAmountExpression struct {
+    Amount float64
+}
+
+func (e *OrderAmountExpression) Interpret(context *Context) bool {
+    order := context.GetOrder()
+    return order.TotalAmount > e.Amount
+}
+
+type OrderContainsProductExpression struct {
+    Product string
+}
+
+func (e *OrderContainsProductExpression) Interpret(context *Context) bool {
+    order := context.GetOrder()
+    for _, product := range order.Products {
+        if product == e.Product {
+            return true
+        }
+    }
+    return false
+}
+```
+{% endcode %}
+
+**Шаг 4: Создание неконечных выражений**
+
+Неконечные выражения будут комбинировать другие выражения.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type AndExpression struct {
+    Expr1 AbstractExpression
+    Expr2 AbstractExpression
+}
+
+func (e *AndExpression) Interpret(context *Context) bool {
+    return e.Expr1.Interpret(context) && e.Expr2.Interpret(context)
+}
+
+type OrExpression struct {
+    Expr1 AbstractExpression
+    Expr2 AbstractExpression
+}
+
+func (e *OrExpression) Interpret(context *Context) bool {
+    return e.Expr1.Interpret(context) || e.Expr2.Interpret(context)
+}
+```
+{% endcode %}
+
+**Шаг 5: Использование интерпретатора**
+
+Теперь мы можем использовать наш интерпретатор для выполнения правил бизнес-логики.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
 func main() {
-    // Создаем менеджер файлов
-    fileManager := &FileManager{}
+    // Пример данных
+    order := Order{
+        TotalAmount: 200,
+        Products:    []string{"product1", "product2"},
+    }
 
-    // Создаем команды
-    uploadCommand := &UploadCommand{fileManager: fileManager, fileName: "file1.txt"}
-    deleteCommand := &DeleteCommand{fileManager: fileManager, fileName: "file2.txt"}
-    editCommand := &EditCommand{fileManager: fileManager, fileName: "file3.txt", newContent: "Новое содержимое"}
+    context := &Context{Order: order}
 
-    // Создаем отправителя команд
-    invoker := &Invoker{}
+    // Создание правил
+    amountExpr := &OrderAmountExpression{Amount: 100}
+    productExpr := &OrderContainsProductExpression{Product: "product1"}
+    andExpr := &AndExpression{Expr1: amountExpr, Expr2: productExpr}
 
-    // Устанавливаем и выполняем команду загрузки
-    invoker.SetCommand(uploadCommand)
-    invoker.ExecuteCommand()
+    // Интерпретация правил
+    result := andExpr.Interpret(context)
 
-    // Устанавливаем и выполняем команду удаления
-    invoker.SetCommand(deleteCommand)
-    invoker.ExecuteCommand()
-
-    // Устанавливаем и выполняем команду редактирования
-    invoker.SetCommand(editCommand)
-    invoker.ExecuteCommand()
+    if result {
+        fmt.Println("Правила выполнены: применяется скидка или бесплатная доставка.")
+    } else {
+        fmt.Println("Правила не выполнены.")
+    }
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +Execute()
+
+class Context {
+    -order: Order
+    +GetOrder(): Order
 }
 
-class UploadCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__init__(fileManager: FileManager, fileName: String)
-    +Execute()
+interface AbstractExpression {
+    +Interpret(context: Context): bool
 }
 
-class DeleteCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__init__(fileManager: FileManager, fileName: String)
-    +Execute()
+class OrderAmountExpression {
+    -amount: float64
+    +Interpret(context: Context): bool
 }
 
-class EditCommand {
-    -fileManager: FileManager
-    -fileName: String
-    -newContent: String
-    +__init__(fileManager: FileManager, fileName: String, newContent: String)
-    +Execute()
+class OrderContainsProductExpression {
+    -product: string
+    +Interpret(context: Context): bool
 }
 
-class FileManager {
-    +Upload(fileName: String)
-    +Delete(fileName: String)
-    +Edit(fileName: String, newContent: String)
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +Interpret(context: Context): bool
 }
 
-class Invoker {
-    -command: Command
-    +SetCommand(command: Command)
-    +ExecuteCommand()
+class OrExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +Interpret(context: Context): bool
 }
 
-Command <|-- UploadCommand
-Command <|-- DeleteCommand
-Command <|-- EditCommand
-UploadCommand --> FileManager
-DeleteCommand --> FileManager
-EditCommand --> FileManager
-Invoker --> Command
+AbstractExpression <|-- OrderAmountExpression
+AbstractExpression <|-- OrderContainsProductExpression
+AbstractExpression <|-- AndExpression
+AbstractExpression <|-- OrExpression
+
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Интерпретатор" для создания системы, которая позволяет администраторам задавать правила бизнес-логики для обработки заказов. Мы создали контекст, абстрактное выражение, конечные выражения и неконечные выражения. Затем мы использовали эти компоненты для интерпретации и выполнения правил бизнес-логики.
+
+Паттерн "Интерпретатор" позволяет гибко и удобно обрабатывать сложные правила, разделяя грамматику языка от его интерпретации. Это делает код более чистым и управляемым, особенно когда речь идет о сложных условиях и правилах.

@@ -136,7 +136,7 @@ print_r($result);
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml

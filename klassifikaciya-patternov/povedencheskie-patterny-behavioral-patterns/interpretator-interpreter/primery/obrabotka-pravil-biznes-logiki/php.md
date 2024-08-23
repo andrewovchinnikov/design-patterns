@@ -1,203 +1,198 @@
 # PHP
 
-Представьте, что мы разрабатываем приложение для управления файлами и загрузками. Наше приложение должно уметь выполнять различные операции с файлами, такие как загрузка, удаление и редактирование. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+Представьте, что мы разрабатываем систему управления заказами для интернет-магазина. Наша система должна позволять администраторам задавать правила бизнес-логики для обработки заказов. Например, если сумма заказа превышает определенную величину, то применяется скидка, или если заказ содержит определенные товары, то применяется бесплатная доставка.
 
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
-
-### Описание кейса
-
-Мы создадим систему управления файлами, которая будет выполнять различные операции с файлами. Мы будем использовать паттерн "Команда" для инкапсуляции команд загрузки, удаления и редактирования файлов.
+Для реализации этой функциональности мы будем использовать паттерн "Интерпретатор". Этот паттерн позволяет нам создать язык для описания правил бизнес-логики и интерпретатор для их выполнения.
 
 ### Пример кода на PHP
 
-**1. Создание интерфейса команды**
+**Шаг 1: Создание контекста**
+
+Контекст будет содержать информацию о текущем заказе и методы для получения этой информации.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface Command {
-    public function execute();
-}
-```
-{% endcode %}
+class Context {
+    private $order;
 
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class UploadCommand implements Command {
-    private $fileManager;
-    private $fileName;
-
-    public function __construct($fileManager, $fileName) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
+    public function __construct($order) {
+        $this->order = $order;
     }
 
-    public function execute() {
-        $this->fileManager->upload($this->fileName);
-    }
-}
-
-class DeleteCommand implements Command {
-    private $fileManager;
-    private $fileName;
-
-    public function __construct($fileManager, $fileName) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
-    }
-
-    public function execute() {
-        $this->fileManager->delete($this->fileName);
-    }
-}
-
-class EditCommand implements Command {
-    private $fileManager;
-    private $fileName;
-    private $newContent;
-
-    public function __construct($fileManager, $fileName, $newContent) {
-        $this->fileManager = $fileManager;
-        $this->fileName = $fileName;
-        $this->newContent = $newContent;
-    }
-
-    public function execute() {
-        $this->fileManager->edit($this->fileName, $this->newContent);
+    public function getOrder() {
+        return $this->order;
     }
 }
 ```
 {% endcode %}
 
-**3. Создание получателя команд**
+**Шаг 2: Создание абстрактного выражения**
+
+Абстрактное выражение будет содержать метод `interpret`, который будет реализован в конкретных выражениях.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class FileManager {
-    public function upload($fileName) {
-        echo "Файл {$fileName} загружен.\n";
+abstract class AbstractExpression {
+    abstract public function interpret(Context $context);
+}
+```
+{% endcode %}
+
+**Шаг 3: Создание конечных выражений**
+
+Конечные выражения будут реализовывать метод `interpret` для конкретных условий.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class OrderAmountExpression extends AbstractExpression {
+    private $amount;
+
+    public function __construct($amount) {
+        $this->amount = $amount;
     }
 
-    public function delete($fileName) {
-        echo "Файл {$fileName} удален.\n";
+    public function interpret(Context $context) {
+        $order = $context->getOrder();
+        return $order['totalAmount'] > $this->amount;
+    }
+}
+
+class OrderContainsProductExpression extends AbstractExpression {
+    private $product;
+
+    public function __construct($product) {
+        $this->product = $product;
     }
 
-    public function edit($fileName, $newContent) {
-        echo "Файл {$fileName} отредактирован. Новое содержимое: {$newContent}\n";
+    public function interpret(Context $context) {
+        $order = $context->getOrder();
+        return in_array($this->product, $order['products']);
     }
 }
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**Шаг 4: Создание неконечных выражений**
+
+Неконечные выражения будут комбинировать другие выражения.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class Invoker {
-    private $command;
+class AndExpression extends AbstractExpression {
+    private $expr1;
+    private $expr2;
 
-    public function setCommand(Command $command) {
-        $this->command = $command;
+    public function __construct(AbstractExpression $expr1, AbstractExpression $expr2) {
+        $this->expr1 = $expr1;
+        $this->expr2 = $expr2;
     }
 
-    public function executeCommand() {
-        $this->command->execute();
+    public function interpret(Context $context) {
+        return $this->expr1->interpret($context) && $this->expr2->interpret($context);
+    }
+}
+
+class OrExpression extends AbstractExpression {
+    private $expr1;
+    private $expr2;
+
+    public function __construct(AbstractExpression $expr1, AbstractExpression $expr2) {
+        $this->expr1 = $expr1;
+        $this->expr2 = $expr2;
+    }
+
+    public function interpret(Context $context) {
+        return $this->expr1->interpret($context) || $this->expr2->interpret($context);
     }
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 5: Использование интерпретатора**
 
-{% code overflow="wrap" lineNumbers="true" %}
+Теперь мы можем использовать наш интерпретатор для выполнения правил бизнес-логики.
+
+{% code lineNumbers="true" %}
 ```php
-<?php
-// Создаем менеджер файлов
-$fileManager = new FileManager();
+// Пример данных
+$order = [
+    'totalAmount' => 200,
+    'products' => ['product1', 'product2']
+];
 
-// Создаем команды
-$uploadCommand = new UploadCommand($fileManager, 'file1.txt');
-$deleteCommand = new DeleteCommand($fileManager, 'file2.txt');
-$editCommand = new EditCommand($fileManager, 'file3.txt', 'Новое содержимое');
+$context = new Context($order);
 
-// Создаем отправителя команд
-$invoker = new Invoker();
+// Создание правил
+$amountExpr = new OrderAmountExpression(100);
+$productExpr = new OrderContainsProductExpression('product1');
+$andExpr = new AndExpression($amountExpr, $productExpr);
 
-// Устанавливаем и выполняем команду загрузки
-$invoker->setCommand($uploadCommand);
-$invoker->executeCommand();
+// Интерпретация правил
+$result = $andExpr->interpret($context);
 
-// Устанавливаем и выполняем команду удаления
-$invoker->setCommand($deleteCommand);
-$invoker->executeCommand();
-
-// Устанавливаем и выполняем команду редактирования
-$invoker->setCommand($editCommand);
-$invoker->executeCommand();
+if ($result) {
+    echo "Правила выполнены: применяется скидка или бесплатная доставка.";
+} else {
+    echo "Правила не выполнены.";
+}
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +execute()
+
+class Context {
+    -order: array
+    +__construct(order: array): void
+    +getOrder(): array
 }
 
-class UploadCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__construct(fileManager: FileManager, fileName: String)
-    +execute()
+abstract class AbstractExpression {
+    +interpret(context: Context): bool
 }
 
-class DeleteCommand {
-    -fileManager: FileManager
-    -fileName: String
-    +__construct(fileManager: FileManager, fileName: String)
-    +execute()
+class OrderAmountExpression {
+    -amount: float
+    +__construct(amount: float): void
+    +interpret(context: Context): bool
 }
 
-class EditCommand {
-    -fileManager: FileManager
-    -fileName: String
-    -newContent: String
-    +__construct(fileManager: FileManager, fileName: String, newContent: String)
-    +execute()
+class OrderContainsProductExpression {
+    -product: string
+    +__construct(product: string): void
+    +interpret(context: Context): bool
 }
 
-class FileManager {
-    +upload(fileName: String)
-    +delete(fileName: String)
-    +edit(fileName: String, newContent: String)
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +__construct(expr1: AbstractExpression, expr2: AbstractExpression): void
+    +interpret(context: Context): bool
 }
 
-class Invoker {
-    -command: Command
-    +setCommand(command: Command)
-    +executeCommand()
+class OrExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +__construct(expr1: AbstractExpression, expr2: AbstractExpression): void
+    +interpret(context: Context): bool
 }
 
-Command <|-- UploadCommand
-Command <|-- DeleteCommand
-Command <|-- EditCommand
-UploadCommand --> FileManager
-DeleteCommand --> FileManager
-EditCommand --> FileManager
-Invoker --> Command
+AbstractExpression <|-- OrderAmountExpression
+AbstractExpression <|-- OrderContainsProductExpression
+AbstractExpression <|-- AndExpression
+AbstractExpression <|-- OrExpression
+
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять операциями с файлами в нашем приложении. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для загрузки, удаления и редактирования файлов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять операциями с файлами и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Интерпретатор" для создания системы, которая позволяет администраторам задавать правила бизнес-логики для обработки заказов. Мы создали контекст, абстрактное выражение, конечные выражения и неконечные выражения. Затем мы использовали эти компоненты для интерпретации и выполнения правил бизнес-логики.
+
+Паттерн "Интерпретатор" позволяет гибко и удобно обрабатывать сложные правила, разделяя грамматику языка от его интерпретации. Это делает код более чистым и управляемым, особенно когда речь идет о сложных условиях и правилах.
