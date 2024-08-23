@@ -1,151 +1,172 @@
 # Python
 
-Представьте, что мы разрабатываем приложение для управления состоянием различных компонентов системы. Наше приложение должно уметь включать и выключать различные компоненты, такие как серверы, базы данных и другие сервисы. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+Представьте, что мы разрабатываем веб-приложение для управления библиотекой. Наше приложение позволяет пользователям искать книги по различным критериям, таким как автор, название, год издания и т.д. Мы хотим сделать так, чтобы пользователи могли создавать сложные запросы, комбинируя различные условия. Для этого мы будем использовать паттерн "Интерпретатор".
 
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+### **Описание кейса**
 
-### Описание кейса
+Наше приложение должно позволять пользователям создавать запросы в виде текстовых выражений, например:
 
-Мы создадим систему управления состоянием приложения, которая будет включать и выключать компоненты. Мы будем использовать паттерн "Команда" для инкапсуляции команд включения и выключения.
+* "Автор: Толстой И Название: Война и мир"
+* "Год: 2020 И Жанр: Фантастика"
+
+Мы будем использовать паттерн "Интерпретатор" для интерпретации и выполнения этих запросов.
 
 ### Пример кода на Python
 
-**1. Создание интерфейса команды**
+**Шаг 1: Создание контекста**
+
+Контекст будет содержать информацию о доступных книгах и методы для получения этой информации.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Book:
+    def __init__(self, title, author, year, genre):
+        self.title = title
+        self.author = author
+        self.year = year
+        self.genre = genre
+
+class Context:
+    def __init__(self, books):
+        self.books = books
+
+    def get_books(self):
+        return self.books
+```
+{% endcode %}
+
+**Шаг 2: Создание абстрактного выражения**
+
+Абстрактное выражение будет содержать метод `interpret`, который будет реализован в конкретных выражениях.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Command(ABC):
+class AbstractExpression(ABC):
     @abstractmethod
-    def execute(self):
+    def interpret(self, context):
         pass
 ```
 {% endcode %}
 
-**2. Создание конкретных команд**
+**Шаг 3: Создание конечных выражений**
+
+Конечные выражения будут реализовывать метод `interpret` для конкретных условий.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class StartCommand(Command):
-    def __init__(self, component):
-        self.component = component
+class AuthorExpression(AbstractExpression):
+    def __init__(self, author):
+        self.author = author
 
-    def execute(self):
-        self.component.start()
+    def interpret(self, context):
+        books = context.get_books()
+        return [book for book in books if book.author == self.author]
 
-class StopCommand(Command):
-    def __init__(self, component):
-        self.component = component
+class TitleExpression(AbstractExpression):
+    def __init__(self, title):
+        self.title = title
 
-    def execute(self):
-        self.component.stop()
+    def interpret(self, context):
+        books = context.get_books()
+        return [book for book in books if book.title == self.title]
 ```
 {% endcode %}
 
-**3. Создание получателя команд**
+**Шаг 4: Создание неконечных выражений**
+
+Неконечные выражения будут комбинировать другие выражения.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Component:
-    def __init__(self, name):
-        self.name = name
+class AndExpression(AbstractExpression):
+    def __init__(self, expr1, expr2):
+        self.expr1 = expr1
+        self.expr2 = expr2
 
-    def start(self):
-        print(f"Компонент {self.name} запущен.")
-
-    def stop(self):
-        print(f"Компонент {self.name} остановлен.")
+    def interpret(self, context):
+        result1 = self.expr1.interpret(context)
+        result2 = self.expr2.interpret(context)
+        return [book for book in result1 if book in result2]
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**Шаг 5: Использование интерпретатора**
+
+Теперь мы можем использовать наш интерпретатор для выполнения запросов.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Invoker:
-    def __init__(self):
-        self.command = None
+def main():
+    # Пример данных
+    books = [
+        Book(title="Война и мир", author="Толстой", year=1869, genre="Роман"),
+        Book(title="1984", author="Оруэлл", year=1949, genre="Фантастика"),
+        Book(title="Дюна", author="Герберт", year=1965, genre="Фантастика"),
+    ]
 
-    def set_command(self, command):
-        self.command = command
+    context = Context(books)
 
-    def execute_command(self):
-        self.command.execute()
-```
-{% endcode %}
+    # Создание запроса
+    author_expr = AuthorExpression(author="Толстой")
+    title_expr = TitleExpression(title="Война и мир")
+    and_expr = AndExpression(expr1=author_expr, expr2=title_expr)
 
-**5. Пример использования**
+    # Интерпретация запроса
+    result = and_expr.interpret(context)
 
-{% code overflow="wrap" lineNumbers="true" %}
-```python
+    for book in result:
+        print(f"Title: {book.title}, Author: {book.author}, Year: {book.year}, Genre: {book.genre}")
+
 if __name__ == "__main__":
-    # Создаем компонент
-    component = Component("Сервер")
-
-    # Создаем команды
-    start_command = StartCommand(component)
-    stop_command = StopCommand(component)
-
-    # Создаем отправителя команд
-    invoker = Invoker()
-
-    # Устанавливаем и выполняем команду запуска
-    invoker.set_command(start_command)
-    invoker.execute_command()
-
-    # Устанавливаем и выполняем команду остановки
-    invoker.set_command(stop_command)
-    invoker.execute_command()
+    main()
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (88).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +execute()
+
+class Context {
+    -books: Book[]
+    +get_books(): Book[]
 }
 
-class StartCommand {
-    -component: Component
-    +__init__(component: Component)
-    +execute()
+interface AbstractExpression {
+    +interpret(context: Context): Book[]
 }
 
-class StopCommand {
-    -component: Component
-    +__init__(component: Component)
-    +execute()
+class AuthorExpression {
+    -author: string
+    +interpret(context: Context): Book[]
 }
 
-class Component {
-    -name: String
-    +__init__(name: String)
-    +start()
-    +stop()
+class TitleExpression {
+    -title: string
+    +interpret(context: Context): Book[]
 }
 
-class Invoker {
-    -command: Command
-    +__init__()
-    +set_command(command: Command)
-    +execute_command()
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +interpret(context: Context): Book[]
 }
 
-Command <|-- StartCommand
-Command <|-- StopCommand
-StartCommand --> Component
-StopCommand --> Component
-Invoker --> Command
+AbstractExpression <|-- AuthorExpression
+AbstractExpression <|-- TitleExpression
+AbstractExpression <|-- AndExpression
+
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять состоянием компонентов нашего приложения. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для запуска и остановки компонентов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять состоянием наших компонентов и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Интерпретатор" для создания системы, которая позволяет пользователям создавать и выполнять сложные запросы к базе данных книг. Мы создали контекст, абстрактное выражение, конечные выражения и неконечные выражения. Затем мы использовали эти компоненты для интерпретации и выполнения запросов.
+
+Паттерн "Интерпретатор" позволяет гибко и удобно обрабатывать сложные запросы, разделяя грамматику языка от его интерпретации. Это делает код более чистым и управляемым, особенно когда речь идет о сложных условиях и правилах.

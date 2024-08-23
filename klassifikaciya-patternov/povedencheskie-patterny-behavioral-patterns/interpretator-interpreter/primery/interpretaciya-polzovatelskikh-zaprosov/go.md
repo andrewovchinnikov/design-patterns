@@ -1,52 +1,21 @@
 # Go
 
-Представьте, что мы разрабатываем приложение для управления состоянием различных компонентов системы. Наше приложение должно уметь включать и выключать различные компоненты, такие как серверы, базы данных и другие сервисы. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+Представьте, что мы разрабатываем веб-приложение для управления библиотекой. Наше приложение позволяет пользователям искать книги по различным критериям, таким как автор, название, год издания и т.д. Мы хотим сделать так, чтобы пользователи могли создавать сложные запросы, комбинируя различные условия. Для этого мы будем использовать паттерн "Интерпретатор".
 
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+### **Описание кейса**
 
-### Описание кейса
+Наше приложение должно позволять пользователям создавать запросы в виде текстовых выражений, например:
 
-Мы создадим систему управления состоянием приложения, которая будет включать и выключать компоненты. Мы будем использовать паттерн "Команда" для инкапсуляции команд включения и выключения.
+* "Автор: Толстой И Название: Война и мир"
+* "Год: 2020 И Жанр: Фантастика"
+
+Мы будем использовать паттерн "Интерпретатор" для интерпретации и выполнения этих запросов.
 
 ### Пример кода на Go
 
-**1. Создание интерфейса команды**
+**Шаг 1: Создание контекста**
 
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Command interface {
-    Execute()
-}
-```
-{% endcode %}
-
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type StartCommand struct {
-    component *Component
-}
-
-func (c *StartCommand) Execute() {
-    c.component.Start()
-}
-
-type StopCommand struct {
-    component *Component
-}
-
-func (c *StopCommand) Execute() {
-    c.component.Stop()
-}
-```
-{% endcode %}
-
-**3. Создание получателя команд**
+Контекст будет содержать информацию о доступных книгах и методы для получения этой информации.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -54,110 +23,173 @@ package main
 
 import "fmt"
 
-type Component struct {
-    name string
+type Book struct {
+    Title  string
+    Author string
+    Year   int
+    Genre  string
 }
 
-func (c *Component) Start() {
-    fmt.Printf("Компонент %s запущен.\n", c.name)
+type Context struct {
+    Books []Book
 }
 
-func (c *Component) Stop() {
-    fmt.Printf("Компонент %s остановлен.\n", c.name)
-}
-```
-{% endcode %}
-
-**4. Создание отправителя команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Invoker struct {
-    command Command
-}
-
-func (i *Invoker) SetCommand(command Command) {
-    i.command = command
-}
-
-func (i *Invoker) ExecuteCommand() {
-    i.command.Execute()
+func (c *Context) GetBooks() []Book {
+    return c.Books
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 2: Создание абстрактного выражения**
+
+Абстрактное выражение будет содержать метод `Interpret`, который будет реализован в конкретных выражениях.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
+type AbstractExpression interface {
+    Interpret(context *Context) []Book
+}
+```
+{% endcode %}
 
+**Шаг 3: Создание конечных выражений**
+
+Конечные выражения будут реализовывать метод `Interpret` для конкретных условий.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type AuthorExpression struct {
+    Author string
+}
+
+func (e *AuthorExpression) Interpret(context *Context) []Book {
+    books := context.GetBooks()
+    var result []Book
+    for _, book := range books {
+        if book.Author == e.Author {
+            result = append(result, book)
+        }
+    }
+    return result
+}
+
+type TitleExpression struct {
+    Title string
+}
+
+func (e *TitleExpression) Interpret(context *Context) []Book {
+    books := context.GetBooks()
+    var result []Book
+    for _, book := range books {
+        if book.Title == e.Title {
+            result = append(result, book)
+        }
+    }
+    return result
+}
+```
+{% endcode %}
+
+**Шаг 4: Создание неконечных выражений**
+
+Неконечные выражения будут комбинировать другие выражения.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type AndExpression struct {
+    Expr1 AbstractExpression
+    Expr2 AbstractExpression
+}
+
+func (e *AndExpression) Interpret(context *Context) []Book {
+    result1 := e.Expr1.Interpret(context)
+    result2 := e.Expr2.Interpret(context)
+    var result []Book
+    for _, book1 := range result1 {
+        for _, book2 := range result2 {
+            if book1 == book2 {
+                result = append(result, book1)
+                break
+            }
+        }
+    }
+    return result
+}
+```
+{% endcode %}
+
+**Шаг 5: Использование интерпретатора**
+
+Теперь мы можем использовать наш интерпретатор для выполнения запросов.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
 func main() {
-    // Создаем компонент
-    component := &Component{name: "Сервер"}
+    // Пример данных
+    books := []Book{
+        {Title: "Война и мир", Author: "Толстой", Year: 1869, Genre: "Роман"},
+        {Title: "1984", Author: "Оруэлл", Year: 1949, Genre: "Фантастика"},
+        {Title: "Дюна", Author: "Герберт", Year: 1965, Genre: "Фантастика"},
+    }
 
-    // Создаем команды
-    startCommand := &StartCommand{component: component}
-    stopCommand := &StopCommand{component: component}
+    context := &Context{Books: books}
 
-    // Создаем отправителя команд
-    invoker := &Invoker{}
+    // Создание запроса
+    authorExpr := &AuthorExpression{Author: "Толстой"}
+    titleExpr := &TitleExpression{Title: "Война и мир"}
+    andExpr := &AndExpression{Expr1: authorExpr, Expr2: titleExpr}
 
-    // Устанавливаем и выполняем команду запуска
-    invoker.SetCommand(startCommand)
-    invoker.ExecuteCommand()
+    // Интерпретация запроса
+    result := andExpr.Interpret(context)
 
-    // Устанавливаем и выполняем команду остановки
-    invoker.SetCommand(stopCommand)
-    invoker.ExecuteCommand()
+    fmt.Println(result)
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (87).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +Execute()
+
+class Context {
+    -books: Book[]
+    +GetBooks(): Book[]
 }
 
-class StartCommand {
-    -component: Component
-    +Execute()
+interface AbstractExpression {
+    +Interpret(context: Context): Book[]
 }
 
-class StopCommand {
-    -component: Component
-    +Execute()
+class AuthorExpression {
+    -author: string
+    +Interpret(context: Context): Book[]
 }
 
-class Component {
-    -name: String
-    +Start()
-    +Stop()
+class TitleExpression {
+    -title: string
+    +Interpret(context: Context): Book[]
 }
 
-class Invoker {
-    -command: Command
-    +SetCommand(command: Command)
-    +ExecuteCommand()
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +Interpret(context: Context): Book[]
 }
 
-Command <|-- StartCommand
-Command <|-- StopCommand
-StartCommand --> Component
-StopCommand --> Component
-Invoker --> Command
+AbstractExpression <|-- AuthorExpression
+AbstractExpression <|-- TitleExpression
+AbstractExpression <|-- AndExpression
+
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять состоянием компонентов нашего приложения. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для запуска и остановки компонентов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять состоянием наших компонентов и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Интерпретатор" для создания системы, которая позволяет пользователям создавать и выполнять сложные запросы к базе данных книг. Мы создали контекст, абстрактное выражение, конечные выражения и неконечные выражения. Затем мы использовали эти компоненты для интерпретации и выполнения запросов.
+
+Паттерн "Интерпретатор" позволяет гибко и удобно обрабатывать сложные запросы, разделяя грамматику языка от его интерпретации. Это делает код более чистым и управляемым, особенно когда речь идет о сложных условиях и правилах.

@@ -1,169 +1,186 @@
 # PHP
 
-Представьте, что мы разрабатываем приложение для управления состоянием различных компонентов системы. Наше приложение должно уметь включать и выключать различные компоненты, такие как серверы, базы данных и другие сервисы. Мы хотим, чтобы наше приложение было гибким и легко расширяемым, чтобы в будущем можно было добавлять новые команды без изменения существующего кода.
+Представьте, что мы разрабатываем веб-приложение для управления библиотекой. Наше приложение позволяет пользователям искать книги по различным критериям, таким как автор, название, год издания и т.д. Мы хотим сделать так, чтобы пользователи могли создавать сложные запросы, комбинируя различные условия. Для этого мы будем использовать паттерн "Интерпретатор".
 
-Для этого мы будем использовать паттерн проектирования "Команда" (Command). Этот паттерн позволяет инкапсулировать запрос как объект, что позволяет параметризовать клиентов с различными запросами, очередями или логированием запросов, а также поддерживать отмену операций.
+### **Описание кейса**
 
-### Описание кейса
+Наше приложение должно позволять пользователям создавать запросы в виде текстовых выражений, например:
 
-Мы создадим систему управления состоянием приложения, которая будет включать и выключать компоненты. Мы будем использовать паттерн "Команда" для инкапсуляции команд включения и выключения.
+* "Автор: Толстой И Название: Война и мир"
+* "Год: 2020 И Жанр: Фантастика"
+
+Мы будем использовать паттерн "Интерпретатор" для интерпретации и выполнения этих запросов.
 
 ### Пример кода на PHP
 
-**1. Создание интерфейса команды**
+**Шаг 1: Создание контекста**
+
+Контекст будет содержать информацию о доступных книгах и методы для получения этой информации.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface Command {
-    public function execute();
-}
-```
-{% endcode %}
+class Context {
+    private $books;
 
-**2. Создание конкретных команд**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class StartCommand implements Command {
-    private $component;
-
-    public function __construct($component) {
-        $this->component = $component;
+    public function __construct($books) {
+        $this->books = $books;
     }
 
-    public function execute() {
-        $this->component->start();
-    }
-}
-
-class StopCommand implements Command {
-    private $component;
-
-    public function __construct($component) {
-        $this->component = $component;
-    }
-
-    public function execute() {
-        $this->component->stop();
+    public function getBooks() {
+        return $this->books;
     }
 }
 ```
 {% endcode %}
 
-**3. Создание получателя команд**
+**Шаг 2: Создание абстрактного выражения**
+
+Абстрактное выражение будет содержать метод `interpret`, который будет реализован в конкретных выражениях.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class Component {
-    private $name;
+abstract class AbstractExpression {
+    abstract public function interpret(Context $context);
+}
+```
+{% endcode %}
 
-    public function __construct($name) {
-        $this->name = $name;
+**Шаг 3: Создание конечных выражений**
+
+Конечные выражения будут реализовывать метод `interpret` для конкретных условий.
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class AuthorExpression extends AbstractExpression {
+    private $author;
+
+    public function __construct($author) {
+        $this->author = $author;
     }
 
-    public function start() {
-        echo "Компонент {$this->name} запущен.\n";
+    public function interpret(Context $context) {
+        $books = $context->getBooks();
+        return array_filter($books, function($book) {
+            return $book['author'] === $this->author;
+        });
+    }
+}
+
+class TitleExpression extends AbstractExpression {
+    private $title;
+
+    public function __construct($title) {
+        $this->title = $title;
     }
 
-    public function stop() {
-        echo "Компонент {$this->name} остановлен.\n";
+    public function interpret(Context $context) {
+        $books = $context->getBooks();
+        return array_filter($books, function($book) {
+            return $book['title'] === $this->title;
+        });
     }
 }
 ```
 {% endcode %}
 
-**4. Создание отправителя команд**
+**Шаг 4: Создание неконечных выражений**
+
+Неконечные выражения будут комбинировать другие выражения.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class Invoker {
-    private $command;
+class AndExpression extends AbstractExpression {
+    private $expr1;
+    private $expr2;
 
-    public function setCommand(Command $command) {
-        $this->command = $command;
+    public function __construct(AbstractExpression $expr1, AbstractExpression $expr2) {
+        $this->expr1 = $expr1;
+        $this->expr2 = $expr2;
     }
 
-    public function executeCommand() {
-        $this->command->execute();
+    public function interpret(Context $context) {
+        $result1 = $this->expr1->interpret($context);
+        $result2 = $this->expr2->interpret($context);
+        return array_intersect_key($result1, $result2);
     }
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Шаг 5: Использование интерпретатора**
+
+Теперь мы можем использовать наш интерпретатор для выполнения запросов.
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-// Создаем компонент
-$component = new Component('Сервер');
+// Пример данных
+$books = [
+    ['title' => 'Война и мир', 'author' => 'Толстой', 'year' => 1869, 'genre' => 'Роман'],
+    ['title' => '1984', 'author' => 'Оруэлл', 'year' => 1949, 'genre' => 'Фантастика'],
+    ['title' => 'Дюна', 'author' => 'Герберт', 'year' => 1965, 'genre' => 'Фантастика'],
+];
 
-// Создаем команды
-$startCommand = new StartCommand($component);
-$stopCommand = new StopCommand($component);
+$context = new Context($books);
 
-// Создаем отправителя команд
-$invoker = new Invoker();
+// Создание запроса
+$authorExpr = new AuthorExpression('Толстой');
+$titleExpr = new TitleExpression('Война и мир');
+$andExpr = new AndExpression($authorExpr, $titleExpr);
 
-// Устанавливаем и выполняем команду запуска
-$invoker->setCommand($startCommand);
-$invoker->executeCommand();
+// Интерпретация запроса
+$result = $andExpr->interpret($context);
 
-// Устанавливаем и выполняем команду остановки
-$invoker->setCommand($stopCommand);
-$invoker->executeCommand();
+print_r($result);
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (86).png" alt=""><figcaption><p>UML диаграмма для паттерна "Команда"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Интерпретатор"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Command {
-    +execute()
+
+class Context {
+    -books: array
+    +__construct(books: array): void
+    +getBooks(): array
 }
 
-class StartCommand {
-    -component: Component
-    +__construct(component: Component)
-    +execute()
+abstract class AbstractExpression {
+    +interpret(context: Context): array
 }
 
-class StopCommand {
-    -component: Component
-    +__construct(component: Component)
-    +execute()
+class AuthorExpression {
+    -author: string
+    +__construct(author: string): void
+    +interpret(context: Context): array
 }
 
-class Component {
-    -name: String
-    +__construct(name: String)
-    +start()
-    +stop()
+class TitleExpression {
+    -title: string
+    +__construct(title: string): void
+    +interpret(context: Context): array
 }
 
-class Invoker {
-    -command: Command
-    +setCommand(command: Command)
-    +executeCommand()
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +__construct(expr1: AbstractExpression, expr2: AbstractExpression): void
+    +interpret(context: Context): array
 }
 
-Command <|-- StartCommand
-Command <|-- StopCommand
-StartCommand --> Component
-StopCommand --> Component
-Invoker --> Command
+AbstractExpression <|-- AuthorExpression
+AbstractExpression <|-- TitleExpression
+AbstractExpression <|-- AndExpression
+
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+### Вывод
 
-Использование паттерна "Команда" позволяет нам гибко управлять состоянием компонентов нашего приложения. Мы можем легко добавлять новые команды, не изменяя существующий код. Это делает наше приложение более гибким и расширяемым. В данном кейсе мы создали команды для запуска и остановки компонентов, а также отправителя команд, который может выполнять эти команды. Это позволяет нам легко управлять состоянием наших компонентов и добавлять новые команды в будущем.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Интерпретатор" для создания системы, которая позволяет пользователям создавать и выполнять сложные запросы к базе данных книг. Мы создали контекст, абстрактное выражение, конечные выражения и неконечные выражения. Затем мы использовали эти компоненты для интерпретации и выполнения запросов.
+
+Паттерн "Интерпретатор" позволяет гибко и удобно обрабатывать сложные запросы, разделяя грамматику языка от его интерпретации. Это делает код более чистым и управляемым, особенно когда речь идет о сложных условиях и правилах.
