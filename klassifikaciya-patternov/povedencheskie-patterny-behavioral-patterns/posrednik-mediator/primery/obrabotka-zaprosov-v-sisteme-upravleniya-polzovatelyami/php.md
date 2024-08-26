@@ -1,177 +1,177 @@
 # PHP
 
-Представьте, что мы — команда разработчиков, работающих в команде по интеграции данных из различных источников. Наша задача — собрать данные из нескольких баз данных и предоставить их в едином формате для дальнейшего анализа. Для этого мы будем использовать паттерн ООП "Итератор", который позволяет нам последовательно проходить по элементам коллекции без необходимости знать её внутреннюю структуру.
+Мы — команда разработчиков, создающих систему управления пользователями. Наша цель — сделать так, чтобы все компоненты системы могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
 
 ### Описание кейса
 
-Мы хотим создать систему, которая будет собирать данные из двух различных источников: базы данных MySQL и API-сервиса. Мы будем использовать паттерн Итератор для того, чтобы абстрагироваться от конкретных деталей получения данных и предоставить единый интерфейс для их обработки.
+В нашей системе управления пользователями есть несколько компонентов: модуль аутентификации, модуль авторизации и модуль уведомлений. Каждый из этих модулей выполняет свои задачи и должен быть в курсе того, что делают другие. Например, после успешной аутентификации пользователя, модуль авторизации должен проверить его права доступа, а модуль уведомлений должен отправить уведомление. Без посредника все эти модули должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+
+### Применение паттерна "Посредник"
+
+Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми модулями. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
 
 ### Пример кода на PHP
 
-**1. Создание интерфейса Итератора**
+**1. Интерфейс Посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface DataIterator {
-    public function current();
-    public function key();
-    public function next();
-    public function rewind();
-    public function valid();
+interface Mediator {
+    public function notify(string $sender, string $event, $data = null);
 }
 ```
 {% endcode %}
 
-**2. Реализация Итератора для базы данных MySQL**
+**2. Конкретный Посредник**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class MySQLDataIterator implements DataIterator {
-    private $data;
-    private $position = 0;
+class ConcreteMediator implements Mediator {
+    private $authentication;
+    private $authorization;
+    private $notification;
 
-    public function __construct($data) {
-        $this->data = $data;
+    public function __construct(Authentication $authentication, Authorization $authorization, Notification $notification) {
+        $this->authentication = $authentication;
+        $this->authorization = $authorization;
+        $this->notification = $notification;
+
+        $this->authentication->setMediator($this);
+        $this->authorization->setMediator($this);
+        $this->notification->setMediator($this);
     }
 
-    public function current() {
-        return $this->data[$this->position];
-    }
-
-    public function key() {
-        return $this->position;
-    }
-
-    public function next() {
-        ++$this->position;
-    }
-
-    public function rewind() {
-        $this->position = 0;
-    }
-
-    public function valid() {
-        return isset($this->data[$this->position]);
+    public function notify(string $sender, string $event, $data = null) {
+        if ($sender === 'Authentication') {
+            if ($event === 'UserAuthenticated') {
+                $this->authorization->checkAccess($data);
+                $this->notification->sendNotification($data);
+            }
+        } elseif ($sender === 'Authorization') {
+            if ($event === 'AccessGranted') {
+                $this->notification->sendNotification($data);
+            }
+        }
     }
 }
 ```
 {% endcode %}
 
-**3. Реализация Итератора для API-сервиса**
+**3. Базовый класс модуля**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class APIDataIterator implements DataIterator {
-    private $data;
-    private $position = 0;
+abstract class BaseModule {
+    protected $mediator;
 
-    public function __construct($data) {
-        $this->data = $data;
-    }
-
-    public function current() {
-        return $this->data[$this->position];
-    }
-
-    public function key() {
-        return $this->position;
-    }
-
-    public function next() {
-        ++$this->position;
-    }
-
-    public function rewind() {
-        $this->position = 0;
-    }
-
-    public function valid() {
-        return isset($this->data[$this->position]);
+    public function setMediator(Mediator $mediator) {
+        $this->mediator = $mediator;
     }
 }
 ```
 {% endcode %}
 
-**4. Использование Итераторов**
+**4. Класс Аутентификации**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Пример данных из MySQL
-$mysqlData = [
-    ['id' => 1, 'name' => 'Alice'],
-    ['id' => 2, 'name' => 'Bob'],
-];
-
-// Пример данных из API
-$apiData = [
-    ['id' => 3, 'name' => 'Charlie'],
-    ['id' => 4, 'name' => 'David'],
-];
-
-// Создание итераторов
-$mysqlIterator = new MySQLDataIterator($mysqlData);
-$apiIterator = new APIDataIterator($apiData);
-
-// Функция для обработки данных
-function processData(DataIterator $iterator) {
-    foreach ($iterator as $item) {
-        echo 'ID: ' . $item['id'] . ', Name: ' . $item['name'] . "\n";
+class Authentication extends BaseModule {
+    public function authenticateUser($user) {
+        // Логика аутентификации пользователя
+        $this->mediator->notify('Authentication', 'UserAuthenticated', $user);
     }
 }
+```
+{% endcode %}
 
-// Обработка данных из MySQL
-processData($mysqlIterator);
+**5. Класс Авторизации**
 
-// Обработка данных из API
-processData($apiIterator);
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Authorization extends BaseModule {
+    public function checkAccess($user) {
+        // Логика проверки доступа пользователя
+        echo "Authorization: Checking access for user: $user\n";
+        $this->mediator->notify('Authorization', 'AccessGranted', $user);
+    }
+}
+```
+{% endcode %}
+
+**6. Класс Уведомлений**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Notification extends BaseModule {
+    public function sendNotification($user) {
+        // Логика отправки уведомления пользователю
+        echo "Notification: Sending notification to user: $user\n";
+    }
+}
+```
+{% endcode %}
+
+#### Пример использования
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+$authentication = new Authentication();
+$authorization = new Authorization();
+$notification = new Notification();
+
+$mediator = new ConcreteMediator($authentication, $authorization, $notification);
+
+$authentication->authenticateUser('User1');
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (99).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-
-interface DataIterator {
-    +current()
-    +key()
-    +next()
-    +rewind()
-    +valid()
+interface Mediator {
+    +notify(sender: String, event: String, data: Any): void
 }
 
-class MySQLDataIterator {
-    -data
-    -position
-    +__construct(data)
-    +current()
-    +key()
-    +next()
-    +rewind()
-    +valid()
+class ConcreteMediator {
+    -authentication: Authentication
+    -authorization: Authorization
+    -notification: Notification
+    +__construct(authentication: Authentication, authorization: Authorization, notification: Notification): void
+    +notify(sender: String, event: String, data: Any): void
 }
 
-class APIDataIterator {
-    -data
-    -position
-    +__construct(data)
-    +current()
-    +key()
-    +next()
-    +rewind()
-    +valid()
+abstract class BaseModule {
+    -mediator: Mediator
+    +setMediator(mediator: Mediator): void
 }
 
-DataIterator <|-- MySQLDataIterator
-DataIterator <|-- APIDataIterator
+class Authentication {
+    +authenticateUser(user: String): void
+}
 
+class Authorization {
+    +checkAccess(user: String): void
+}
+
+class Notification {
+    +sendNotification(user: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseModule <|-- Authentication
+BaseModule <|-- Authorization
+BaseModule <|-- Notification
+ConcreteMediator --> Authentication
+ConcreteMediator --> Authorization
+ConcreteMediator --> Notification
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-В этом кейсе мы использовали паттерн Итератор для создания единого интерфейса для обработки данных из различных источников. Это позволило нам абстрагироваться от конкретных деталей получения данных и предоставить единый способ их обработки. Такой подход упрощает код, делает его более гибким и легким для расширения в будущем.
+Использование паттерна "Посредник" в нашей системе управления пользователями позволяет значительно упростить взаимодействие между различными модулями. Вместо того чтобы каждый модуль общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Модули аутентификации, авторизации и уведомлений могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом.

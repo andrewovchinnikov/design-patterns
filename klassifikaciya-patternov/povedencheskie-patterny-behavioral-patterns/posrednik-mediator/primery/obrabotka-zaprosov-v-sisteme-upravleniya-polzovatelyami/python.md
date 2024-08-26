@@ -1,142 +1,164 @@
 # Python
 
-Представьте, что мы — команда разработчиков, работающих в команде по интеграции данных из различных источников. Наша задача — собрать данные из нескольких баз данных и предоставить их в едином формате для дальнейшего анализа. Для этого мы будем использовать паттерн ООП "Итератор", который позволяет нам последовательно проходить по элементам коллекции без необходимости знать её внутреннюю структуру.
+Мы — команда разработчиков, создающих систему управления пользователями. Наша цель — сделать так, чтобы все компоненты системы могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
 
 ### Описание кейса
 
-Мы хотим создать систему, которая будет собирать данные из двух различных источников: базы данных MySQL и API-сервиса. Мы будем использовать паттерн Итератор для того, чтобы абстрагироваться от конкретных деталей получения данных и предоставить единый интерфейс для их обработки.
+В нашей системе управления пользователями есть несколько компонентов: модуль аутентификации, модуль авторизации и модуль уведомлений. Каждый из этих модулей выполняет свои задачи и должен быть в курсе того, что делают другие. Например, после успешной аутентификации пользователя, модуль авторизации должен проверить его права доступа, а модуль уведомлений должен отправить уведомление. Без посредника все эти модули должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
 
-### Пример кода на Python
+### Применение паттерна "Посредник"
 
-**1. Создание интерфейса Итератора**
+Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми модулями. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
+
+#### Пример кода на Python
+
+**1. Интерфейс Посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class DataIterator(ABC):
+class Mediator(ABC):
     @abstractmethod
-    def has_next(self):
-        pass
-
-    @abstractmethod
-    def next(self):
+    def notify(self, sender: str, event: str, data=None):
         pass
 ```
 {% endcode %}
 
-**2. Реализация Итератора для базы данных MySQL**
+**2. Конкретный Посредник**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class MySQLDataIterator(DataIterator):
-    def __init__(self, data):
-        self.data = data
-        self.position = 0
+class ConcreteMediator(Mediator):
+    def __init__(self, authentication, authorization, notification):
+        self.authentication = authentication
+        self.authorization = authorization
+        self.notification = notification
+        self.authentication.set_mediator(self)
+        self.authorization.set_mediator(self)
+        self.notification.set_mediator(self)
 
-    def has_next(self):
-        return self.position < len(self.data)
-
-    def next(self):
-        if not self.has_next():
-            return None
-        item = self.data[self.position]
-        self.position += 1
-        return item
+    def notify(self, sender: str, event: str, data=None):
+        if sender == 'Authentication':
+            if event == 'UserAuthenticated':
+                self.authorization.check_access(data)
+                self.notification.send_notification(data)
+        elif sender == 'Authorization':
+            if event == 'AccessGranted':
+                self.notification.send_notification(data)
 ```
 {% endcode %}
 
-**3. Реализация Итератора для API-сервиса**
+**3. Базовый класс модуля**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class APIDataIterator(DataIterator):
-    def __init__(self, data):
-        self.data = data
-        self.position = 0
+class BaseModule:
+    def __init__(self):
+        self.mediator = None
 
-    def has_next(self):
-        return self.position < len(self.data)
-
-    def next(self):
-        if not self.has_next():
-            return None
-        item = self.data[self.position]
-        self.position += 1
-        return item
+    def set_mediator(self, mediator: Mediator):
+        self.mediator = mediator
 ```
 {% endcode %}
 
-**4. Использование Итераторов**
+**4. Класс Аутентификации**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-def process_data(iterator):
-    while iterator.has_next():
-        item = iterator.next()
-        print(f"ID: {item['id']}, Name: {item['name']}")
+class Authentication(BaseModule):
+    def authenticate_user(self, user: str):
+        # Логика аутентификации пользователя
+        print(f"Authentication: Authenticating user: {user}")
+        self.mediator.notify('Authentication', 'UserAuthenticated', user)
+```
+{% endcode %}
 
+**5. Класс Авторизации**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Authorization(BaseModule):
+    def check_access(self, user: str):
+        # Логика проверки доступа пользователя
+        print(f"Authorization: Checking access for user: {user}")
+        self.mediator.notify('Authorization', 'AccessGranted', user)
+```
+{% endcode %}
+
+**6. Класс Уведомлений**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Notification(BaseModule):
+    def send_notification(self, user: str):
+        # Логика отправки уведомления пользователю
+        print(f"Notification: Sending notification to user: {user}")
+```
+{% endcode %}
+
+#### Пример использования
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
 if __name__ == "__main__":
-    # Пример данных из MySQL
-    mysql_data = [
-        {"id": 1, "name": "Alice"},
-        {"id": 2, "name": "Bob"},
-    ]
+    authentication = Authentication()
+    authorization = Authorization()
+    notification = Notification()
 
-    # Пример данных из API
-    api_data = [
-        {"id": 3, "name": "Charlie"},
-        {"id": 4, "name": "David"},
-    ]
+    mediator = ConcreteMediator(authentication, authorization, notification)
 
-    # Создание итераторов
-    mysql_iterator = MySQLDataIterator(mysql_data)
-    api_iterator = APIDataIterator(api_data)
-
-    # Обработка данных из MySQL
-    process_data(mysql_iterator)
-
-    # Обработка данных из API
-    process_data(api_iterator)
+    authentication.authenticate_user('User1')
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (5) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (101).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-
-interface DataIterator {
-    +has_next()
-    +next()
+interface Mediator {
+    +notify(sender: String, event: String, data: Any): void
 }
 
-class MySQLDataIterator {
-    -data
-    -position
-    +__init__(data)
-    +has_next()
-    +next()
+class ConcreteMediator {
+    -authentication: Authentication
+    -authorization: Authorization
+    -notification: Notification
+    +__init__(authentication: Authentication, authorization: Authorization, notification: Notification): void
+    +notify(sender: String, event: String, data: Any): void
 }
 
-class APIDataIterator {
-    -data
-    -position
-    +__init__(data)
-    +has_next()
-    +next()
+abstract class BaseModule {
+    -mediator: Mediator
+    +set_mediator(mediator: Mediator): void
 }
 
-DataIterator <|-- MySQLDataIterator
-DataIterator <|-- APIDataIterator
+class Authentication {
+    +authenticate_user(user: String): void
+}
 
+class Authorization {
+    +check_access(user: String): void
+}
+
+class Notification {
+    +send_notification(user: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseModule <|-- Authentication
+BaseModule <|-- Authorization
+BaseModule <|-- Notification
+ConcreteMediator --> Authentication
+ConcreteMediator --> Authorization
+ConcreteMediator --> Notification
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-В этом кейсе мы использовали паттерн Итератор для создания единого интерфейса для обработки данных из различных источников. Это позволило нам абстрагироваться от конкретных деталей получения данных и предоставить единый способ их обработки. Такой подход упрощает код, делает его более гибким и легким для расширения в будущем.
+Использование паттерна "Посредник" в нашей системе управления пользователями позволяет значительно упростить взаимодействие между различными модулями. Вместо того чтобы каждый модуль общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Модули аутентификации, авторизации и уведомлений могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом.
