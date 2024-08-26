@@ -1,14 +1,88 @@
 # Go
 
-Мы работаем в компании, которая занимается анализом данных в реальном времени. Наша задача — создать систему, которая будет собирать данные с различных сенсоров и анализировать их. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы мы могли добавлять новые типы сенсоров и методы анализа данных без необходимости переписывать весь код.
+Мы — команда разработчиков, создающих систему управления проектами. Наша цель — сделать так, чтобы все участники проекта могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
 
 ### Описание кейса
 
-Для решения этой задачи мы будем использовать паттерн проектирования "Итератор". Этот паттерн позволяет нам перебирать элементы коллекции без необходимости знать её внутреннюю структуру. В нашем случае, коллекцией будут данные, поступающие с сенсоров, а итератор будет использоваться для их последовательного анализа.
+В нашей системе управления проектами есть несколько типов пользователей: менеджеры, разработчики и тестировщики. Каждый из них выполняет свои задачи и должен быть в курсе того, что делают другие. Например, менеджер создает задачи, разработчик их выполняет, а тестировщик проверяет. Без посредника все они должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+
+### Применение паттерна "Посредник"
+
+Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми участниками. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
 
 ### Пример кода на Go
 
-**Шаг 1: Определение интерфейса итератора**
+**1. Интерфейс Посредника**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Mediator interface {
+    Notify(sender string, event string, data interface{})
+}
+```
+{% endcode %}
+
+**2. Конкретный Посредник**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type ConcreteMediator struct {
+    manager  *Manager
+    developer *Developer
+    tester   *Tester
+}
+
+func NewConcreteMediator(manager *Manager, developer *Developer, tester *Tester) *ConcreteMediator {
+    mediator := &ConcreteMediator{
+        manager:  manager,
+        developer: developer,
+        tester:   tester,
+    }
+    manager.SetMediator(mediator)
+    developer.SetMediator(mediator)
+    tester.SetMediator(mediator)
+    return mediator
+}
+
+func (m *ConcreteMediator) Notify(sender string, event string, data interface{}) {
+    if sender == "Manager" {
+        if event == "TaskCreated" {
+            m.developer.ReceiveTask(data)
+        }
+    } else if sender == "Developer" {
+        if event == "TaskCompleted" {
+            m.tester.ReceiveTask(data)
+        }
+    } else if sender == "Tester" {
+        if event == "TaskTested" {
+            m.manager.ReceiveReport(data)
+        }
+    }
+}
+```
+{% endcode %}
+
+**3. Базовый класс участника**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type BaseUser struct {
+    mediator Mediator
+}
+
+func (u *BaseUser) SetMediator(mediator Mediator) {
+    u.mediator = mediator
+}
+```
+{% endcode %}
+
+**4. Класс Менеджера**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -16,121 +90,131 @@ package main
 
 import "fmt"
 
-type Iterator interface {
-    HasNext() bool
-    Next() interface{}
+type Manager struct {
+    BaseUser
+}
+
+func (m *Manager) CreateTask(task string) {
+    // Логика создания задачи
+    m.mediator.Notify("Manager", "TaskCreated", task)
+}
+
+func (m *Manager) ReceiveReport(report string) {
+    // Логика получения отчета
+    fmt.Printf("Manager received report: %s\n", report)
 }
 ```
 {% endcode %}
 
-**Шаг 2: Определение интерфейса коллекции**
+**5. Класс Разработчика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Aggregate interface {
-    CreateIterator() Iterator
+package main
+
+import "fmt"
+
+type Developer struct {
+    BaseUser
+}
+
+func (d *Developer) ReceiveTask(task string) {
+    // Логика получения задачи
+    fmt.Printf("Developer received task: %s\n", task)
+    // Выполнение задачи
+    d.mediator.Notify("Developer", "TaskCompleted", task)
 }
 ```
 {% endcode %}
 
-**Шаг 3: Реализация коллекции данных сенсоров**
+**6. Класс Тестировщика**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type SensorDataCollection struct {
-    data []interface{}
+package main
+
+import "fmt"
+
+type Tester struct {
+    BaseUser
 }
 
-func (c *SensorDataCollection) AddData(data interface{}) {
-    c.data = append(c.data, data)
-}
-
-func (c *SensorDataCollection) CreateIterator() Iterator {
-    return &SensorDataIterator{data: c.data}
+func (t *Tester) ReceiveTask(task string) {
+    // Логика получения задачи
+    fmt.Printf("Tester received task: %s\n", task)
+    // Тестирование задачи
+    report := fmt.Sprintf("Test report for task: %s", task)
+    t.mediator.Notify("Tester", "TaskTested", report)
 }
 ```
 {% endcode %}
 
-**Шаг 4: Реализация итератора для данных сенсоров**
+### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type SensorDataIterator struct {
-    data  []interface{}
-    index int
-}
-
-func (i *SensorDataIterator) HasNext() bool {
-    return i.index < len(i.data)
-}
-
-func (i *SensorDataIterator) Next() interface{} {
-    if i.HasNext() {
-        data := i.data[i.index]
-        i.index++
-        return data
-    }
-    return nil
-}
-```
-{% endcode %}
-
-**Шаг 5: Использование итератора для анализа данных**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-func analyzeData(collection Aggregate) {
-    iterator := collection.CreateIterator()
-    for iterator.HasNext() {
-        data := iterator.Next()
-        // Анализируем данные
-        fmt.Printf("Анализируем данные: %v\n", data)
-    }
-}
+package main
 
 func main() {
-    collection := &SensorDataCollection{}
-    collection.AddData("Данные с сенсора 1")
-    collection.AddData("Данные с сенсора 2")
-    collection.AddData("Данные с сенсора 3")
+    manager := &Manager{}
+    developer := &Developer{}
+    tester := &Tester{}
 
-    analyzeData(collection)
+    mediator := NewConcreteMediator(manager, developer, tester)
+
+    manager.CreateTask("Task 1")
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Iterator {
-    +HasNext(): bool
-    +Next(): any
+interface Mediator {
+    +Notify(sender: String, event: String, data: Any): void
 }
 
-interface Aggregate {
-    +CreateIterator(): Iterator
+class ConcreteMediator {
+    -manager: Manager
+    -developer: Developer
+    -tester: Tester
+    +NewConcreteMediator(manager: Manager, developer: Developer, tester: Tester): ConcreteMediator
+    +Notify(sender: String, event: String, data: Any): void
 }
 
-class SensorDataCollection implements Aggregate {
-    -data: array
-    +AddData(data: any): void
-    +CreateIterator(): SensorDataIterator
+abstract class BaseUser {
+    -mediator: Mediator
+    +SetMediator(mediator: Mediator): void
 }
 
-class SensorDataIterator implements Iterator {
-    -data: array
-    -index: int
-    +HasNext(): bool
-    +Next(): any
+class Manager {
+    +CreateTask(task: String): void
+    +ReceiveReport(report: String): void
 }
 
-SensorDataCollection --> SensorDataIterator: CreateIterator
+class Developer {
+    +ReceiveTask(task: String): void
+}
+
+class Tester {
+    +ReceiveTask(task: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseUser <|-- Manager
+BaseUser <|-- Developer
+BaseUser <|-- Tester
+ConcreteMediator --> Manager
+ConcreteMediator --> Developer
+ConcreteMediator --> Tester
 @enduml
 ```
+{% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-Использование паттерна "Итератор" позволяет нам создать гибкую и расширяемую систему для анализа данных в реальном времени. Мы можем легко добавлять новые типы данных и методы анализа, не изменяя существующий код. Это делает нашу систему более устойчивой к изменениям и упрощает её поддержку.
+Использование паттерна "Посредник" в нашей системе управления проектами позволяет значительно упростить взаимодействие между различными участниками проекта. Вместо того чтобы каждый участник общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Менеджеры, разработчики и тестировщики могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом.

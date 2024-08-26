@@ -1,146 +1,190 @@
 # PHP
 
-Мы работаем в компании, которая занимается анализом данных в реальном времени. Наша задача — создать систему, которая будет собирать данные с различных сенсоров и анализировать их. Мы хотим, чтобы наша система была гибкой и легко расширяемой, чтобы мы могли добавлять новые типы сенсоров и методы анализа данных без необходимости переписывать весь код.
+Мы — команда разработчиков, создающих систему управления проектами. Наша цель — сделать так, чтобы все участники проекта могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
 
 ### Описание кейса
 
-Для решения этой задачи мы будем использовать паттерн проектирования "Итератор". Этот паттерн позволяет нам перебирать элементы коллекции без необходимости знать её внутреннюю структуру. В нашем случае, коллекцией будут данные, поступающие с сенсоров, а итератор будет использоваться для их последовательного анализа.
+В нашей системе управления проектами есть несколько типов пользователей: менеджеры, разработчики и тестировщики. Каждый из них выполняет свои задачи и должен быть в курсе того, что делают другие. Например, менеджер создает задачи, разработчик их выполняет, а тестировщик проверяет. Без посредника все они должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+
+### Применение паттерна "Посредник"
+
+Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми участниками. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
 
 ### Пример кода на PHP
 
-**Шаг 1: Определение интерфейса итератора**
+**1. Интерфейс Посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface Iterator {
-    public function hasNext();
-    public function next();
+interface Mediator {
+    public function notify(string $sender, string $event, $data = null);
 }
-?>
 ```
 {% endcode %}
 
-**Шаг 2: Определение интерфейса коллекции**
+**2. Конкретный Посредник**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface Aggregate {
-    public function createIterator();
-}
-?>
-```
-{% endcode %}
+class ConcreteMediator implements Mediator {
+    private $manager;
+    private $developer;
+    private $tester;
 
-**Шаг 3: Реализация коллекции данных сенсоров**
+    public function __construct(Manager $manager, Developer $developer, Tester $tester) {
+        $this->manager = $manager;
+        $this->developer = $developer;
+        $this->tester = $tester;
 
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class SensorDataCollection implements Aggregate {
-    private $data = [];
-
-    public function addData($data) {
-        $this->data[] = $data;
+        $this->manager->setMediator($this);
+        $this->developer->setMediator($this);
+        $this->tester->setMediator($this);
     }
 
-    public function createIterator() {
-        return new SensorDataIterator($this->data);
-    }
-}
-?>
-```
-{% endcode %}
-
-**Шаг 4: Реализация итератора для данных сенсоров**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
-class SensorDataIterator implements Iterator {
-    private $data;
-    private $index = 0;
-
-    public function __construct($data) {
-        $this->data = $data;
-    }
-
-    public function hasNext() {
-        return $this->index < count($this->data);
-    }
-
-    public function next() {
-        if ($this->hasNext()) {
-            return $this->data[$this->index++];
+    public function notify(string $sender, string $event, $data = null) {
+        if ($sender === 'Manager') {
+            if ($event === 'TaskCreated') {
+                $this->developer->receiveTask($data);
+            }
+        } elseif ($sender === 'Developer') {
+            if ($event === 'TaskCompleted') {
+                $this->tester->receiveTask($data);
+            }
+        } elseif ($sender === 'Tester') {
+            if ($event === 'TaskTested') {
+                $this->manager->receiveReport($data);
+            }
         }
-        return null;
     }
 }
-?>
 ```
 {% endcode %}
 
-**Шаг 5: Использование итератора для анализа данных**
+**3. Базовый класс участника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-function analyzeData(Aggregate $collection) {
-    $iterator = $collection->createIterator();
-    while ($iterator->hasNext()) {
-        $data = $iterator->next();
-        // Анализируем данные
-        echo "Анализируем данные: " . $data . "\n";
+abstract class BaseUser {
+    protected $mediator;
+
+    public function setMediator(Mediator $mediator) {
+        $this->mediator = $mediator;
     }
 }
+```
+{% endcode %}
 
-// Пример использования
-$collection = new SensorDataCollection();
-$collection->addData("Данные с сенсора 1");
-$collection->addData("Данные с сенсора 2");
-$collection->addData("Данные с сенсора 3");
+**4. Класс Менеджера**
 
-analyzeData($collection);
-?>
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Manager extends BaseUser {
+    public function createTask($task) {
+        // Логика создания задачи
+        $this->mediator->notify('Manager', 'TaskCreated', $task);
+    }
+
+    public function receiveReport($report) {
+        // Логика получения отчета
+        echo "Manager received report: $report\n";
+    }
+}
+```
+{% endcode %}
+
+**5. Класс Разработчика**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Developer extends BaseUser {
+    public function receiveTask($task) {
+        // Логика получения задачи
+        echo "Developer received task: $task\n";
+        // Выполнение задачи
+        $this->mediator->notify('Developer', 'TaskCompleted', $task);
+    }
+}
+```
+{% endcode %}
+
+**6. Класс Тестировщика**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+class Tester extends BaseUser {
+    public function receiveTask($task) {
+        // Логика получения задачи
+        echo "Tester received task: $task\n";
+        // Тестирование задачи
+        $report = "Test report for task: $task";
+        $this->mediator->notify('Tester', 'TaskTested', $report);
+    }
+}
+```
+{% endcode %}
+
+#### Пример использования
+
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+$manager = new Manager();
+$developer = new Developer();
+$tester = new Tester();
+
+$mediator = new ConcreteMediator($manager, $developer, $tester);
+
+$manager->createTask('Task 1');
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (6).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Iterator {
-    +hasNext(): bool
-    +next(): any
+interface Mediator {
+    +notify(sender: String, event: String, data: Any): void
 }
 
-interface Aggregate {
-    +createIterator(): Iterator
+class ConcreteMediator {
+    -manager: Manager
+    -developer: Developer
+    -tester: Tester
+    +__construct(manager: Manager, developer: Developer, tester: Tester): void
+    +notify(sender: String, event: String, data: Any): void
 }
 
-class SensorDataCollection implements Aggregate {
-    -data: array
-    +addData(data: any): void
-    +createIterator(): SensorDataIterator
+abstract class BaseUser {
+    -mediator: Mediator
+    +setMediator(mediator: Mediator): void
 }
 
-class SensorDataIterator implements Iterator {
-    -data: array
-    -index: int
-    +__construct(data: array): void
-    +hasNext(): bool
-    +next(): any
+class Manager {
+    +createTask(task: String): void
+    +receiveReport(report: String): void
 }
 
-SensorDataCollection --> SensorDataIterator: createIterator
+class Developer {
+    +receiveTask(task: String): void
+}
+
+class Tester {
+    +receiveTask(task: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseUser <|-- Manager
+BaseUser <|-- Developer
+BaseUser <|-- Tester
+ConcreteMediator --> Manager
+ConcreteMediator --> Developer
+ConcreteMediator --> Tester
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-Использование паттерна "Итератор" позволяет нам создать гибкую и расширяемую систему для анализа данных в реальном времени. Мы можем легко добавлять новые типы данных и методы анализа, не изменяя существующий код. Это делает нашу систему более устойчивой к изменениям и упрощает её поддержку.
+Использование паттерна "Посредник" в нашей системе управления проектами позволяет значительно упростить взаимодействие между различными участниками проекта. Вместо того чтобы каждый участник общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Менеджеры, разработчики и тестировщики могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом
