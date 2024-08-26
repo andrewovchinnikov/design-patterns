@@ -1,0 +1,39 @@
+@startuml
+interface Mediator {
+    +notify(sender: String, event: String, data: Any): void
+}
+
+class ConcreteMediator {
+    -manager: Manager
+    -developer: Developer
+    -tester: Tester
+    +__construct(manager: Manager, developer: Developer, tester: Tester): void
+    +notify(sender: String, event: String, data: Any): void
+}
+
+abstract class BaseUser {
+    -mediator: Mediator
+    +setMediator(mediator: Mediator): void
+}
+
+class Manager {
+    +createTask(task: String): void
+    +receiveReport(report: String): void
+}
+
+class Developer {
+    +receiveTask(task: String): void
+}
+
+class Tester {
+    +receiveTask(task: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseUser <|-- Manager
+BaseUser <|-- Developer
+BaseUser <|-- Tester
+ConcreteMediator --> Manager
+ConcreteMediator --> Developer
+ConcreteMediator --> Tester
+@enduml

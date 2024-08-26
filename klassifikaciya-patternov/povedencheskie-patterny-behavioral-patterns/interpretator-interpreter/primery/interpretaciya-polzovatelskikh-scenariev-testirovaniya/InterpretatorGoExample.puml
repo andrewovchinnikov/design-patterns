@@ -1,0 +1,41 @@
+@startuml
+
+interface Command {
+    +Interpret(context: Context): void
+}
+
+class Context {
+    -output: List<String>
+    +AddOutput(message: String): void
+    +GetOutput(): List<String>
+}
+
+class OpenPageCommand {
+    -url: String
+    +Interpret(context: Context): void
+}
+
+class ClickButtonCommand {
+    -buttonName: String
+    +Interpret(context: Context): void
+}
+
+class EnterTextCommand {
+    -text: String
+    -fieldName: String
+    +Interpret(context: Context): void
+}
+
+class Interpreter {
+    -commands: List<Command>
+    +Interpret(context: Context): void
+}
+
+Command <|-- OpenPageCommand
+Command <|-- ClickButtonCommand
+Command <|-- EnterTextCommand
+
+Interpreter --> Command
+Interpreter --> Context
+
+@enduml

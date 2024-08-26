@@ -1,0 +1,47 @@
+@startuml
+interface Command {
+    +Execute()
+}
+
+class UploadCommand {
+    -fileManager: FileManager
+    -fileName: String
+    +__init__(fileManager: FileManager, fileName: String)
+    +Execute()
+}
+
+class DeleteCommand {
+    -fileManager: FileManager
+    -fileName: String
+    +__init__(fileManager: FileManager, fileName: String)
+    +Execute()
+}
+
+class EditCommand {
+    -fileManager: FileManager
+    -fileName: String
+    -newContent: String
+    +__init__(fileManager: FileManager, fileName: String, newContent: String)
+    +Execute()
+}
+
+class FileManager {
+    +Upload(fileName: String)
+    +Delete(fileName: String)
+    +Edit(fileName: String, newContent: String)
+}
+
+class Invoker {
+    -command: Command
+    +SetCommand(command: Command)
+    +ExecuteCommand()
+}
+
+Command <|-- UploadCommand
+Command <|-- DeleteCommand
+Command <|-- EditCommand
+UploadCommand --> FileManager
+DeleteCommand --> FileManager
+EditCommand --> FileManager
+Invoker --> Command
+@enduml

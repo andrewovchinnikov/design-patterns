@@ -1,0 +1,23 @@
+@startuml
+
+class Context {
+    +getVariable(name: string): any
+    +setVariable(name: string, value: any): void
+}
+
+abstract class AbstractExpression {
+    +interpret(context: Context): void
+}
+
+class TerminalExpression {
+    +interpret(context: Context): void
+}
+
+class NonterminalExpression {
+    +interpret(context: Context): void
+}
+
+AbstractExpression <|-- TerminalExpression
+AbstractExpression <|-- NonterminalExpression
+
+@enduml

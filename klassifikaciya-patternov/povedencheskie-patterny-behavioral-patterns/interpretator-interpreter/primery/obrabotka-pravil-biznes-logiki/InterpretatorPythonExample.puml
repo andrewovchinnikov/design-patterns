@@ -1,0 +1,39 @@
+@startuml
+
+class Context {
+    -order: Order
+    +get_order(): Order
+}
+
+interface AbstractExpression {
+    +interpret(context: Context): bool
+}
+
+class OrderAmountExpression {
+    -amount: float
+    +interpret(context: Context): bool
+}
+
+class OrderContainsProductExpression {
+    -product: string
+    +interpret(context: Context): bool
+}
+
+class AndExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +interpret(context: Context): bool
+}
+
+class OrExpression {
+    -expr1: AbstractExpression
+    -expr2: AbstractExpression
+    +interpret(context: Context): bool
+}
+
+AbstractExpression <|-- OrderAmountExpression
+AbstractExpression <|-- OrderContainsProductExpression
+AbstractExpression <|-- AndExpression
+AbstractExpression <|-- OrExpression
+
+@enduml

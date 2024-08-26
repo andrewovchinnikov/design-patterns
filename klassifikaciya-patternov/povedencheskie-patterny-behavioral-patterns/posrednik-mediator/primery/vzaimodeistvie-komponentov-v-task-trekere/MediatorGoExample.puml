@@ -1,0 +1,36 @@
+@startuml
+
+interface Mediator {
+    +Send(message: string, colleague: Colleague): void
+}
+
+class Colleague {
+    -mediator: Mediator
+    +Send(message: string): void
+    +Receive(message: string): void
+}
+
+class ConcreteMediator {
+    -colleagues: Colleague[]
+    +AddColleague(colleague: Colleague): void
+    +Send(message: string, colleague: Colleague): void
+}
+
+class TaskCreator {
+    +Receive(message: string): void
+}
+
+class TaskAssigner {
+    +Receive(message: string): void
+}
+
+class Notifier {
+    +Receive(message: string): void
+}
+
+Mediator <|-- ConcreteMediator
+Colleague <|-- TaskCreator
+Colleague <|-- TaskAssigner
+Colleague <|-- Notifier
+
+@enduml

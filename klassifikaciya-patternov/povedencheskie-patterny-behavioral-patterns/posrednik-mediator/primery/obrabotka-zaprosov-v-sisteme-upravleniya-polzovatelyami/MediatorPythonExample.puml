@@ -1,0 +1,38 @@
+@startuml
+interface Mediator {
+    +notify(sender: String, event: String, data: Any): void
+}
+
+class ConcreteMediator {
+    -authentication: Authentication
+    -authorization: Authorization
+    -notification: Notification
+    +__init__(authentication: Authentication, authorization: Authorization, notification: Notification): void
+    +notify(sender: String, event: String, data: Any): void
+}
+
+abstract class BaseModule {
+    -mediator: Mediator
+    +set_mediator(mediator: Mediator): void
+}
+
+class Authentication {
+    +authenticate_user(user: String): void
+}
+
+class Authorization {
+    +check_access(user: String): void
+}
+
+class Notification {
+    +send_notification(user: String): void
+}
+
+Mediator <|-- ConcreteMediator
+BaseModule <|-- Authentication
+BaseModule <|-- Authorization
+BaseModule <|-- Notification
+ConcreteMediator --> Authentication
+ConcreteMediator --> Authorization
+ConcreteMediator --> Notification
+@enduml
