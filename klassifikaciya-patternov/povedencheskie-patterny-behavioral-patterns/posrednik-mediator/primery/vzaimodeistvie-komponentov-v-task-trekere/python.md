@@ -1,158 +1,160 @@
 # Python
 
-Мы — команда разработчиков, работающая над веб-приложением для управления очередями сообщений. Наша задача — обработать все сообщения в очереди и выполнить определенные действия для каждого сообщения. Для этого мы будем использовать паттерн "Итератор", который позволит нам последовательно обрабатывать элементы очереди, не заботясь о её внутренней структуре.
+Мы — команда разработчиков, работающая над созданием таск-трекера. Наш продукт помогает командам эффективно управлять задачами, распределять их между участниками и отслеживать прогресс. В этом кейсе мы рассмотрим, как паттерн "Посредник" (Mediator) помогает нам управлять взаимодействиями между различными компонентами нашего таск-трекера.
 
 ### Описание кейса
 
-Мы хотим создать систему, которая будет обрабатывать сообщения из очереди. Каждое сообщение может содержать различные данные, и нам нужно выполнить определенные действия для каждого сообщения. Паттерн "Итератор" поможет нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
+В нашем таск-трекере есть несколько компонентов, такие как создание задач, назначение задач, отслеживание прогресса и уведомления. Эти компоненты должны взаимодействовать друг с другом, чтобы обеспечить плавную работу системы. Паттерн "Посредник" позволяет нам централизовать управление этими взаимодействиями, что упрощает код и делает его более гибким.
 
-### Пример кода на Python
+### Применение паттерна
 
-**1. Определение интерфейса Iterator**
+Паттерн "Посредник" используется для централизованного управления взаимодействиями между компонентами. В нашем случае, посредник будет координировать действия между компонентами, такими как создание задач, назначение задач и уведомления. Это позволит нам избежать прямой зависимости между компонентами и упростить управление их взаимодействиями.
+
+#### Пример кода на Python
+
+**1. Определение интерфейса посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Iterator(ABC):
+class Mediator(ABC):
     @abstractmethod
-    def first(self):
-        pass
-
-    @abstractmethod
-    def next(self):
-        pass
-
-    @abstractmethod
-    def is_done(self):
-        pass
-
-    @abstractmethod
-    def current_item(self):
+    def send(self, message, colleague):
         pass
 ```
 {% endcode %}
 
-**2. Определение интерфейса Aggregate**
+**2. Определение базового класса коллеги**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Aggregate(ABC):
+class Colleague(ABC):
+    def __init__(self, mediator):
+        self.mediator = mediator
+
+    def send(self, message):
+        self.mediator.send(message, self)
+
     @abstractmethod
-    def create_iterator(self):
+    def receive(self, message):
         pass
 ```
 {% endcode %}
 
-**3. Реализация конкретного итератора**
+**3. Определение конкретного посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class MessageQueueIterator(Iterator):
-    def __init__(self, queue):
-        self.queue = queue
-        self.index = 0
-
-    def first(self):
-        self.index = 0
-
-    def next(self):
-        self.index += 1
-
-    def is_done(self):
-        return self.index >= len(self.queue)
-
-    def current_item(self):
-        if self.is_done():
-            return None
-        return self.queue[self.index]
-```
-{% endcode %}
-
-**4. Реализация конкретного агрегата**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class MessageQueue(Aggregate):
+class ConcreteMediator(Mediator):
     def __init__(self):
-        self.messages = []
+        self.colleagues = []
 
-    def add_message(self, message):
-        self.messages.append(message)
+    def add_colleague(self, colleague):
+        self.colleagues.append(colleague)
 
-    def create_iterator(self):
-        return MessageQueueIterator(self.messages)
+    def send(self, message, colleague):
+        for col in self.colleagues:
+            if col != colleague:
+                col.receive(message)
 ```
 {% endcode %}
 
-**5. Использование итератора для обработки сообщений**
+**4. Определение конкретных коллег**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
-def main():
-    # Создаем очередь сообщений
-    message_queue = MessageQueue()
-    message_queue.add_message("Сообщение 1")
-    message_queue.add_message("Сообщение 2")
-    message_queue.add_message("Сообщение 3")
+class TaskCreator(Colleague):
+    def receive(self, message):
+        print(f"TaskCreator получил сообщение: {message}")
 
-    # Создаем итератор для очереди
-    iterator = message_queue.create_iterator()
+class TaskAssigner(Colleague):
+    def receive(self, message):
+        print(f"TaskAssigner получил сообщение: {message}")
 
-    # Обрабатываем сообщения
-    for iterator.first(); not iterator.is_done(); iterator.next():
-        message = iterator.current_item()
-        print(f"Обработка сообщения: {message}")
-
-if __name__ == "__main__":
-    main()
+class Notifier(Colleague):
+    def receive(self, message):
+        print(f"Notifier получил сообщение: {message}")
 ```
+{% endcode %}
+
+**5. Пример использования**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+if __name__ == "__main__":
+    # Создаем посредника
+    mediator = ConcreteMediator()
+
+    # Создаем коллег
+    task_creator = TaskCreator(mediator)
+    task_assigner = TaskAssigner(mediator)
+    notifier = Notifier(mediator)
+
+    # Добавляем коллег в посредника
+    mediator.add_colleague(task_creator)
+    mediator.add_colleague(task_assigner)
+    mediator.add_colleague(notifier)
+
+    # Отправляем сообщение от TaskCreator
+    task_creator.send("Новая задача создана")
+
+    # Отправляем сообщение от TaskAssigner
+    task_assigner.send("Задача назначена пользователю")
+
+    # Отправляем сообщение от Notifier
+    notifier.send("Уведомление отправлено")
+```
+{% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (98).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Iterator {
-    +first(): void
-    +next(): void
-    +is_done(): boolean
-    +current_item(): any
+interface Mediator {
+    +send(message: string, colleague: Colleague): void
 }
 
-class MessageQueueIterator {
-    -queue: List<any>
-    -index: int
-    +__init__(queue: List<any>): void
-    +first(): void
-    +next(): void
-    +is_done(): boolean
-    +current_item(): any
+abstract class Colleague {
+    -mediator: Mediator
+    +__init__(mediator: Mediator): void
+    +send(message: string): void
+    +receive(message: string): void
 }
 
-interface Aggregate {
-    +create_iterator(): Iterator
+class ConcreteMediator {
+    -colleagues: Colleague[]
+    +add_colleague(colleague: Colleague): void
+    +send(message: string, colleague: Colleague): void
 }
 
-class MessageQueue {
-    -messages: List<any>
-    +__init__(): void
-    +add_message(message: any): void
-    +create_iterator(): Iterator
+class TaskCreator {
+    +receive(message: string): void
 }
 
-Iterator <|-- MessageQueueIterator
-Aggregate <|-- MessageQueue
-MessageQueue --> MessageQueueIterator: <<create>>
+class TaskAssigner {
+    +receive(message: string): void
+}
+
+class Notifier {
+    +receive(message: string): void
+}
+
+Mediator <|-- ConcreteMediator
+Colleague <|-- TaskCreator
+Colleague <|-- TaskAssigner
+Colleague <|-- Notifier
 
 @enduml
 ```
 {% endcode %}
 
-#### Вывод
+### Вывод для кейса
 
-В этом кейсе мы рассмотрели применение паттерна "Итератор" для обработки сообщений в очереди. Мы создали интерфейсы `Iterator` и `Aggregate`, а также их конкретные реализации `MessageQueueIterator` и `MessageQueue`. Это позволило нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
+Паттерн "Посредник" позволяет нам централизовать управление взаимодействиями между компонентами таск-трекера. Это упрощает код, делает его более гибким и облегчает добавление новых компонентов в систему. В нашем примере посредник координирует действия между созданием задач, назначением задач и уведомлениями, что позволяет избежать прямой зависимости между этими компонентами.
 
-Паттерн "Итератор" оказался очень полезным для последовательной обработки элементов коллекции, не заботясь о её внутренней структуре. Это упрощает код и делает его более гибким и поддерживаемым.
+Надеюсь, этот кейс поможет вам лучше понять, как использовать паттерн "Посредник" в реальных проектах.&#x20;
