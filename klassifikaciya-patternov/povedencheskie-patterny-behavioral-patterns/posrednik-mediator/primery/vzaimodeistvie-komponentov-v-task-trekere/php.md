@@ -1,162 +1,171 @@
 # PHP
 
-Мы — команда разработчиков, работающая над веб-приложением для управления очередями сообщений. Наша задача — обработать все сообщения в очереди и выполнить определенные действия для каждого сообщения. Для этого мы будем использовать паттерн "Итератор", который позволит нам последовательно обрабатывать элементы очереди, не заботясь о её внутренней структуре.
+Мы — команда разработчиков, работающая над созданием таск-трекера. Наш продукт помогает командам эффективно управлять задачами, распределять их между участниками и отслеживать прогресс. В этом кейсе мы рассмотрим, как паттерн "Посредник" (Mediator) помогает нам управлять взаимодействиями между различными компонентами нашего таск-трекера.
 
 ### Описание кейса
 
-Мы хотим создать систему, которая будет обрабатывать сообщения из очереди. Каждое сообщение может содержать различные данные, и нам нужно выполнить определенные действия для каждого сообщения. Паттерн "Итератор" поможет нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
+В нашем таск-трекере есть несколько компонентов, такие как создание задач, назначение задач, отслеживание прогресса и уведомления. Эти компоненты должны взаимодействовать друг с другом, чтобы обеспечить плавную работу системы. Паттерн "Посредник" позволяет нам централизовать управление этими взаимодействиями, что упрощает код и делает его более гибким.
+
+### Применение паттерна
+
+Паттерн "Посредник" используется для централизованного управления взаимодействиями между компонентами. В нашем случае, посредник будет координировать действия между компонентами, такими как создание задач, назначение задач и уведомления. Это позволит нам избежать прямой зависимости между компонентами и упростить управление их взаимодействиями.
 
 ### Пример кода на PHP
 
-**1. Определение интерфейса Iterator**
+**1. Определение интерфейса посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface Iterator {
-    public function first();
-    public function next();
-    public function isDone();
-    public function currentItem();
+interface Mediator {
+    public function send($message, $colleague);
 }
 ```
 {% endcode %}
 
-**2. Определение интерфейса Aggregate**
+**2. Определение базового класса коллеги**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface Aggregate {
-    public function createIterator();
+abstract class Colleague {
+    protected $mediator;
+
+    public function __construct(Mediator $mediator) {
+        $this->mediator = $mediator;
+    }
+
+    public function send($message) {
+        $this->mediator->send($message, $this);
+    }
+
+    public function receive($message) {
+        // Метод для получения сообщения
+    }
 }
 ```
 {% endcode %}
 
-**3. Реализация конкретного итератора**
+**3. Определение конкретного посредника**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class MessageQueueIterator implements Iterator {
-    private $queue;
-    private $index;
+class ConcreteMediator implements Mediator {
+    private $colleagues = [];
 
-    public function __construct($queue) {
-        $this->queue = $queue;
-        $this->index = 0;
+    public function addColleague(Colleague $colleague) {
+        $this->colleagues[] = $colleague;
     }
 
-    public function first() {
-        $this->index = 0;
-    }
-
-    public function next() {
-        $this->index++;
-    }
-
-    public function isDone() {
-        return $this->index >= count($this->queue);
-    }
-
-    public function currentItem() {
-        if ($this->isDone()) {
-            return null;
+    public function send($message, $colleague) {
+        foreach ($this->colleagues as $col) {
+            if ($col !== $colleague) {
+                $col->receive($message);
+            }
         }
-        return $this->queue[$this->index];
     }
 }
 ```
 {% endcode %}
 
-**4. Реализация конкретного агрегата**
+**4. Определение конкретных коллег**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class MessageQueue implements Aggregate {
-    private $messages;
-
-    public function __construct() {
-        $this->messages = [];
+class TaskCreator extends Colleague {
+    public function receive($message) {
+        echo "TaskCreator получил сообщение: $message\n";
     }
+}
 
-    public function addMessage($message) {
-        $this->messages[] = $message;
+class TaskAssigner extends Colleague {
+    public function receive($message) {
+        echo "TaskAssigner получил сообщение: $message\n";
     }
+}
 
-    public function createIterator() {
-        return new MessageQueueIterator($this->messages);
+class Notifier extends Colleague {
+    public function receive($message) {
+        echo "Notifier получил сообщение: $message\n";
     }
 }
 ```
 {% endcode %}
 
-**5. Использование итератора для обработки сообщений**
+**5. Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем очередь сообщений
-$messageQueue = new MessageQueue();
-$messageQueue->addMessage("Сообщение 1");
-$messageQueue->addMessage("Сообщение 2");
-$messageQueue->addMessage("Сообщение 3");
+// Создаем посредника
+$mediator = new ConcreteMediator();
 
-// Создаем итератор для очереди
-$iterator = $messageQueue->createIterator();
+// Создаем коллег
+$taskCreator = new TaskCreator($mediator);
+$taskAssigner = new TaskAssigner($mediator);
+$notifier = new Notifier($mediator);
 
-// Обрабатываем сообщения
-for ($iterator->first(); !$iterator->isDone(); $iterator->next()) {
-    $message = $iterator->currentItem();
-    echo "Обработка сообщения: " . $message . "\n";
-}
+// Добавляем коллег в посредника
+$mediator->addColleague($taskCreator);
+$mediator->addColleague($taskAssigner);
+$mediator->addColleague($notifier);
+
+// Отправляем сообщение от TaskCreator
+$taskCreator->send("Новая задача создана");
+
+// Отправляем сообщение от TaskAssigner
+$taskAssigner->send("Задача назначена пользователю");
+
+// Отправляем сообщение от Notifier
+$notifier->send("Уведомление отправлено");
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (6) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Итератор"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Iterator {
-    +first(): void
-    +next(): void
-    +isDone(): boolean
-    +currentItem(): any
+interface Mediator {
+    +send(message: string, colleague: Colleague): void
 }
 
-class MessageQueueIterator {
-    -queue: List<any>
-    -index: int
-    +__construct(queue: List<any>): void
-    +first(): void
-    +next(): void
-    +isDone(): boolean
-    +currentItem(): any
+abstract class Colleague {
+    -mediator: Mediator
+    +__construct(mediator: Mediator): void
+    +send(message: string): void
+    +receive(message: string): void
 }
 
-interface Aggregate {
-    +createIterator(): Iterator
+class ConcreteMediator {
+    -colleagues: Colleague[]
+    +addColleague(colleague: Colleague): void
+    +send(message: string, colleague: Colleague): void
 }
 
-class MessageQueue {
-    -messages: List<any>
-    +__construct(): void
-    +addMessage(message: any): void
-    +createIterator(): Iterator
+class TaskCreator {
+    +receive(message: string): void
 }
 
-Iterator <|-- MessageQueueIterator
-Aggregate <|-- MessageQueue
-MessageQueue --> MessageQueueIterator: <<create>>
+class TaskAssigner {
+    +receive(message: string): void
+}
+
+class Notifier {
+    +receive(message: string): void
+}
+
+Mediator <|-- ConcreteMediator
+Colleague <|-- TaskCreator
+Colleague <|-- TaskAssigner
+Colleague <|-- Notifier
 
 @enduml
 ```
 {% endcode %}
 
-### Вывод
+### Вывод для кейса
 
-В этом кейсе мы рассмотрели применение паттерна "Итератор" для обработки сообщений в очереди. Мы создали интерфейсы `Iterator` и `Aggregate`, а также их конкретные реализации `MessageQueueIterator` и `MessageQueue`. Это позволило нам абстрагироваться от внутренней структуры очереди и сосредоточиться на обработке сообщений.
+Паттерн "Посредник" позволяет нам централизовать управление взаимодействиями между компонентами таск-трекера. Это упрощает код, делает его более гибким и облегчает добавление новых компонентов в систему. В нашем примере посредник координирует действия между созданием задач, назначением задач и уведомлениями, что позволяет избежать прямой зависимости между этими компонентами.
 
-Паттерн "Итератор" оказался очень полезным для последовательной обработки элементов коллекции, не заботясь о её внутренней структуре. Это упрощает код и делает его более гибким и поддерживаемым.
-
-Надеюсь, этот пример поможет вам лучше понять, как использовать паттерн "Итератор" в ваших проектах!
+Надеюсь, этот кейс поможет вам лучше понять, как использовать паттерн "Посредник" в реальных проектах.
