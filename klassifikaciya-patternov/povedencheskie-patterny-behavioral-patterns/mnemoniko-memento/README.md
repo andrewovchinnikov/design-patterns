@@ -12,6 +12,8 @@
 
 ### **UML диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image (102).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+
 ```plantuml
 @startuml
 
