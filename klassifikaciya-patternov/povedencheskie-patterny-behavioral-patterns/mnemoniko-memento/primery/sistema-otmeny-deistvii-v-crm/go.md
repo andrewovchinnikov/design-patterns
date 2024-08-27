@@ -1,18 +1,18 @@
 # Go
 
-Мы — команда разработчиков, работающая над созданием таск-трекера. Наш продукт помогает командам эффективно управлять задачами, распределять их между участниками и отслеживать прогресс. В этом кейсе мы рассмотрим, как паттерн "Посредник" (Mediator) помогает нам управлять взаимодействиями между различными компонентами нашего таск-трекера.
+Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
 
 ### Описание кейса
 
-В нашем таск-трекере есть несколько компонентов, такие как создание задач, назначение задач, отслеживание прогресса и уведомления. Эти компоненты должны взаимодействовать друг с другом, чтобы обеспечить плавную работу системы. Паттерн "Посредник" позволяет нам централизовать управление этими взаимодействиями, что упрощает код и делает его более гибким.
+В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
 
 ### Применение паттерна
 
-Паттерн "Посредник" используется для централизованного управления взаимодействиями между компонентами. В нашем случае, посредник будет координировать действия между компонентами, такими как создание задач, назначение задач и уведомления. Это позволит нам избежать прямой зависимости между компонентами и упростить управление их взаимодействиями.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
 ### Пример кода на Go
 
-**1. Определение интерфейса посредника**
+**Класс Client (Клиент)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -20,152 +20,155 @@ package main
 
 import "fmt"
 
-type Mediator interface {
-    Send(message string, colleague Colleague)
+type Client struct {
+    name  string
+    email string
+}
+
+func NewClient(name, email string) *Client {
+    return &Client{name: name, email: email}
+}
+
+func (c *Client) SetName(name string) {
+    c.name = name
+}
+
+func (c *Client) SetEmail(email string) {
+    c.email = email
+}
+
+func (c *Client) GetName() string {
+    return c.name
+}
+
+func (c *Client) GetEmail() string {
+    return c.email
+}
+
+func (c *Client) SaveStateToMemento() *ClientMemento {
+    return NewClientMemento(c.name, c.email)
+}
+
+func (c *Client) GetStateFromMemento(memento *ClientMemento) {
+    c.name = memento.GetName()
+    c.email = memento.GetEmail()
 }
 ```
 {% endcode %}
 
-**2. Определение базового класса коллеги**
+**Класс ClientMemento (Мнемонико Клиента)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Colleague struct {
-    mediator Mediator
+type ClientMemento struct {
+    name  string
+    email string
 }
 
-func (c *Colleague) Send(message string) {
-    c.mediator.Send(message, c)
+func NewClientMemento(name, email string) *ClientMemento {
+    return &ClientMemento{name: name, email: email}
 }
 
-func (c *Colleague) Receive(message string) {
-    // Метод для получения сообщения
+func (m *ClientMemento) GetName() string {
+    return m.name
+}
+
+func (m *ClientMemento) GetEmail() string {
+    return m.email
 }
 ```
 {% endcode %}
 
-**3. Определение конкретного посредника**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type ConcreteMediator struct {
-    colleagues []Colleague
+type Caretaker struct {
+    mementoList []*ClientMemento
 }
 
-func (m *ConcreteMediator) AddColleague(colleague Colleague) {
-    m.colleagues = append(m.colleagues, colleague)
+func NewCaretaker() *Caretaker {
+    return &Caretaker{mementoList: []*ClientMemento{}}
 }
 
-func (m *ConcreteMediator) Send(message string, colleague Colleague) {
-    for _, col := range m.colleagues {
-        if &col != &colleague {
-            col.Receive(message)
-        }
-    }
-}
-```
-{% endcode %}
-
-**4. Определение конкретных коллег**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type TaskCreator struct {
-    Colleague
+func (c *Caretaker) AddMemento(memento *ClientMemento) {
+    c.mementoList = append(c.mementoList, memento)
 }
 
-func (tc *TaskCreator) Receive(message string) {
-    fmt.Println("TaskCreator получил сообщение:", message)
-}
-
-type TaskAssigner struct {
-    Colleague
-}
-
-func (ta *TaskAssigner) Receive(message string) {
-    fmt.Println("TaskAssigner получил сообщение:", message)
-}
-
-type Notifier struct {
-    Colleague
-}
-
-func (n *Notifier) Receive(message string) {
-    fmt.Println("Notifier получил сообщение:", message)
+func (c *Caretaker) GetMemento(index int) *ClientMemento {
+    return c.mementoList[index]
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+#### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем посредника
-    mediator := &ConcreteMediator{}
+    // Создаем объект клиента
+    client := NewClient("Иван Иванов", "ivan@example.com")
 
-    // Создаем коллег
-    taskCreator := &TaskCreator{Colleague: Colleague{mediator: mediator}}
-    taskAssigner := &TaskAssigner{Colleague: Colleague{mediator: mediator}}
-    notifier := &Notifier{Colleague: Colleague{mediator: mediator}}
+    // Создаем объект опекуна
+    caretaker := NewCaretaker()
 
-    // Добавляем коллег в посредника
-    mediator.AddColleague(taskCreator.Colleague)
-    mediator.AddColleague(taskAssigner.Colleague)
-    mediator.AddColleague(notifier.Colleague)
+    // Сохраняем текущее состояние клиента
+    caretaker.AddMemento(client.SaveStateToMemento())
 
-    // Отправляем сообщение от TaskCreator
-    taskCreator.Send("Новая задача создана")
+    // Изменяем данные клиента
+    client.SetName("Петр Петров")
+    client.SetEmail("petr@example.com")
 
-    // Отправляем сообщение от TaskAssigner
-    taskAssigner.Send("Задача назначена пользователю")
+    // Сохраняем новое состояние клиента
+    caretaker.AddMemento(client.SaveStateToMemento())
 
-    // Отправляем сообщение от Notifier
-    notifier.Send("Уведомление отправлено")
+    // Восстанавливаем предыдущее состояние клиента
+    client.GetStateFromMemento(caretaker.GetMemento(0))
+
+    // Выводим данные клиента
+    fmt.Println("Имя:", client.GetName())
+    fmt.Println("Email:", client.GetEmail())
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (97).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
-{% code lineNumbers="true" %}
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Mediator {
-    +Send(message: string, colleague: Colleague): void
+class Client {
+    -name: String
+    -email: String
+    +NewClient(name: String, email: String): Client
+    +SetName(name: String): void
+    +SetEmail(email: String): void
+    +GetName(): String
+    +GetEmail(): String
+    +SaveStateToMemento(): ClientMemento
+    +GetStateFromMemento(memento: ClientMemento): void
 }
 
-class Colleague {
-    -mediator: Mediator
-    +Send(message: string): void
-    +Receive(message: string): void
+class ClientMemento {
+    -name: String
+    -email: String
+    +NewClientMemento(name: String, email: String): ClientMemento
+    +GetName(): String
+    +GetEmail(): String
 }
 
-class ConcreteMediator {
-    -colleagues: Colleague[]
-    +AddColleague(colleague: Colleague): void
-    +Send(message: string, colleague: Colleague): void
+class Caretaker {
+    -mementoList: List<ClientMemento>
+    +NewCaretaker(): Caretaker
+    +AddMemento(memento: ClientMemento): void
+    +GetMemento(index: int): ClientMemento
 }
 
-class TaskCreator {
-    +Receive(message: string): void
-}
-
-class TaskAssigner {
-    +Receive(message: string): void
-}
-
-class Notifier {
-    +Receive(message: string): void
-}
-
-Mediator <|-- ConcreteMediator
-Colleague <|-- TaskCreator
-Colleague <|-- TaskAssigner
-Colleague <|-- Notifier
+Client --> ClientMemento: <<create>>
+Caretaker --> ClientMemento: <<manage>>
 
 @enduml
 ```
@@ -173,6 +176,6 @@ Colleague <|-- Notifier
 
 ### Вывод для кейса
 
-Паттерн "Посредник" позволяет нам централизовать управление взаимодействиями между компонентами таск-трекера. Это упрощает код, делает его более гибким и облегчает добавление новых компонентов в систему. В нашем примере посредник координирует действия между созданием задач, назначением задач и уведомлениями, что позволяет избежать прямой зависимости между этими компонентами.
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
 
-Надеюсь, этот кейс поможет вам лучше понять, как использовать паттерн "Посредник" в реальных проектах.
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.

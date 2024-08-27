@@ -1,6 +1,6 @@
 # PHP
 
-<figure><img src="../../../../../.gitbook/assets/image (2) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Абстрактная фабрика" в ERP системе</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для примера применения паттерна "Абстрактная фабрика" в ERP системе</p></figcaption></figure>
 
 1. Определяем интерфейс `DocumentInterface`, который содержит методы для работы с документами: `create()`, `edit()`, `delete()` и `print()`.
 2. Определяем конкретные реализации интерфейса `DocumentInterface`: `InvoiceDocument` для работы со счетами-фактурами и `DeliveryNoteDocument` для работы с накладными. В этих классах реализуем методы интерфейса `DocumentInterface`.

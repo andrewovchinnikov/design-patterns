@@ -1,164 +1,165 @@
 # PHP
 
-Мы — команда разработчиков, работающая над созданием таск-трекера. Наш продукт помогает командам эффективно управлять задачами, распределять их между участниками и отслеживать прогресс. В этом кейсе мы рассмотрим, как паттерн "Посредник" (Mediator) помогает нам управлять взаимодействиями между различными компонентами нашего таск-трекера.
+Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
 
 ### Описание кейса
 
-В нашем таск-трекере есть несколько компонентов, такие как создание задач, назначение задач, отслеживание прогресса и уведомления. Эти компоненты должны взаимодействовать друг с другом, чтобы обеспечить плавную работу системы. Паттерн "Посредник" позволяет нам централизовать управление этими взаимодействиями, что упрощает код и делает его более гибким.
+В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
 
 ### Применение паттерна
 
-Паттерн "Посредник" используется для централизованного управления взаимодействиями между компонентами. В нашем случае, посредник будет координировать действия между компонентами, такими как создание задач, назначение задач и уведомления. Это позволит нам избежать прямой зависимости между компонентами и упростить управление их взаимодействиями.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
 ### Пример кода на PHP
 
-**1. Определение интерфейса посредника**
+**Класс Client (Клиент)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-interface Mediator {
-    public function send($message, $colleague);
-}
-```
-{% endcode %}
+class Client {
+    private $name;
+    private $email;
 
-**2. Определение базового класса коллеги**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-abstract class Colleague {
-    protected $mediator;
-
-    public function __construct(Mediator $mediator) {
-        $this->mediator = $mediator;
+    public function __construct($name, $email) {
+        $this->name = $name;
+        $this->email = $email;
     }
 
-    public function send($message) {
-        $this->mediator->send($message, $this);
+    public function setName($name) {
+        $this->name = $name;
     }
 
-    public function receive($message) {
-        // Метод для получения сообщения
-    }
-}
-```
-{% endcode %}
-
-**3. Определение конкретного посредника**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class ConcreteMediator implements Mediator {
-    private $colleagues = [];
-
-    public function addColleague(Colleague $colleague) {
-        $this->colleagues[] = $colleague;
+    public function setEmail($email) {
+        $this->email = $email;
     }
 
-    public function send($message, $colleague) {
-        foreach ($this->colleagues as $col) {
-            if ($col !== $colleague) {
-                $col->receive($message);
-            }
-        }
+    public function getName() {
+        return $this->name;
+    }
+
+    public function getEmail() {
+        return $this->email;
+    }
+
+    public function saveStateToMemento() {
+        return new ClientMemento($this->name, $this->email);
+    }
+
+    public function getStateFromMemento(ClientMemento $memento) {
+        $this->name = $memento->getName();
+        $this->email = $memento->getEmail();
     }
 }
 ```
 {% endcode %}
 
-**4. Определение конкретных коллег**
+**Класс ClientMemento (Мнемонико Клиента)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class TaskCreator extends Colleague {
-    public function receive($message) {
-        echo "TaskCreator получил сообщение: $message\n";
-    }
-}
+class ClientMemento {
+    private $name;
+    private $email;
 
-class TaskAssigner extends Colleague {
-    public function receive($message) {
-        echo "TaskAssigner получил сообщение: $message\n";
+    public function __construct($name, $email) {
+        $this->name = $name;
+        $this->email = $email;
     }
-}
 
-class Notifier extends Colleague {
-    public function receive($message) {
-        echo "Notifier получил сообщение: $message\n";
+    public function getName() {
+        return $this->name;
+    }
+
+    public function getEmail() {
+        return $this->email;
     }
 }
 ```
 {% endcode %}
 
-**5. Пример использования**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем посредника
-$mediator = new ConcreteMediator();
+class Caretaker {
+    private $mementoList = [];
 
-// Создаем коллег
-$taskCreator = new TaskCreator($mediator);
-$taskAssigner = new TaskAssigner($mediator);
-$notifier = new Notifier($mediator);
+    public function addMemento(ClientMemento $memento) {
+        $this->mementoList[] = $memento;
+    }
 
-// Добавляем коллег в посредника
-$mediator->addColleague($taskCreator);
-$mediator->addColleague($taskAssigner);
-$mediator->addColleague($notifier);
+    public function getMemento($index) {
+        return $this->mementoList[$index];
+    }
+}
+```
+{% endcode %}
 
-// Отправляем сообщение от TaskCreator
-$taskCreator->send("Новая задача создана");
+#### Пример использования
 
-// Отправляем сообщение от TaskAssigner
-$taskAssigner->send("Задача назначена пользователю");
+{% code overflow="wrap" lineNumbers="true" %}
+```php
+// Создаем объект клиента
+$client = new Client("Иван Иванов", "ivan@example.com");
 
-// Отправляем сообщение от Notifier
-$notifier->send("Уведомление отправлено");
+// Создаем объект опекуна
+$caretaker = new Caretaker();
+
+// Сохраняем текущее состояние клиента
+$caretaker->addMemento($client->saveStateToMemento());
+
+// Изменяем данные клиента
+$client->setName("Петр Петров");
+$client->setEmail("petr@example.com");
+
+// Сохраняем новое состояние клиента
+$caretaker->addMemento($client->saveStateToMemento());
+
+// Восстанавливаем предыдущее состояние клиента
+$client->getStateFromMemento($caretaker->getMemento(0));
+
+// Выводим данные клиента
+echo "Имя: " . $client->getName() . "\n";
+echo "Email: " . $client->getEmail() . "\n";
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Mediator {
-    +send(message: string, colleague: Colleague): void
+class Client {
+    -name: String
+    -email: String
+    +__construct(name: String, email: String): void
+    +setName(name: String): void
+    +setEmail(email: String): void
+    +getName(): String
+    +getEmail(): String
+    +saveStateToMemento(): ClientMemento
+    +getStateFromMemento(memento: ClientMemento): void
 }
 
-abstract class Colleague {
-    -mediator: Mediator
-    +__construct(mediator: Mediator): void
-    +send(message: string): void
-    +receive(message: string): void
+class ClientMemento {
+    -name: String
+    -email: String
+    +__construct(name: String, email: String): void
+    +getName(): String
+    +getEmail(): String
 }
 
-class ConcreteMediator {
-    -colleagues: Colleague[]
-    +addColleague(colleague: Colleague): void
-    +send(message: string, colleague: Colleague): void
+class Caretaker {
+    -mementoList: List<ClientMemento>
+    +addMemento(memento: ClientMemento): void
+    +getMemento(index: int): ClientMemento
 }
 
-class TaskCreator {
-    +receive(message: string): void
-}
-
-class TaskAssigner {
-    +receive(message: string): void
-}
-
-class Notifier {
-    +receive(message: string): void
-}
-
-Mediator <|-- ConcreteMediator
-Colleague <|-- TaskCreator
-Colleague <|-- TaskAssigner
-Colleague <|-- Notifier
+Client --> ClientMemento: <<create>>
+Caretaker --> ClientMemento: <<manage>>
 
 @enduml
 ```
@@ -166,6 +167,6 @@ Colleague <|-- Notifier
 
 ### Вывод для кейса
 
-Паттерн "Посредник" позволяет нам централизовать управление взаимодействиями между компонентами таск-трекера. Это упрощает код, делает его более гибким и облегчает добавление новых компонентов в систему. В нашем примере посредник координирует действия между созданием задач, назначением задач и уведомлениями, что позволяет избежать прямой зависимости между этими компонентами.
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
 
-Надеюсь, этот кейс поможет вам лучше понять, как использовать паттерн "Посредник" в реальных проектах.
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.

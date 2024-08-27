@@ -1,153 +1,147 @@
 # Python
 
-Мы — команда разработчиков, работающая над созданием таск-трекера. Наш продукт помогает командам эффективно управлять задачами, распределять их между участниками и отслеживать прогресс. В этом кейсе мы рассмотрим, как паттерн "Посредник" (Mediator) помогает нам управлять взаимодействиями между различными компонентами нашего таск-трекера.
+Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
 
 ### Описание кейса
 
-В нашем таск-трекере есть несколько компонентов, такие как создание задач, назначение задач, отслеживание прогресса и уведомления. Эти компоненты должны взаимодействовать друг с другом, чтобы обеспечить плавную работу системы. Паттерн "Посредник" позволяет нам централизовать управление этими взаимодействиями, что упрощает код и делает его более гибким.
+В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
 
 ### Применение паттерна
 
-Паттерн "Посредник" используется для централизованного управления взаимодействиями между компонентами. В нашем случае, посредник будет координировать действия между компонентами, такими как создание задач, назначение задач и уведомления. Это позволит нам избежать прямой зависимости между компонентами и упростить управление их взаимодействиями.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
 #### Пример кода на Python
 
-**1. Определение интерфейса посредника**
+**Класс Client (Клиент)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-from abc import ABC, abstractmethod
+class Client:
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
 
-class Mediator(ABC):
-    @abstractmethod
-    def send(self, message, colleague):
-        pass
+    def set_name(self, name):
+        self.name = name
+
+    def set_email(self, email):
+        self.email = email
+
+    def get_name(self):
+        return self.name
+
+    def get_email(self):
+        return self.email
+
+    def save_state_to_memento(self):
+        return ClientMemento(self.name, self.email)
+
+    def get_state_from_memento(self, memento):
+        self.name = memento.get_name()
+        self.email = memento.get_email()
 ```
 {% endcode %}
 
-**2. Определение базового класса коллеги**
+**Класс ClientMemento (Мнемонико Клиента)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Colleague(ABC):
-    def __init__(self, mediator):
-        self.mediator = mediator
+class ClientMemento:
+    def __init__(self, name, email):
+        self.name = name
+        self.email = email
 
-    def send(self, message):
-        self.mediator.send(message, self)
+    def get_name(self):
+        return self.name
 
-    @abstractmethod
-    def receive(self, message):
-        pass
+    def get_email(self):
+        return self.email
 ```
 {% endcode %}
 
-**3. Определение конкретного посредника**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class ConcreteMediator(Mediator):
+class Caretaker:
     def __init__(self):
-        self.colleagues = []
+        self.memento_list = []
 
-    def add_colleague(self, colleague):
-        self.colleagues.append(colleague)
+    def add_memento(self, memento):
+        self.memento_list.append(memento)
 
-    def send(self, message, colleague):
-        for col in self.colleagues:
-            if col != colleague:
-                col.receive(message)
+    def get_memento(self, index):
+        return self.memento_list[index]
 ```
 {% endcode %}
 
-**4. Определение конкретных коллег**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class TaskCreator(Colleague):
-    def receive(self, message):
-        print(f"TaskCreator получил сообщение: {message}")
-
-class TaskAssigner(Colleague):
-    def receive(self, message):
-        print(f"TaskAssigner получил сообщение: {message}")
-
-class Notifier(Colleague):
-    def receive(self, message):
-        print(f"Notifier получил сообщение: {message}")
-```
-{% endcode %}
-
-**5. Пример использования**
+#### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    # Создаем посредника
-    mediator = ConcreteMediator()
+    # Создаем объект клиента
+    client = Client("Иван Иванов", "ivan@example.com")
 
-    # Создаем коллег
-    task_creator = TaskCreator(mediator)
-    task_assigner = TaskAssigner(mediator)
-    notifier = Notifier(mediator)
+    # Создаем объект опекуна
+    caretaker = Caretaker()
 
-    # Добавляем коллег в посредника
-    mediator.add_colleague(task_creator)
-    mediator.add_colleague(task_assigner)
-    mediator.add_colleague(notifier)
+    # Сохраняем текущее состояние клиента
+    caretaker.add_memento(client.save_state_to_memento())
 
-    # Отправляем сообщение от TaskCreator
-    task_creator.send("Новая задача создана")
+    # Изменяем данные клиента
+    client.set_name("Петр Петров")
+    client.set_email("petr@example.com")
 
-    # Отправляем сообщение от TaskAssigner
-    task_assigner.send("Задача назначена пользователю")
+    # Сохраняем новое состояние клиента
+    caretaker.add_memento(client.save_state_to_memento())
 
-    # Отправляем сообщение от Notifier
-    notifier.send("Уведомление отправлено")
+    # Восстанавливаем предыдущее состояние клиента
+    client.get_state_from_memento(caretaker.get_memento(0))
+
+    # Выводим данные клиента
+    print("Имя:", client.get_name())
+    print("Email:", client.get_email())
 ```
 {% endcode %}
 
-### UML диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (98).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (103).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-interface Mediator {
-    +send(message: string, colleague: Colleague): void
+class Client {
+    -name: String
+    -email: String
+    +__init__(name: String, email: String): void
+    +set_name(name: String): void
+    +set_email(email: String): void
+    +get_name(): String
+    +get_email(): String
+    +save_state_to_memento(): ClientMemento
+    +get_state_from_memento(memento: ClientMemento): void
 }
 
-abstract class Colleague {
-    -mediator: Mediator
-    +__init__(mediator: Mediator): void
-    +send(message: string): void
-    +receive(message: string): void
+class ClientMemento {
+    -name: String
+    -email: String
+    +__init__(name: String, email: String): void
+    +get_name(): String
+    +get_email(): String
 }
 
-class ConcreteMediator {
-    -colleagues: Colleague[]
-    +add_colleague(colleague: Colleague): void
-    +send(message: string, colleague: Colleague): void
+class Caretaker {
+    -memento_list: List<ClientMemento>
+    +__init__(): void
+    +add_memento(memento: ClientMemento): void
+    +get_memento(index: int): ClientMemento
 }
 
-class TaskCreator {
-    +receive(message: string): void
-}
-
-class TaskAssigner {
-    +receive(message: string): void
-}
-
-class Notifier {
-    +receive(message: string): void
-}
-
-Mediator <|-- ConcreteMediator
-Colleague <|-- TaskCreator
-Colleague <|-- TaskAssigner
-Colleague <|-- Notifier
+Client --> ClientMemento: <<create>>
+Caretaker --> ClientMemento: <<manage>>
 
 @enduml
 ```
@@ -155,6 +149,6 @@ Colleague <|-- Notifier
 
 ### Вывод для кейса
 
-Паттерн "Посредник" позволяет нам централизовать управление взаимодействиями между компонентами таск-трекера. Это упрощает код, делает его более гибким и облегчает добавление новых компонентов в систему. В нашем примере посредник координирует действия между созданием задач, назначением задач и уведомлениями, что позволяет избежать прямой зависимости между этими компонентами.
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
 
-Надеюсь, этот кейс поможет вам лучше понять, как использовать паттерн "Посредник" в реальных проектах.&#x20;
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
