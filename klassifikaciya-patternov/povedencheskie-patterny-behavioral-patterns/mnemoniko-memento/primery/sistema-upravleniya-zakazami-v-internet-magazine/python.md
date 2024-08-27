@@ -1,99 +1,77 @@
 # Python
 
-Мы — команда разработчиков, создающих систему управления пользователями. Наша цель — сделать так, чтобы все компоненты системы могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
+Мы — команда разработчиков, работающая над системой управления заказами в интернет-магазине. Наша задача — сделать процесс обработки заказов максимально удобным и эффективным. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей системе управления заказами. Это позволит пользователям отменять свои действия, такие как изменение данных заказа или добавление новых товаров, и возвращаться к предыдущему состоянию.
 
 ### Описание кейса
 
-В нашей системе управления пользователями есть несколько компонентов: модуль аутентификации, модуль авторизации и модуль уведомлений. Каждый из этих модулей выполняет свои задачи и должен быть в курсе того, что делают другие. Например, после успешной аутентификации пользователя, модуль авторизации должен проверить его права доступа, а модуль уведомлений должен отправить уведомление. Без посредника все эти модули должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+В нашей системе управления заказами пользователи часто вносят изменения в заказы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию заказа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — заказа) и восстанавливать его позже без нарушения инкапсуляции.
 
-### Применение паттерна "Посредник"
+### Применение паттерна
 
-Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми модулями. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Заказ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
-#### Пример кода на Python
+### Пример кода на Python
 
-**1. Интерфейс Посредника**
+**Класс Order (Заказ)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-from abc import ABC, abstractmethod
+class Order:
+    def __init__(self, items, total_price):
+        self.items = items
+        self.total_price = total_price
 
-class Mediator(ABC):
-    @abstractmethod
-    def notify(self, sender: str, event: str, data=None):
-        pass
+    def set_items(self, items):
+        self.items = items
+
+    def set_total_price(self, total_price):
+        self.total_price = total_price
+
+    def get_items(self):
+        return self.items
+
+    def get_total_price(self):
+        return self.total_price
+
+    def save_state_to_memento(self):
+        return OrderMemento(self.items, self.total_price)
+
+    def get_state_from_memento(self, memento):
+        self.items = memento.get_items()
+        self.total_price = memento.get_total_price()
 ```
 {% endcode %}
 
-**2. Конкретный Посредник**
+**Класс OrderMemento (Мнемонико Заказа)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class ConcreteMediator(Mediator):
-    def __init__(self, authentication, authorization, notification):
-        self.authentication = authentication
-        self.authorization = authorization
-        self.notification = notification
-        self.authentication.set_mediator(self)
-        self.authorization.set_mediator(self)
-        self.notification.set_mediator(self)
+class OrderMemento:
+    def __init__(self, items, total_price):
+        self.items = items
+        self.total_price = total_price
 
-    def notify(self, sender: str, event: str, data=None):
-        if sender == 'Authentication':
-            if event == 'UserAuthenticated':
-                self.authorization.check_access(data)
-                self.notification.send_notification(data)
-        elif sender == 'Authorization':
-            if event == 'AccessGranted':
-                self.notification.send_notification(data)
+    def get_items(self):
+        return self.items
+
+    def get_total_price(self):
+        return self.total_price
 ```
 {% endcode %}
 
-**3. Базовый класс модуля**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class BaseModule:
+class Caretaker:
     def __init__(self):
-        self.mediator = None
+        self.memento_list = []
 
-    def set_mediator(self, mediator: Mediator):
-        self.mediator = mediator
-```
-{% endcode %}
+    def add_memento(self, memento):
+        self.memento_list.append(memento)
 
-**4. Класс Аутентификации**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Authentication(BaseModule):
-    def authenticate_user(self, user: str):
-        # Логика аутентификации пользователя
-        print(f"Authentication: Authenticating user: {user}")
-        self.mediator.notify('Authentication', 'UserAuthenticated', user)
-```
-{% endcode %}
-
-**5. Класс Авторизации**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Authorization(BaseModule):
-    def check_access(self, user: str):
-        # Логика проверки доступа пользователя
-        print(f"Authorization: Checking access for user: {user}")
-        self.mediator.notify('Authorization', 'AccessGranted', user)
-```
-{% endcode %}
-
-**6. Класс Уведомлений**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Notification(BaseModule):
-    def send_notification(self, user: str):
-        # Логика отправки уведомления пользователю
-        print(f"Notification: Sending notification to user: {user}")
+    def get_memento(self, index):
+        return self.memento_list[index]
 ```
 {% endcode %}
 
@@ -102,63 +80,75 @@ class Notification(BaseModule):
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    authentication = Authentication()
-    authorization = Authorization()
-    notification = Notification()
+    # Создаем объект заказа
+    order = Order(["Товар 1", "Товар 2"], 100.0)
 
-    mediator = ConcreteMediator(authentication, authorization, notification)
+    # Создаем объект опекуна
+    caretaker = Caretaker()
 
-    authentication.authenticate_user('User1')
+    # Сохраняем текущее состояние заказа
+    caretaker.add_memento(order.save_state_to_memento())
+
+    # Изменяем данные заказа
+    order.set_items(["Товар 3", "Товар 4"])
+    order.set_total_price(200.0)
+
+    # Сохраняем новое состояние заказа
+    caretaker.add_memento(order.save_state_to_memento())
+
+    # Восстанавливаем предыдущее состояние заказа
+    order.get_state_from_memento(caretaker.get_memento(0))
+
+    # Выводим данные заказа
+    print("Товары:", order.get_items())
+    print("Общая стоимость:", order.get_total_price())
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (101).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Mediator {
-    +notify(sender: String, event: String, data: Any): void
+
+class Order {
+    -items: List<String>
+    -totalPrice: float
+    +__init__(items: List<String>, totalPrice: float): void
+    +set_items(items: List<String>): void
+    +set_total_price(totalPrice: float): void
+    +get_items(): List<String>
+    +get_total_price(): float
+    +save_state_to_memento(): OrderMemento
+    +get_state_from_memento(memento: OrderMemento): void
 }
 
-class ConcreteMediator {
-    -authentication: Authentication
-    -authorization: Authorization
-    -notification: Notification
-    +__init__(authentication: Authentication, authorization: Authorization, notification: Notification): void
-    +notify(sender: String, event: String, data: Any): void
+class OrderMemento {
+    -items: List<String>
+    -totalPrice: float
+    +__init__(items: List<String>, totalPrice: float): void
+    +get_items(): List<String>
+    +get_total_price(): float
 }
 
-abstract class BaseModule {
-    -mediator: Mediator
-    +set_mediator(mediator: Mediator): void
+class Caretaker {
+    -mementoList: List<OrderMemento>
+    +__init__(): void
+    +add_memento(memento: OrderMemento): void
+    +get_memento(index: int): OrderMemento
 }
 
-class Authentication {
-    +authenticate_user(user: String): void
-}
+Order --> OrderMemento: <<create>>
+Caretaker --> OrderMemento: <<manage>>
 
-class Authorization {
-    +check_access(user: String): void
-}
-
-class Notification {
-    +send_notification(user: String): void
-}
-
-Mediator <|-- ConcreteMediator
-BaseModule <|-- Authentication
-BaseModule <|-- Authorization
-BaseModule <|-- Notification
-ConcreteMediator --> Authentication
-ConcreteMediator --> Authorization
-ConcreteMediator --> Notification
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Использование паттерна "Посредник" в нашей системе управления пользователями позволяет значительно упростить взаимодействие между различными модулями. Вместо того чтобы каждый модуль общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Модули аутентификации, авторизации и уведомлений могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом.
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления заказами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию заказа.
+
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.

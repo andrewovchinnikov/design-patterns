@@ -17,7 +17,7 @@
 
 ### UML диаграмма
 
-<figure><img src="../../../.gitbook/assets/image (8).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../../.gitbook/assets/image (8) (1).png" alt=""><figcaption></figcaption></figure>
 
 В этой диаграмме класс `Singleton` имеет приватное статическое свойство `instance`, которое хранит единственный экземплярр класса. Конструктор класса также объявлен приватным, чтобы предотвратить создание экземпляров класса с помощью оператора `new`.
 

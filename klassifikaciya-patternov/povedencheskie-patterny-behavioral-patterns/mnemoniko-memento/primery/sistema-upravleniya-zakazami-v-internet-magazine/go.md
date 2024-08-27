@@ -1,85 +1,18 @@
 # Go
 
-Мы — команда разработчиков, создающих систему управления пользователями. Наша цель — сделать так, чтобы все компоненты системы могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
+Мы — команда разработчиков, работающая над системой управления заказами в интернет-магазине. Наша задача — сделать процесс обработки заказов максимально удобным и эффективным. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей системе управления заказами. Это позволит пользователям отменять свои действия, такие как изменение данных заказа или добавление новых товаров, и возвращаться к предыдущему состоянию.
 
 ### Описание кейса
 
-В нашей системе управления пользователями есть несколько компонентов: модуль аутентификации, модуль авторизации и модуль уведомлений. Каждый из этих модулей выполняет свои задачи и должен быть в курсе того, что делают другие. Например, после успешной аутентификации пользователя, модуль авторизации должен проверить его права доступа, а модуль уведомлений должен отправить уведомление. Без посредника все эти модули должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+В нашей системе управления заказами пользователи часто вносят изменения в заказы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию заказа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — заказа) и восстанавливать его позже без нарушения инкапсуляции.
 
-### Применение паттерна "Посредник"
+### Применение паттерна
 
-Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми модулями. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Заказ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
 ### Пример кода на Go
 
-**1. Интерфейс Посредника**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Mediator interface {
-    Notify(sender string, event string, data interface{})
-}
-```
-{% endcode %}
-
-**2. Конкретный Посредник**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type ConcreteMediator struct {
-    authentication *Authentication
-    authorization *Authorization
-    notification  *Notification
-}
-
-func NewConcreteMediator(authentication *Authentication, authorization *Authorization, notification *Notification) *ConcreteMediator {
-    mediator := &ConcreteMediator{
-        authentication: authentication,
-        authorization:  authorization,
-        notification:   notification,
-    }
-    authentication.SetMediator(mediator)
-    authorization.SetMediator(mediator)
-    notification.SetMediator(mediator)
-    return mediator
-}
-
-func (m *ConcreteMediator) Notify(sender string, event string, data interface{}) {
-    if sender == "Authentication" {
-        if event == "UserAuthenticated" {
-            m.authorization.CheckAccess(data)
-            m.notification.SendNotification(data)
-        }
-    } else if sender == "Authorization" {
-        if event == "AccessGranted" {
-            m.notification.SendNotification(data)
-        }
-    }
-}
-```
-{% endcode %}
-
-**3. Базовый класс модуля**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type BaseModule struct {
-    mediator Mediator
-}
-
-func (m *BaseModule) SetMediator(mediator Mediator) {
-    m.mediator = mediator
-}
-```
-{% endcode %}
-
-**4. Класс Аутентификации**
+**Класс Order (Заказ)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -87,53 +20,83 @@ package main
 
 import "fmt"
 
-type Authentication struct {
-    BaseModule
+type Order struct {
+    items      []string
+    totalPrice float64
 }
 
-func (a *Authentication) AuthenticateUser(user string) {
-    // Логика аутентификации пользователя
-    fmt.Printf("Authentication: Authenticating user: %s\n", user)
-    a.mediator.Notify("Authentication", "UserAuthenticated", user)
+func NewOrder(items []string, totalPrice float64) *Order {
+    return &Order{items: items, totalPrice: totalPrice}
+}
+
+func (o *Order) SetItems(items []string) {
+    o.items = items
+}
+
+func (o *Order) SetTotalPrice(totalPrice float64) {
+    o.totalPrice = totalPrice
+}
+
+func (o *Order) GetItems() []string {
+    return o.items
+}
+
+func (o *Order) GetTotalPrice() float64 {
+    return o.totalPrice
+}
+
+func (o *Order) SaveStateToMemento() *OrderMemento {
+    return NewOrderMemento(o.items, o.totalPrice)
+}
+
+func (o *Order) GetStateFromMemento(memento *OrderMemento) {
+    o.items = memento.GetItems()
+    o.totalPrice = memento.GetTotalPrice()
 }
 ```
 {% endcode %}
 
-**5. Класс Авторизации**
+**Класс OrderMemento (Мнемонико Заказа)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-import "fmt"
-
-type Authorization struct {
-    BaseModule
+type OrderMemento struct {
+    items      []string
+    totalPrice float64
 }
 
-func (a *Authorization) CheckAccess(user string) {
-    // Логика проверки доступа пользователя
-    fmt.Printf("Authorization: Checking access for user: %s\n", user)
-    a.mediator.Notify("Authorization", "AccessGranted", user)
+func NewOrderMemento(items []string, totalPrice float64) *OrderMemento {
+    return &OrderMemento{items: items, totalPrice: totalPrice}
+}
+
+func (m *OrderMemento) GetItems() []string {
+    return m.items
+}
+
+func (m *OrderMemento) GetTotalPrice() float64 {
+    return m.totalPrice
 }
 ```
 {% endcode %}
 
-**6. Класс Уведомлений**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-import "fmt"
-
-type Notification struct {
-    BaseModule
+type Caretaker struct {
+    mementoList []*OrderMemento
 }
 
-func (n *Notification) SendNotification(user string) {
-    // Логика отправки уведомления пользователю
-    fmt.Printf("Notification: Sending notification to user: %s\n", user)
+func NewCaretaker() *Caretaker {
+    return &Caretaker{mementoList: []*OrderMemento{}}
+}
+
+func (c *Caretaker) AddMemento(memento *OrderMemento) {
+    c.mementoList = append(c.mementoList, memento)
+}
+
+func (c *Caretaker) GetMemento(index int) *OrderMemento {
+    return c.mementoList[index]
 }
 ```
 {% endcode %}
@@ -142,67 +105,77 @@ func (n *Notification) SendNotification(user string) {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
 func main() {
-    authentication := &Authentication{}
-    authorization := &Authorization{}
-    notification := &Notification{}
+    // Создаем объект заказа
+    order := NewOrder([]string{"Товар 1", "Товар 2"}, 100.0)
 
-    mediator := NewConcreteMediator(authentication, authorization, notification)
+    // Создаем объект опекуна
+    caretaker := NewCaretaker()
 
-    authentication.AuthenticateUser("User1")
+    // Сохраняем текущее состояние заказа
+    caretaker.AddMemento(order.SaveStateToMemento())
+
+    // Изменяем данные заказа
+    order.SetItems([]string{"Товар 3", "Товар 4"})
+    order.SetTotalPrice(200.0)
+
+    // Сохраняем новое состояние заказа
+    caretaker.AddMemento(order.SaveStateToMemento())
+
+    // Восстанавливаем предыдущее состояние заказа
+    order.GetStateFromMemento(caretaker.GetMemento(0))
+
+    // Выводим данные заказа
+    fmt.Println("Товары:", order.GetItems())
+    fmt.Println("Общая стоимость:", order.GetTotalPrice())
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (100).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Mediator {
-    +Notify(sender: String, event: String, data: Any): void
+
+class Order {
+    -items: List<String>
+    -totalPrice: float
+    +NewOrder(items: List<String>, totalPrice: float): Order
+    +SetItems(items: List<String>): void
+    +SetTotalPrice(totalPrice: float): void
+    +GetItems(): List<String>
+    +GetTotalPrice(): float
+    +SaveStateToMemento(): OrderMemento
+    +GetStateFromMemento(memento: OrderMemento): void
 }
 
-class ConcreteMediator {
-    -authentication: Authentication
-    -authorization: Authorization
-    -notification: Notification
-    +NewConcreteMediator(authentication: Authentication, authorization: Authorization, notification: Notification): ConcreteMediator
-    +Notify(sender: String, event: String, data: Any): void
+class OrderMemento {
+    -items: List<String>
+    -totalPrice: float
+    +NewOrderMemento(items: List<String>, totalPrice: float): OrderMemento
+    +GetItems(): List<String>
+    +GetTotalPrice(): float
 }
 
-abstract class BaseModule {
-    -mediator: Mediator
-    +SetMediator(mediator: Mediator): void
+class Caretaker {
+    -mementoList: List<OrderMemento>
+    +NewCaretaker(): Caretaker
+    +AddMemento(memento: OrderMemento): void
+    +GetMemento(index: int): OrderMemento
 }
 
-class Authentication {
-    +AuthenticateUser(user: String): void
-}
+Order --> OrderMemento: <<create>>
+Caretaker --> OrderMemento: <<manage>>
 
-class Authorization {
-    +CheckAccess(user: String): void
-}
-
-class Notification {
-    +SendNotification(user: String): void
-}
-
-Mediator <|-- ConcreteMediator
-BaseModule <|-- Authentication
-BaseModule <|-- Authorization
-BaseModule <|-- Notification
-ConcreteMediator --> Authentication
-ConcreteMediator --> Authorization
-ConcreteMediator --> Notification
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Использование паттерна "Посредник" в нашей системе управления пользователями позволяет значительно упростить взаимодействие между различными модулями. Вместо того чтобы каждый модуль общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Модули аутентификации, авторизации и уведомлений могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом.
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления заказами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию заказа.
+
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
