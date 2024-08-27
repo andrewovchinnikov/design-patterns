@@ -6,6 +6,8 @@
 
 ### **UML диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image (104).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
