@@ -1,123 +1,78 @@
 # PHP
 
-Мы — команда разработчиков, создающих систему управления проектами. Наша цель — сделать так, чтобы все участники проекта могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
+Мы — команда разработчиков, работающая над системой управления документами. Наша задача — сделать работу с документами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации системы управления версиями документов. Это позволит пользователям сохранять различные версии документов и восстанавливать их при необходимости.
 
 ### Описание кейса
 
-В нашей системе управления проектами есть несколько типов пользователей: менеджеры, разработчики и тестировщики. Каждый из них выполняет свои задачи и должен быть в курсе того, что делают другие. Например, менеджер создает задачи, разработчик их выполняет, а тестировщик проверяет. Без посредника все они должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+В нашей системе управления документами пользователи часто вносят изменения в документы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущей версии документа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — документа) и восстанавливать его позже без нарушения инкапсуляции.
 
-### Применение паттерна "Посредник"
+### Применение паттерна
 
-Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми участниками. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Документ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
-### Пример кода на PHP
+#### Пример кода на PHP
 
-**1. Интерфейс Посредника**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-interface Mediator {
-    public function notify(string $sender, string $event, $data = null);
-}
-```
-{% endcode %}
-
-**2. Конкретный Посредник**
+**Класс Document (Документ)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class ConcreteMediator implements Mediator {
-    private $manager;
-    private $developer;
-    private $tester;
+class Document {
+    private $content;
 
-    public function __construct(Manager $manager, Developer $developer, Tester $tester) {
-        $this->manager = $manager;
-        $this->developer = $developer;
-        $this->tester = $tester;
-
-        $this->manager->setMediator($this);
-        $this->developer->setMediator($this);
-        $this->tester->setMediator($this);
+    public function __construct($content) {
+        $this->content = $content;
     }
 
-    public function notify(string $sender, string $event, $data = null) {
-        if ($sender === 'Manager') {
-            if ($event === 'TaskCreated') {
-                $this->developer->receiveTask($data);
-            }
-        } elseif ($sender === 'Developer') {
-            if ($event === 'TaskCompleted') {
-                $this->tester->receiveTask($data);
-            }
-        } elseif ($sender === 'Tester') {
-            if ($event === 'TaskTested') {
-                $this->manager->receiveReport($data);
-            }
-        }
+    public function setContent($content) {
+        $this->content = $content;
+    }
+
+    public function getContent() {
+        return $this->content;
+    }
+
+    public function saveStateToMemento() {
+        return new DocumentMemento($this->content);
+    }
+
+    public function getStateFromMemento(DocumentMemento $memento) {
+        $this->content = $memento->getContent();
     }
 }
 ```
 {% endcode %}
 
-**3. Базовый класс участника**
+**Класс DocumentMemento (Мнемонико Документа)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-abstract class BaseUser {
-    protected $mediator;
+class DocumentMemento {
+    private $content;
 
-    public function setMediator(Mediator $mediator) {
-        $this->mediator = $mediator;
+    public function __construct($content) {
+        $this->content = $content;
+    }
+
+    public function getContent() {
+        return $this->content;
     }
 }
 ```
 {% endcode %}
 
-**4. Класс Менеджера**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Manager extends BaseUser {
-    public function createTask($task) {
-        // Логика создания задачи
-        $this->mediator->notify('Manager', 'TaskCreated', $task);
+class Caretaker {
+    private $mementoList = [];
+
+    public function addMemento(DocumentMemento $memento) {
+        $this->mementoList[] = $memento;
     }
 
-    public function receiveReport($report) {
-        // Логика получения отчета
-        echo "Manager received report: $report\n";
-    }
-}
-```
-{% endcode %}
-
-**5. Класс Разработчика**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class Developer extends BaseUser {
-    public function receiveTask($task) {
-        // Логика получения задачи
-        echo "Developer received task: $task\n";
-        // Выполнение задачи
-        $this->mediator->notify('Developer', 'TaskCompleted', $task);
-    }
-}
-```
-{% endcode %}
-
-**6. Класс Тестировщика**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class Tester extends BaseUser {
-    public function receiveTask($task) {
-        // Логика получения задачи
-        echo "Tester received task: $task\n";
-        // Тестирование задачи
-        $report = "Test report for task: $task";
-        $this->mediator->notify('Tester', 'TaskTested', $report);
+    public function getMemento($index) {
+        return $this->mementoList[$index];
     }
 }
 ```
@@ -127,64 +82,67 @@ class Tester extends BaseUser {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-$manager = new Manager();
-$developer = new Developer();
-$tester = new Tester();
+// Создаем объект документа
+$document = new Document("Первая версия документа");
 
-$mediator = new ConcreteMediator($manager, $developer, $tester);
+// Создаем объект опекуна
+$caretaker = new Caretaker();
 
-$manager->createTask('Task 1');
+// Сохраняем текущее состояние документа
+$caretaker->addMemento($document->saveStateToMemento());
+
+// Изменяем содержимое документа
+$document->setContent("Вторая версия документа");
+
+// Сохраняем новое состояние документа
+$caretaker->addMemento($document->saveStateToMemento());
+
+// Восстанавливаем предыдущее состояние документа
+$document->getStateFromMemento($caretaker->getMemento(0));
+
+// Выводим содержимое документа
+echo "Содержимое документа: " . $document->getContent() . "\n";
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Mediator {
-    +notify(sender: String, event: String, data: Any): void
+
+class Document {
+    -content: String
+    +__construct(content: String): void
+    +setContent(content: String): void
+    +getContent(): String
+    +saveStateToMemento(): DocumentMemento
+    +getStateFromMemento(memento: DocumentMemento): void
 }
 
-class ConcreteMediator {
-    -manager: Manager
-    -developer: Developer
-    -tester: Tester
-    +__construct(manager: Manager, developer: Developer, tester: Tester): void
-    +notify(sender: String, event: String, data: Any): void
+class DocumentMemento {
+    -content: String
+    +__construct(content: String): void
+    +getContent(): String
 }
 
-abstract class BaseUser {
-    -mediator: Mediator
-    +setMediator(mediator: Mediator): void
+class Caretaker {
+    -mementoList: List<DocumentMemento>
+    +addMemento(memento: DocumentMemento): void
+    +getMemento(index: int): DocumentMemento
 }
 
-class Manager {
-    +createTask(task: String): void
-    +receiveReport(report: String): void
-}
+Document --> DocumentMemento: <<create>>
+Caretaker --> DocumentMemento: <<manage>>
 
-class Developer {
-    +receiveTask(task: String): void
-}
-
-class Tester {
-    +receiveTask(task: String): void
-}
-
-Mediator <|-- ConcreteMediator
-BaseUser <|-- Manager
-BaseUser <|-- Developer
-BaseUser <|-- Tester
-ConcreteMediator --> Manager
-ConcreteMediator --> Developer
-ConcreteMediator --> Tester
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Использование паттерна "Посредник" в нашей системе управления проектами позволяет значительно упростить взаимодействие между различными участниками проекта. Вместо того чтобы каждый участник общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Менеджеры, разработчики и тестировщики могут сосредоточиться на своих задачах, не беспокоясь о том, как именно они будут взаимодействовать друг с другом
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления документами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию документа.
+
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах. Удачи в разработке!

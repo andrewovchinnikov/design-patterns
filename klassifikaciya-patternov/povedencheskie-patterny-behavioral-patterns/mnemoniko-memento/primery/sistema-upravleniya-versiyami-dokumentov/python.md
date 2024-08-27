@@ -1,108 +1,65 @@
 # Python
 
-Мы — команда разработчиков, создающих систему управления проектами. Наша цель — сделать так, чтобы все участники проекта могли легко и эффективно взаимодействовать друг с другом. Для этого мы используем паттерн проектирования "Посредник" (Mediator). Этот паттерн помогает уменьшить зависимости между объектами, позволяя им общаться через посредника, а не напрямую.
+Мы — команда разработчиков, работающая над системой управления документами. Наша задача — сделать работу с документами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации системы управления версиями документов. Это позволит пользователям сохранять различные версии документов и восстанавливать их при необходимости.
 
 ### Описание кейса
 
-В нашей системе управления проектами есть несколько типов пользователей: менеджеры, разработчики и тестировщики. Каждый из них выполняет свои задачи и должен быть в курсе того, что делают другие. Например, менеджер создает задачи, разработчик их выполняет, а тестировщик проверяет. Без посредника все они должны были бы напрямую общаться друг с другом, что привело бы к сложной и запутанной системе.
+В нашей системе управления документами пользователи часто вносят изменения в документы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущей версии документа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — документа) и восстанавливать его позже без нарушения инкапсуляции.
 
-### Применение паттерна "Посредник"
+### Применение паттерна
 
-Паттерн "Посредник" позволяет нам создать центральный объект, который будет координировать взаимодействие между всеми участниками. Это упрощает коммуникацию и делает систему более гибкой и легкой в поддержке.
+Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Документ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
 
-### Пример кода на Python
+#### Пример кода на Python
 
-**1. Интерфейс Посредника**
+**Класс Document (Документ)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-from abc import ABC, abstractmethod
+class Document:
+    def __init__(self, content):
+        self.content = content
 
-class Mediator(ABC):
-    @abstractmethod
-    def notify(self, sender: str, event: str, data=None):
-        pass
+    def set_content(self, content):
+        self.content = content
+
+    def get_content(self):
+        return self.content
+
+    def save_state_to_memento(self):
+        return DocumentMemento(self.content)
+
+    def get_state_from_memento(self, memento):
+        self.content = memento.get_content()
 ```
 {% endcode %}
 
-**2. Конкретный Посредник**
+**Класс DocumentMemento (Мнемонико Документа)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class ConcreteMediator(Mediator):
-    def __init__(self, manager, developer, tester):
-        self.manager = manager
-        self.developer = developer
-        self.tester = tester
-        self.manager.set_mediator(self)
-        self.developer.set_mediator(self)
-        self.tester.set_mediator(self)
+class DocumentMemento:
+    def __init__(self, content):
+        self.content = content
 
-    def notify(self, sender: str, event: str, data=None):
-        if sender == 'Manager':
-            if event == 'TaskCreated':
-                self.developer.receive_task(data)
-        elif sender == 'Developer':
-            if event == 'TaskCompleted':
-                self.tester.receive_task(data)
-        elif sender == 'Tester':
-            if event == 'TaskTested':
-                self.manager.receive_report(data)
+    def get_content(self):
+        return self.content
 ```
 {% endcode %}
 
-**3. Базовый класс участника**
+**Класс Caretaker (Опекун)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class BaseUser:
+class Caretaker:
     def __init__(self):
-        self.mediator = None
+        self.memento_list = []
 
-    def set_mediator(self, mediator: Mediator):
-        self.mediator = mediator
-```
-{% endcode %}
+    def add_memento(self, memento):
+        self.memento_list.append(memento)
 
-**4. Класс Менеджера**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Manager(BaseUser):
-    def create_task(self, task: str):
-        # Логика создания задачи
-        self.mediator.notify('Manager', 'TaskCreated', task)
-
-    def receive_report(self, report: str):
-        # Логика получения отчета
-        print(f"Manager received report: {report}")
-```
-{% endcode %}
-
-**5. Класс Разработчика**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Developer(BaseUser):
-    def receive_task(self, task: str):
-        # Логика получения задачи
-        print(f"Developer received task: {task}")
-        # Выполнение задачи
-        self.mediator.notify('Developer', 'TaskCompleted', task)
-```
-{% endcode %}
-
-**6. Класс Тестировщика**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Tester(BaseUser):
-    def receive_task(self, task: str):
-        # Логика получения задачи
-        print(f"Tester received task: {task}")
-        # Тестирование задачи
-        report = f"Test report for task: {task}"
-        self.mediator.notify('Tester', 'TaskTested', report)
+    def get_memento(self, index):
+        return self.memento_list[index]
 ```
 {% endcode %}
 
@@ -111,64 +68,68 @@ class Tester(BaseUser):
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    manager = Manager()
-    developer = Developer()
-    tester = Tester()
+    # Создаем объект документа
+    document = Document("Первая версия документа")
 
-    mediator = ConcreteMediator(manager, developer, tester)
+    # Создаем объект опекуна
+    caretaker = Caretaker()
 
-    manager.create_task('Task 1')
+    # Сохраняем текущее состояние документа
+    caretaker.add_memento(document.save_state_to_memento())
+
+    # Изменяем содержимое документа
+    document.set_content("Вторая версия документа")
+
+    # Сохраняем новое состояние документа
+    caretaker.add_memento(document.save_state_to_memento())
+
+    # Восстанавливаем предыдущее состояние документа
+    document.get_state_from_memento(caretaker.get_memento(0))
+
+    # Выводим содержимое документа
+    print("Содержимое документа:", document.get_content())
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface Mediator {
-    +notify(sender: String, event: String, data: Any): void
+
+class Document {
+    -content: String
+    +__init__(content: String): void
+    +set_content(content: String): void
+    +get_content(): String
+    +save_state_to_memento(): DocumentMemento
+    +get_state_from_memento(memento: DocumentMemento): void
 }
 
-class ConcreteMediator {
-    -manager: Manager
-    -developer: Developer
-    -tester: Tester
-    +__init__(manager: Manager, developer: Developer, tester: Tester): void
-    +notify(sender: String, event: String, data: Any): void
+class DocumentMemento {
+    -content: String
+    +__init__(content: String): void
+    +get_content(): String
 }
 
-abstract class BaseUser {
-    -mediator: Mediator
-    +set_mediator(mediator: Mediator): void
+class Caretaker {
+    -memento_list: List<DocumentMemento>
+    +__init__(): void
+    +add_memento(memento: DocumentMemento): void
+    +get_memento(index: int): DocumentMemento
 }
 
-class Manager {
-    +create_task(task: String): void
-    +receive_report(report: String): void
-}
+Document --> DocumentMemento: <<create>>
+Caretaker --> DocumentMemento: <<manage>>
 
-class Developer {
-    +receive_task(task: String): void
-}
-
-class Tester {
-    +receive_task(task: String): void
-}
-
-Mediator <|-- ConcreteMediator
-BaseUser <|-- Manager
-BaseUser <|-- Developer
-BaseUser <|-- Tester
-ConcreteMediator --> Manager
-ConcreteMediator --> Developer
-ConcreteMediator --> Tester
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Использование паттерна "Посредник" в нашей системе управления проектами позволяет значительно упростить взаимодействие между различными участниками проекта. Вместо того чтобы каждый участник общался напрямую с другими, все взаимодействия проходят через центральный объект — посредника. Это делает систему более гибкой, легкой в поддержке и расширении. Менеджеры, разработчики и тестировщики могут сосредоточиться
+Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления документами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию документа.
+
+Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
