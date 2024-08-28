@@ -1,18 +1,36 @@
 # Go
 
-Мы — команда разработчиков, работающая над системой управления заказами в интернет-магазине. Наша задача — сделать процесс обработки заказов максимально удобным и эффективным. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей системе управления заказами. Это позволит пользователям отменять свои действия, такие как изменение данных заказа или добавление новых товаров, и возвращаться к предыдущему состоянию.
+Мы — команда разработчиков, которая занимается созданием систем мониторинга состояния серверов. Наша задача — обеспечить надежное и своевременное уведомление о состоянии серверов, чтобы администраторы могли оперативно реагировать на любые изменения.
 
 ### Описание кейса
 
-В нашей системе управления заказами пользователи часто вносят изменения в заказы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию заказа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — заказа) и восстанавливать его позже без нарушения инкапсуляции.
+В этом кейсе мы рассмотрим, как применить паттерн "Наблюдатель" (Observer) для мониторинга состояния серверов. Паттерн "Наблюдатель" позволяет объектам (наблюдателям) получать уведомления о событиях, происходящих в других объектах (наблюдаемых). В нашем случае сервер будет наблюдаемым объектом, а администраторы — наблюдателями.
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Заказ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" поможет нам реализовать систему, в которой серверы будут уведомлять администраторов о своем состоянии. Это позволит администраторам своевременно реагировать на любые изменения, такие как перегрузка, отказ оборудования и т.д.
 
 ### Пример кода на Go
 
-**Класс Order (Заказ)**
+**1. Определение интерфейсов**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+// Интерфейс для наблюдаемых объектов (серверов)
+type Observable interface {
+    Attach(Observer)
+    Detach(Observer)
+    Notify()
+}
+
+// Интерфейс для наблюдателей (администраторов)
+type Observer interface {
+    Update(Observable)
+}
+```
+{% endcode %}
+
+**2. Реализация наблюдаемого объекта (сервера)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -20,83 +38,56 @@ package main
 
 import "fmt"
 
-type Order struct {
-    items      []string
-    totalPrice float64
+type Server struct {
+    status    string
+    observers []Observer
 }
 
-func NewOrder(items []string, totalPrice float64) *Order {
-    return &Order{items: items, totalPrice: totalPrice}
+func (s *Server) Attach(observer Observer) {
+    s.observers = append(s.observers, observer)
 }
 
-func (o *Order) SetItems(items []string) {
-    o.items = items
+func (s *Server) Detach(observer Observer) {
+    for i, obs := range s.observers {
+        if obs == observer {
+            s.observers = append(s.observers[:i], s.observers[i+1:]...)
+            break
+        }
+    }
 }
 
-func (o *Order) SetTotalPrice(totalPrice float64) {
-    o.totalPrice = totalPrice
+func (s *Server) Notify() {
+    for _, observer := range s.observers {
+        observer.Update(s)
+    }
 }
 
-func (o *Order) GetItems() []string {
-    return o.items
+func (s *Server) ChangeStatus(newStatus string) {
+    s.status = newStatus
+    s.Notify()
 }
 
-func (o *Order) GetTotalPrice() float64 {
-    return o.totalPrice
-}
-
-func (o *Order) SaveStateToMemento() *OrderMemento {
-    return NewOrderMemento(o.items, o.totalPrice)
-}
-
-func (o *Order) GetStateFromMemento(memento *OrderMemento) {
-    o.items = memento.GetItems()
-    o.totalPrice = memento.GetTotalPrice()
-}
-```
-{% endcode %}
-
-**Класс OrderMemento (Мнемонико Заказа)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type OrderMemento struct {
-    items      []string
-    totalPrice float64
-}
-
-func NewOrderMemento(items []string, totalPrice float64) *OrderMemento {
-    return &OrderMemento{items: items, totalPrice: totalPrice}
-}
-
-func (m *OrderMemento) GetItems() []string {
-    return m.items
-}
-
-func (m *OrderMemento) GetTotalPrice() float64 {
-    return m.totalPrice
+func (s *Server) GetStatus() string {
+    return s.status
 }
 ```
 {% endcode %}
 
-**Класс Caretaker (Опекун)**
+**3. Реализация наблюдателя (администратора)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Caretaker struct {
-    mementoList []*OrderMemento
+package main
+
+import "fmt"
+
+type Admin struct {
+    name string
 }
 
-func NewCaretaker() *Caretaker {
-    return &Caretaker{mementoList: []*OrderMemento{}}
-}
-
-func (c *Caretaker) AddMemento(memento *OrderMemento) {
-    c.mementoList = append(c.mementoList, memento)
-}
-
-func (c *Caretaker) GetMemento(index int) *OrderMemento {
-    return c.mementoList[index]
+func (a *Admin) Update(observable Observable) {
+    server := observable.(*Server)
+    fmt.Printf("Администратор %s получил уведомление: состояние сервера изменилось на %s\n", a.name, server.GetStatus())
 }
 ```
 {% endcode %}
@@ -105,70 +96,67 @@ func (c *Caretaker) GetMemento(index int) *OrderMemento {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
+package main
+
 func main() {
-    // Создаем объект заказа
-    order := NewOrder([]string{"Товар 1", "Товар 2"}, 100.0)
+    // Создаем сервер
+    server := &Server{}
 
-    // Создаем объект опекуна
-    caretaker := NewCaretaker()
+    // Создаем администраторов
+    admin1 := &Admin{name: "Админ 1"}
+    admin2 := &Admin{name: "Админ 2"}
 
-    // Сохраняем текущее состояние заказа
-    caretaker.AddMemento(order.SaveStateToMemento())
+    // Подписываем администраторов на уведомления от сервера
+    server.Attach(admin1)
+    server.Attach(admin2)
 
-    // Изменяем данные заказа
-    order.SetItems([]string{"Товар 3", "Товар 4"})
-    order.SetTotalPrice(200.0)
+    // Изменяем состояние сервера
+    server.ChangeStatus("Перегрузка")
 
-    // Сохраняем новое состояние заказа
-    caretaker.AddMemento(order.SaveStateToMemento())
+    // Отписываем одного администратора
+    server.Detach(admin1)
 
-    // Восстанавливаем предыдущее состояние заказа
-    order.GetStateFromMemento(caretaker.GetMemento(0))
-
-    // Выводим данные заказа
-    fmt.Println("Товары:", order.GetItems())
-    fmt.Println("Общая стоимость:", order.GetTotalPrice())
+    // Изменяем состояние сервера еще раз
+    server.ChangeStatus("Нормально")
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-class Order {
-    -items: List<String>
-    -totalPrice: float
-    +NewOrder(items: List<String>, totalPrice: float): Order
-    +SetItems(items: List<String>): void
-    +SetTotalPrice(totalPrice: float): void
-    +GetItems(): List<String>
-    +GetTotalPrice(): float
-    +SaveStateToMemento(): OrderMemento
-    +GetStateFromMemento(memento: OrderMemento): void
+interface Observable {
+    +Attach(Observer observer)
+    +Detach(Observer observer)
+    +Notify()
 }
 
-class OrderMemento {
-    -items: List<String>
-    -totalPrice: float
-    +NewOrderMemento(items: List<String>, totalPrice: float): OrderMemento
-    +GetItems(): List<String>
-    +GetTotalPrice(): float
+interface Observer {
+    +Update(Observable observable)
 }
 
-class Caretaker {
-    -mementoList: List<OrderMemento>
-    +NewCaretaker(): Caretaker
-    +AddMemento(memento: OrderMemento): void
-    +GetMemento(index: int): OrderMemento
+class Server {
+    -status: string
+    -observers: Observer[]
+    +Attach(Observer observer)
+    +Detach(Observer observer)
+    +Notify()
+    +ChangeStatus(newStatus: string)
+    +GetStatus(): string
 }
 
-Order --> OrderMemento: <<create>>
-Caretaker --> OrderMemento: <<manage>>
+class Admin {
+    -name: string
+    +Update(Observable observable)
+}
+
+Observable <|-- Server
+Observer <|-- Admin
 
 @enduml
 ```
@@ -176,6 +164,4 @@ Caretaker --> OrderMemento: <<manage>>
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления заказами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию заказа.
-
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Паттерн "Наблюдатель" позволяет нам создать гибкую систему мониторинга состояния серверов. Администраторы могут подписываться на уведомления от серверов и своевременно получать информацию о любых изменениях. Это помогает оперативно реагировать на проблемы и поддерживать стабильную работу серверов.

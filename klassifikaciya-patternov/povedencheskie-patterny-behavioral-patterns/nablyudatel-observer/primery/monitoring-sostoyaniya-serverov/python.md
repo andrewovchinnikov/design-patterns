@@ -1,77 +1,83 @@
 # Python
 
-Мы — команда разработчиков, работающая над системой управления заказами в интернет-магазине. Наша задача — сделать процесс обработки заказов максимально удобным и эффективным. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей системе управления заказами. Это позволит пользователям отменять свои действия, такие как изменение данных заказа или добавление новых товаров, и возвращаться к предыдущему состоянию.
+Мы — команда разработчиков, которая занимается созданием систем мониторинга состояния серверов. Наша задача — обеспечить надежное и своевременное уведомление о состоянии серверов, чтобы администраторы могли оперативно реагировать на любые изменения.
 
 ### Описание кейса
 
-В нашей системе управления заказами пользователи часто вносят изменения в заказы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию заказа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — заказа) и восстанавливать его позже без нарушения инкапсуляции.
+В этом кейсе мы рассмотрим, как применить паттерн "Наблюдатель" (Observer) для мониторинга состояния серверов. Паттерн "Наблюдатель" позволяет объектам (наблюдателям) получать уведомления о событиях, происходящих в других объектах (наблюдаемых). В нашем случае сервер будет наблюдаемым объектом, а администраторы — наблюдателями.
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Заказ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" поможет нам реализовать систему, в которой серверы будут уведомлять администраторов о своем состоянии. Это позволит администраторам своевременно реагировать на любые изменения, такие как перегрузка, отказ оборудования и т.д.
 
 ### Пример кода на Python
 
-**Класс Order (Заказ)**
+**1. Определение интерфейсов**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Order:
-    def __init__(self, items, total_price):
-        self.items = items
-        self.total_price = total_price
+from abc import ABC, abstractmethod
 
-    def set_items(self, items):
-        self.items = items
+# Интерфейс для наблюдаемых объектов (серверов)
+class Observable(ABC):
+    @abstractmethod
+    def attach(self, observer):
+        pass
 
-    def set_total_price(self, total_price):
-        self.total_price = total_price
+    @abstractmethod
+    def detach(self, observer):
+        pass
 
-    def get_items(self):
-        return self.items
+    @abstractmethod
+    def notify(self):
+        pass
 
-    def get_total_price(self):
-        return self.total_price
-
-    def save_state_to_memento(self):
-        return OrderMemento(self.items, self.total_price)
-
-    def get_state_from_memento(self, memento):
-        self.items = memento.get_items()
-        self.total_price = memento.get_total_price()
+# Интерфейс для наблюдателей (администраторов)
+class Observer(ABC):
+    @abstractmethod
+    def update(self, observable):
+        pass
 ```
 {% endcode %}
 
-**Класс OrderMemento (Мнемонико Заказа)**
+**2. Реализация наблюдаемого объекта (сервера)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class OrderMemento:
-    def __init__(self, items, total_price):
-        self.items = items
-        self.total_price = total_price
-
-    def get_items(self):
-        return self.items
-
-    def get_total_price(self):
-        return self.total_price
-```
-{% endcode %}
-
-**Класс Caretaker (Опекун)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Caretaker:
+class Server(Observable):
     def __init__(self):
-        self.memento_list = []
+        self.status = ""
+        self.observers = []
 
-    def add_memento(self, memento):
-        self.memento_list.append(memento)
+    def attach(self, observer):
+        self.observers.append(observer)
 
-    def get_memento(self, index):
-        return self.memento_list[index]
+    def detach(self, observer):
+        self.observers.remove(observer)
+
+    def notify(self):
+        for observer in self.observers:
+            observer.update(self)
+
+    def change_status(self, new_status):
+        self.status = new_status
+        self.notify()
+
+    def get_status(self):
+        return self.status
+```
+{% endcode %}
+
+**3. Реализация наблюдателя (администратора)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Admin(Observer):
+    def __init__(self, name):
+        self.name = name
+
+    def update(self, observable):
+        print(f"Администратор {self.name} получил уведомление: состояние сервера изменилось на {observable.get_status()}")
 ```
 {% endcode %}
 
@@ -80,68 +86,64 @@ class Caretaker:
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    # Создаем объект заказа
-    order = Order(["Товар 1", "Товар 2"], 100.0)
+    # Создаем сервер
+    server = Server()
 
-    # Создаем объект опекуна
-    caretaker = Caretaker()
+    # Создаем администраторов
+    admin1 = Admin("Админ 1")
+    admin2 = Admin("Админ 2")
 
-    # Сохраняем текущее состояние заказа
-    caretaker.add_memento(order.save_state_to_memento())
+    # Подписываем администраторов на уведомления от сервера
+    server.attach(admin1)
+    server.attach(admin2)
 
-    # Изменяем данные заказа
-    order.set_items(["Товар 3", "Товар 4"])
-    order.set_total_price(200.0)
+    # Изменяем состояние сервера
+    server.change_status("Перегрузка")
 
-    # Сохраняем новое состояние заказа
-    caretaker.add_memento(order.save_state_to_memento())
+    # Отписываем одного администратора
+    server.detach(admin1)
 
-    # Восстанавливаем предыдущее состояние заказа
-    order.get_state_from_memento(caretaker.get_memento(0))
-
-    # Выводим данные заказа
-    print("Товары:", order.get_items())
-    print("Общая стоимость:", order.get_total_price())
+    # Изменяем состояние сервера еще раз
+    server.change_status("Нормально")
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-class Order {
-    -items: List<String>
-    -totalPrice: float
-    +__init__(items: List<String>, totalPrice: float): void
-    +set_items(items: List<String>): void
-    +set_total_price(totalPrice: float): void
-    +get_items(): List<String>
-    +get_total_price(): float
-    +save_state_to_memento(): OrderMemento
-    +get_state_from_memento(memento: OrderMemento): void
+interface Observable {
+    +attach(Observer observer)
+    +detach(Observer observer)
+    +notify()
 }
 
-class OrderMemento {
-    -items: List<String>
-    -totalPrice: float
-    +__init__(items: List<String>, totalPrice: float): void
-    +get_items(): List<String>
-    +get_total_price(): float
+interface Observer {
+    +update(Observable observable)
 }
 
-class Caretaker {
-    -mementoList: List<OrderMemento>
-    +__init__(): void
-    +add_memento(memento: OrderMemento): void
-    +get_memento(index: int): OrderMemento
+class Server {
+    -status: string
+    -observers: Observer[]
+    +attach(Observer observer)
+    +detach(Observer observer)
+    +notify()
+    +change_status(newStatus: string)
+    +get_status(): string
 }
 
-Order --> OrderMemento: <<create>>
-Caretaker --> OrderMemento: <<manage>>
+class Admin {
+    -name: string
+    +__init__(name: string)
+    +update(Observable observable)
+}
+
+Observable <|-- Server
+Observer <|-- Admin
 
 @enduml
 ```
@@ -149,6 +151,4 @@ Caretaker --> OrderMemento: <<manage>>
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления заказами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию заказа.
-
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Паттерн "Наблюдатель" позволяет нам создать гибкую систему мониторинга состояния серверов. Администраторы могут подписываться на уведомления от серверов и своевременно получать информацию о любых изменениях. Это помогает оперативно реагировать на проблемы и поддерживать стабильную работу серверов.
