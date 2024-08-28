@@ -1,141 +1,118 @@
 # PHP
 
-Мы — команда разработчиков, работающая над системой управления документами. Наша задача — сделать работу с документами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации системы управления версиями документов. Это позволит пользователям сохранять различные версии документов и восстанавливать их при необходимости.
+Мы — команда разработчиков, которая работает над веб-приложением для анализа статистики пользователей. Наше приложение собирает данные о действиях пользователей и обновляет статистику в реальном времени. Для этого мы используем паттерн проектирования "Наблюдатель" (Observer). Этот паттерн позволяет объектам подписываться на события и получать уведомления, когда эти события происходят.
 
 ### Описание кейса
 
-В нашей системе управления документами пользователи часто вносят изменения в документы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущей версии документа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — документа) и восстанавливать его позже без нарушения инкапсуляции.
+В нашем приложении есть несколько компонентов, которые должны обновляться, когда пользователь выполняет определенные действия, такие как вход в систему, выход из системы или выполнение каких-либо действий. Мы хотим, чтобы статистика обновлялась автоматически и в реальном времени. Для этого мы будем использовать паттерн "Наблюдатель".
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Документ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" позволяет объектам подписываться на события и получать уведомления, когда эти события происходят. В нашем случае, когда пользователь выполняет действие, мы будем уведомлять всех подписчиков (наблюдателей) об этом событии, чтобы они могли обновить статистику.
 
-#### Пример кода на PHP
+### Пример кода на PHP
 
-**Класс Document (Документ)**
+**Интерфейсы и классы**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Document {
-    private $content;
+// Интерфейс наблюдателя
+interface Observer {
+    public function update(string $event);
+}
 
-    public function __construct($content) {
-        $this->content = $content;
+// Интерфейс наблюдаемого объекта
+interface Observable {
+    public function attach(Observer $observer);
+    public function detach(Observer $observer);
+    public function notify(string $event);
+}
+
+// Класс пользователя, который является наблюдаемым объектом
+class User implements Observable {
+    private $observers = [];
+
+    public function attach(Observer $observer) {
+        $this->observers[] = $observer;
     }
 
-    public function setContent($content) {
-        $this->content = $content;
+    public function detach(Observer $observer) {
+        $this->observers = array_filter($this->observers, function($obs) use ($observer) {
+            return $obs !== $observer;
+        });
     }
 
-    public function getContent() {
-        return $this->content;
+    public function notify(string $event) {
+        foreach ($this->observers as $observer) {
+            $observer->update($event);
+        }
     }
 
-    public function saveStateToMemento() {
-        return new DocumentMemento($this->content);
+    // Метод, который вызывается при выполнении действия пользователем
+    public function performAction(string $action) {
+        // Выполнение действия...
+        $this->notify($action);
     }
+}
 
-    public function getStateFromMemento(DocumentMemento $memento) {
-        $this->content = $memento->getContent();
+// Класс статистики, который является наблюдателем
+class Statistics implements Observer {
+    public function update(string $event) {
+        echo "Статистика обновлена: событие '$event' произошло.\n";
     }
 }
 ```
 {% endcode %}
 
-**Класс DocumentMemento (Мнемонико Документа)**
+**Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class DocumentMemento {
-    private $content;
+// Создаем пользователя
+$user = new User();
 
-    public function __construct($content) {
-        $this->content = $content;
-    }
+// Создаем статистику и подписываем ее на события пользователя
+$statistics = new Statistics();
+$user->attach($statistics);
 
-    public function getContent() {
-        return $this->content;
-    }
-}
-```
-{% endcode %}
-
-**Класс Caretaker (Опекун)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-class Caretaker {
-    private $mementoList = [];
-
-    public function addMemento(DocumentMemento $memento) {
-        $this->mementoList[] = $memento;
-    }
-
-    public function getMemento($index) {
-        return $this->mementoList[$index];
-    }
-}
-```
-{% endcode %}
-
-#### Пример использования
-
-{% code overflow="wrap" lineNumbers="true" %}
-```php
-// Создаем объект документа
-$document = new Document("Первая версия документа");
-
-// Создаем объект опекуна
-$caretaker = new Caretaker();
-
-// Сохраняем текущее состояние документа
-$caretaker->addMemento($document->saveStateToMemento());
-
-// Изменяем содержимое документа
-$document->setContent("Вторая версия документа");
-
-// Сохраняем новое состояние документа
-$caretaker->addMemento($document->saveStateToMemento());
-
-// Восстанавливаем предыдущее состояние документа
-$document->getStateFromMemento($caretaker->getMemento(0));
-
-// Выводим содержимое документа
-echo "Содержимое документа: " . $document->getContent() . "\n";
+// Пользователь выполняет действие
+$user->performAction('вход в систему');
+$user->performAction('выход из системы');
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (5).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-class Document {
-    -content: String
-    +__construct(content: String): void
-    +setContent(content: String): void
-    +getContent(): String
-    +saveStateToMemento(): DocumentMemento
-    +getStateFromMemento(memento: DocumentMemento): void
+interface Observer {
+    +update(event: String): void
 }
 
-class DocumentMemento {
-    -content: String
-    +__construct(content: String): void
-    +getContent(): String
+interface Observable {
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(event: String): void
 }
 
-class Caretaker {
-    -mementoList: List<DocumentMemento>
-    +addMemento(memento: DocumentMemento): void
-    +getMemento(index: int): DocumentMemento
+class User {
+    -observers: Observer[]
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(event: String): void
+    +performAction(action: String): void
 }
 
-Document --> DocumentMemento: <<create>>
-Caretaker --> DocumentMemento: <<manage>>
+class Statistics {
+    +update(event: String): void
+}
+
+User --|> Observable
+Statistics --|> Observer
 
 @enduml
 ```
@@ -143,6 +120,4 @@ Caretaker --> DocumentMemento: <<manage>>
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления документами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию документа.
-
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах. Удачи в разработке!
+Использование паттерна "Наблюдатель" позволяет нам легко и эффективно обновлять статистику в реальном времени. Когда пользователь выполняет действие, все подписчики (наблюдатели) получают уведомление и могут обновить статистику. Это делает наше приложение более гибким и удобным в использовании.

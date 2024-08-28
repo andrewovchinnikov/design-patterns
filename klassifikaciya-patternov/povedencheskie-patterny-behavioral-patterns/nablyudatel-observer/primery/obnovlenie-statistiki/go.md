@@ -1,18 +1,18 @@
 # Go
 
-Мы — команда разработчиков, работающая над системой управления документами. Наша задача — сделать работу с документами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации системы управления версиями документов. Это позволит пользователям сохранять различные версии документов и восстанавливать их при необходимости.
+Мы — команда разработчиков, которая работает над веб-приложением для анализа статистики пользователей. Наше приложение собирает данные о действиях пользователей и обновляет статистику в реальном времени. Для этого мы используем паттерн проектирования "Наблюдатель" (Observer). Этот паттерн позволяет объектам подписываться на события и получать уведомления, когда эти события происходят.
 
 ### Описание кейса
 
-В нашей системе управления документами пользователи часто вносят изменения в документы. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущей версии документа. Паттерн "Мнемонико" позволяет сохранять состояние объекта (в данном случае — документа) и восстанавливать его позже без нарушения инкапсуляции.
+В нашем приложении есть несколько компонентов, которые должны обновляться, когда пользователь выполняет определенные действия, такие как вход в систему, выход из системы или выполнение каких-либо действий. Мы хотим, чтобы статистика обновлялась автоматически и в реальном времени. Для этого мы будем использовать паттерн "Наблюдатель".
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Документ" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" позволяет объектам подписываться на события и получать уведомления, когда эти события происходят. В нашем случае, когда пользователь выполняет действие, мы будем уведомлять всех подписчиков (наблюдателей) об этом событии, чтобы они могли обновить статистику.
 
-#### Пример кода на Go
+### Пример кода на Go
 
-**Класс Document (Документ)**
+**Интерфейсы и классы**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -20,133 +20,109 @@ package main
 
 import "fmt"
 
-type Document struct {
-    content string
+// Интерфейс наблюдателя
+type Observer interface {
+    Update(event string)
 }
 
-func NewDocument(content string) *Document {
-    return &Document{content: content}
+// Интерфейс наблюдаемого объекта
+type Observable interface {
+    Attach(observer Observer)
+    Detach(observer Observer)
+    Notify(event string)
 }
 
-func (d *Document) SetContent(content string) {
-    d.content = content
+// Класс пользователя, который является наблюдаемым объектом
+type User struct {
+    observers []Observer
 }
 
-func (d *Document) GetContent() string {
-    return d.content
+func (u *User) Attach(observer Observer) {
+    u.observers = append(u.observers, observer)
 }
 
-func (d *Document) SaveStateToMemento() *DocumentMemento {
-    return NewDocumentMemento(d.content)
+func (u *User) Detach(observer Observer) {
+    var newObservers []Observer
+    for _, obs := range u.observers {
+        if obs != observer {
+            newObservers = append(newObservers, obs)
+        }
+    }
+    u.observers = newObservers
 }
 
-func (d *Document) GetStateFromMemento(memento *DocumentMemento) {
-    d.content = memento.GetContent()
-}
-```
-{% endcode %}
-
-**Класс DocumentMemento (Мнемонико Документа)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type DocumentMemento struct {
-    content string
+func (u *User) Notify(event string) {
+    for _, observer := range u.observers {
+        observer.Update(event)
+    }
 }
 
-func NewDocumentMemento(content string) *DocumentMemento {
-    return &DocumentMemento{content: content}
+// Метод, который вызывается при выполнении действия пользователем
+func (u *User) PerformAction(action string) {
+    // Выполнение действия...
+    u.Notify(action)
 }
 
-func (m *DocumentMemento) GetContent() string {
-    return m.content
-}
-```
-{% endcode %}
+// Класс статистики, который является наблюдателем
+type Statistics struct{}
 
-**Класс Caretaker (Опекун)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type Caretaker struct {
-    mementoList []*DocumentMemento
-}
-
-func NewCaretaker() *Caretaker {
-    return &Caretaker{mementoList: []*DocumentMemento{}}
-}
-
-func (c *Caretaker) AddMemento(memento *DocumentMemento) {
-    c.mementoList = append(c.mementoList, memento)
-}
-
-func (c *Caretaker) GetMemento(index int) *DocumentMemento {
-    return c.mementoList[index]
+func (s *Statistics) Update(event string) {
+    fmt.Printf("Статистика обновлена: событие '%s' произошло.\n", event)
 }
 ```
 {% endcode %}
 
-#### Пример использования
+**Пример использования**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    // Создаем объект документа
-    document := NewDocument("Первая версия документа")
+    // Создаем пользователя
+    user := &User{}
 
-    // Создаем объект опекуна
-    caretaker := NewCaretaker()
+    // Создаем статистику и подписываем ее на события пользователя
+    statistics := &Statistics{}
+    user.Attach(statistics)
 
-    // Сохраняем текущее состояние документа
-    caretaker.AddMemento(document.SaveStateToMemento())
-
-    // Изменяем содержимое документа
-    document.SetContent("Вторая версия документа")
-
-    // Сохраняем новое состояние документа
-    caretaker.AddMemento(document.SaveStateToMemento())
-
-    // Восстанавливаем предыдущее состояние документа
-    document.GetStateFromMemento(caretaker.GetMemento(0))
-
-    // Выводим содержимое документа
-    fmt.Println("Содержимое документа:", document.GetContent())
+    // Пользователь выполняет действие
+    user.PerformAction("вход в систему")
+    user.PerformAction("выход из системы")
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (6).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
-class Document {
-    -content: String
-    +NewDocument(content: String): Document
-    +SetContent(content: String): void
-    +GetContent(): String
-    +SaveStateToMemento(): DocumentMemento
-    +GetStateFromMemento(memento: DocumentMemento): void
+interface Observer {
+    +Update(event: String): void
 }
 
-class DocumentMemento {
-    -content: String
-    +NewDocumentMemento(content: String): DocumentMemento
-    +GetContent(): String
+interface Observable {
+    +Attach(observer: Observer): void
+    +Detach(observer: Observer): void
+    +Notify(event: String): void
 }
 
-class Caretaker {
-    -mementoList: List<DocumentMemento>
-    +NewCaretaker(): Caretaker
-    +AddMemento(memento: DocumentMemento): void
-    +GetMemento(index: int): DocumentMemento
+class User {
+    -observers: Observer[]
+    +Attach(observer: Observer): void
+    +Detach(observer: Observer): void
+    +Notify(event: String): void
+    +PerformAction(action: String): void
 }
 
-Document --> DocumentMemento: <<create>>
-Caretaker --> DocumentMemento: <<manage>>
+class Statistics {
+    +Update(event: String): void
+}
+
+User --|> Observable
+Statistics --|> Observer
 
 @enduml
 ```
@@ -154,6 +130,4 @@ Caretaker --> DocumentMemento: <<manage>>
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей системе управления документами. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию документа.
-
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Использование паттерна "Наблюдатель" позволяет нам легко и эффективно обновлять статистику в реальном времени. Когда пользователь выполняет действие, все подписчики (наблюдатели) получают уведомление и могут обновить статистику. Это делает наше приложение более гибким и удобным в использовании.

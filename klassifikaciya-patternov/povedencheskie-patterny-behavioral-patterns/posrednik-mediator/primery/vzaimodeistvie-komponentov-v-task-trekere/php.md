@@ -120,7 +120,7 @@ $notifier->send("Уведомление отправлено");
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Посредник"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
