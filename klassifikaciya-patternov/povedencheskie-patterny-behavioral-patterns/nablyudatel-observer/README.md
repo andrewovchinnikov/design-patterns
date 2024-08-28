@@ -6,6 +6,8 @@
 
 ### **UML диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image (105).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+
 {% code overflow="wrap" lineNumbers="true" %}
 ```plaintext
 @startuml
