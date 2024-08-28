@@ -1,95 +1,133 @@
 # PHP
 
-Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
+Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач.
 
 ### Описание кейса
 
-В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
+Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
+
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (106).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plant-uml
+@startuml
+
+interface Observer {
+    +update(subject: Subject): void
+}
+
+class Subject {
+    -observers: List<Observer>
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(): void
+}
+
+class Task extends Subject {
+    -status: String
+    +setStatus(status: String): void
+    +getStatus(): String
+}
+
+class User implements Observer {
+    -name: String
+    +User(name: String)
+    +update(subject: Subject): void
+}
+
+Subject "1" -- "*" Observer: <<notify>>
+Task --> Subject: <<extend>>
+User --> Observer: <<implement>>
+User --> Subject: <<observe>>
+
+@enduml
+```
+{% endcode %}
 
 ### Пример кода на PHP
 
-**Класс Client (Клиент)**
+**Интерфейс Observer**
+
+```php
+<?php
+
+interface Observer {
+    public function update(Subject $subject);
+}
+```
+
+**Класс Subject**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Client {
-    private $name;
-    private $email;
+<?php
 
-    public function __construct($name, $email) {
-        $this->name = $name;
-        $this->email = $email;
+class Subject {
+    private $observers = [];
+
+    public function attach(Observer $observer) {
+        $this->observers[] = $observer;
     }
 
-    public function setName($name) {
-        $this->name = $name;
+    public function detach(Observer $observer) {
+        $this->observers = array_filter($this->observers, function ($obs) use ($observer) {
+            return $obs !== $observer;
+        });
     }
 
-    public function setEmail($email) {
-        $this->email = $email;
-    }
-
-    public function getName() {
-        return $this->name;
-    }
-
-    public function getEmail() {
-        return $this->email;
-    }
-
-    public function saveStateToMemento() {
-        return new ClientMemento($this->name, $this->email);
-    }
-
-    public function getStateFromMemento(ClientMemento $memento) {
-        $this->name = $memento->getName();
-        $this->email = $memento->getEmail();
+    public function notify() {
+        foreach ($this->observers as $observer) {
+            $observer->update($this);
+        }
     }
 }
 ```
 {% endcode %}
 
-**Класс ClientMemento (Мнемонико Клиента)**
+**Класс Task (наследует Subject)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class ClientMemento {
-    private $name;
-    private $email;
+<?php
 
-    public function __construct($name, $email) {
-        $this->name = $name;
-        $this->email = $email;
+class Task extends Subject {
+    private $status;
+
+    public function setStatus($status) {
+        $this->status = $status;
+        $this->notify();
     }
 
-    public function getName() {
-        return $this->name;
-    }
-
-    public function getEmail() {
-        return $this->email;
+    public function getStatus() {
+        return $this->status;
     }
 }
 ```
 {% endcode %}
 
-**Класс Caretaker (Опекун)**
+**Класс User (реализует Observer)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Caretaker {
-    private $mementoList = [];
+<?php
 
-    public function addMemento(ClientMemento $memento) {
-        $this->mementoList[] = $memento;
+class User implements Observer {
+    private $name;
+
+    public function __construct($name) {
+        $this->name = $name;
     }
 
-    public function getMemento($index) {
-        return $this->mementoList[$index];
+    public function update(Subject $subject) {
+        if ($subject instanceof Task) {
+            echo "Уведомление для {$this->name}: Статус задачи изменен на {$subject->getStatus()}\n";
+        }
     }
 }
 ```
@@ -99,74 +137,27 @@ class Caretaker {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем объект клиента
-$client = new Client("Иван Иванов", "ivan@example.com");
+<?php
 
-// Создаем объект опекуна
-$caretaker = new Caretaker();
+// Создаем задачу
+$task = new Task();
 
-// Сохраняем текущее состояние клиента
-$caretaker->addMemento($client->saveStateToMemento());
+// Создаем пользователей
+$user1 = new User("Иван");
+$user2 = new User("Мария");
 
-// Изменяем данные клиента
-$client->setName("Петр Петров");
-$client->setEmail("petr@example.com");
+// Подписываем пользователей на уведомления о статусе задачи
+$task->attach($user1);
+$task->attach($user2);
 
-// Сохраняем новое состояние клиента
-$caretaker->addMemento($client->saveStateToMemento());
-
-// Восстанавливаем предыдущее состояние клиента
-$client->getStateFromMemento($caretaker->getMemento(0));
-
-// Выводим данные клиента
-echo "Имя: " . $client->getName() . "\n";
-echo "Email: " . $client->getEmail() . "\n";
-```
-{% endcode %}
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (8).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-
-class Client {
-    -name: String
-    -email: String
-    +__construct(name: String, email: String): void
-    +setName(name: String): void
-    +setEmail(email: String): void
-    +getName(): String
-    +getEmail(): String
-    +saveStateToMemento(): ClientMemento
-    +getStateFromMemento(memento: ClientMemento): void
-}
-
-class ClientMemento {
-    -name: String
-    -email: String
-    +__construct(name: String, email: String): void
-    +getName(): String
-    +getEmail(): String
-}
-
-class Caretaker {
-    -mementoList: List<ClientMemento>
-    +addMemento(memento: ClientMemento): void
-    +getMemento(index: int): ClientMemento
-}
-
-Client --> ClientMemento: <<create>>
-Caretaker --> ClientMemento: <<manage>>
-
-@enduml
+// Изменяем статус задачи
+$task->setStatus("В процессе");
+$task->setStatus("Завершено");
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
 
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.

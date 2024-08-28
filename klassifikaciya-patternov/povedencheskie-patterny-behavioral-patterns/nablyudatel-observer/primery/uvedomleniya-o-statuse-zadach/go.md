@@ -1,18 +1,123 @@
 # Go
 
-Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
+Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Go.
 
 ### Описание кейса
 
-В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
+Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
+
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (107).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plant-uml
+@startuml
+
+interface Observer {
+    +update(subject: Subject): void
+}
+
+class Subject {
+    -observers: List<Observer>
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(): void
+}
+
+class Task extends Subject {
+    -status: String
+    +setStatus(status: String): void
+    +getStatus(): String
+}
+
+class User implements Observer {
+    -name: String
+    +User(name: String)
+    +update(subject: Subject): void
+}
+
+Subject "1" -- "*" Observer: <<notify>>
+Task --> Subject: <<extend>>
+User --> Observer: <<implement>>
+User --> Subject: <<observe>>
+
+@enduml
+```
+{% endcode %}
 
 ### Пример кода на Go
 
-**Класс Client (Клиент)**
+**Интерфейс Observer**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Observer interface {
+    update(subject Subject)
+}
+```
+{% endcode %}
+
+**Класс Subject**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Subject struct {
+    observers []Observer
+}
+
+func (s *Subject) attach(observer Observer) {
+    s.observers = append(s.observers, observer)
+}
+
+func (s *Subject) detach(observer Observer) {
+    for i, obs := range s.observers {
+        if obs == observer {
+            s.observers = append(s.observers[:i], s.observers[i+1:]...)
+            break
+        }
+    }
+}
+
+func (s *Subject) notify() {
+    for _, observer := range s.observers {
+        observer.update(s)
+    }
+}
+```
+{% endcode %}
+
+**Класс Task (наследует Subject)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+package main
+
+type Task struct {
+    Subject
+    status string
+}
+
+func (t *Task) setStatus(status string) {
+    t.status = status
+    t.notify()
+}
+
+func (t *Task) getStatus() string {
+    return t.status
+}
+```
+{% endcode %}
+
+**Класс User (реализует Observer)**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -20,83 +125,18 @@ package main
 
 import "fmt"
 
-type Client struct {
-    name  string
-    email string
+type User struct {
+    name string
 }
 
-func NewClient(name, email string) *Client {
-    return &Client{name: name, email: email}
+func NewUser(name string) *User {
+    return &User{name: name}
 }
 
-func (c *Client) SetName(name string) {
-    c.name = name
-}
-
-func (c *Client) SetEmail(email string) {
-    c.email = email
-}
-
-func (c *Client) GetName() string {
-    return c.name
-}
-
-func (c *Client) GetEmail() string {
-    return c.email
-}
-
-func (c *Client) SaveStateToMemento() *ClientMemento {
-    return NewClientMemento(c.name, c.email)
-}
-
-func (c *Client) GetStateFromMemento(memento *ClientMemento) {
-    c.name = memento.GetName()
-    c.email = memento.GetEmail()
-}
-```
-{% endcode %}
-
-**Класс ClientMemento (Мнемонико Клиента)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type ClientMemento struct {
-    name  string
-    email string
-}
-
-func NewClientMemento(name, email string) *ClientMemento {
-    return &ClientMemento{name: name, email: email}
-}
-
-func (m *ClientMemento) GetName() string {
-    return m.name
-}
-
-func (m *ClientMemento) GetEmail() string {
-    return m.email
-}
-```
-{% endcode %}
-
-**Класс Caretaker (Опекун)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-type Caretaker struct {
-    mementoList []*ClientMemento
-}
-
-func NewCaretaker() *Caretaker {
-    return &Caretaker{mementoList: []*ClientMemento{}}
-}
-
-func (c *Caretaker) AddMemento(memento *ClientMemento) {
-    c.mementoList = append(c.mementoList, memento)
-}
-
-func (c *Caretaker) GetMemento(index int) *ClientMemento {
-    return c.mementoList[index]
+func (u *User) update(subject Subject) {
+    if task, ok := subject.(*Task); ok {
+        fmt.Printf("Уведомление для %s: Статус задачи изменен на %s\n", u.name, task.getStatus())
+    }
 }
 ```
 {% endcode %}
@@ -105,77 +145,29 @@ func (c *Caretaker) GetMemento(index int) *ClientMemento {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
+package main
+
 func main() {
-    // Создаем объект клиента
-    client := NewClient("Иван Иванов", "ivan@example.com")
+    // Создаем задачу
+    task := &Task{}
 
-    // Создаем объект опекуна
-    caretaker := NewCaretaker()
+    // Создаем пользователей
+    user1 := NewUser("Иван")
+    user2 := NewUser("Мария")
 
-    // Сохраняем текущее состояние клиента
-    caretaker.AddMemento(client.SaveStateToMemento())
+    // Подписываем пользователей на уведомления о статусе задачи
+    task.attach(user1)
+    task.attach(user2)
 
-    // Изменяем данные клиента
-    client.SetName("Петр Петров")
-    client.SetEmail("petr@example.com")
-
-    // Сохраняем новое состояние клиента
-    caretaker.AddMemento(client.SaveStateToMemento())
-
-    // Восстанавливаем предыдущее состояние клиента
-    client.GetStateFromMemento(caretaker.GetMemento(0))
-
-    // Выводим данные клиента
-    fmt.Println("Имя:", client.GetName())
-    fmt.Println("Email:", client.GetEmail())
+    // Изменяем статус задачи
+    task.setStatus("В процессе")
+    task.setStatus("Завершено")
 }
-```
-{% endcode %}
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-
-class Client {
-    -name: String
-    -email: String
-    +NewClient(name: String, email: String): Client
-    +SetName(name: String): void
-    +SetEmail(email: String): void
-    +GetName(): String
-    +GetEmail(): String
-    +SaveStateToMemento(): ClientMemento
-    +GetStateFromMemento(memento: ClientMemento): void
-}
-
-class ClientMemento {
-    -name: String
-    -email: String
-    +NewClientMemento(name: String, email: String): ClientMemento
-    +GetName(): String
-    +GetEmail(): String
-}
-
-class Caretaker {
-    -mementoList: List<ClientMemento>
-    +NewCaretaker(): Caretaker
-    +AddMemento(memento: ClientMemento): void
-    +GetMemento(index: int): ClientMemento
-}
-
-Client --> ClientMemento: <<create>>
-Caretaker --> ClientMemento: <<manage>>
-
-@enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Go. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
 
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.

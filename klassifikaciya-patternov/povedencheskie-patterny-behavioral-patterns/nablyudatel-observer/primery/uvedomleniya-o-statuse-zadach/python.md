@@ -1,77 +1,119 @@
 # Python
 
-Мы — команда разработчиков, работающая над системой управления взаимоотношениями с клиентами (CRM). Наша задача — сделать работу с клиентами максимально удобной и эффективной. В этом кейсе мы рассмотрим, как применить паттерн "Мнемонико" (Memento) для реализации функции отмены действий в нашей CRM-системе. Это позволит пользователям отменять свои действия, такие как изменение данных клиента или создание новой записи, и возвращаться к предыдущему состоянию.
+Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Python.
 
 ### Описание кейса
 
-В нашей CRM-системе пользователи часто вносят изменения в данные клиентов. Иногда эти изменения могут быть ошибочными, и пользователи хотят вернуться к предыдущему состоянию. Паттерн "Мнемонико" позволяет сохранять состояние объекта и восстанавливать его позже без нарушения инкапсуляции.
+Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
 
 ### Применение паттерна
 
-Мы будем использовать паттерн "Мнемонико" для сохранения состояния объекта "Клиент" перед внесением изменений. Если пользователь захочет отменить изменения, мы сможем восстановить предыдущее состояние объекта.
+Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
 
-#### Пример кода на Python
+### UML диаграмма
 
-**Класс Client (Клиент)**
+<figure><img src="../../../../../.gitbook/assets/image (108).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
-```python
-class Client:
-    def __init__(self, name, email):
-        self.name = name
-        self.email = email
+```plant-uml
+@startuml
 
-    def set_name(self, name):
-        self.name = name
+interface Observer {
+    +update(subject: Subject): void
+}
 
-    def set_email(self, email):
-        self.email = email
+class Subject {
+    -observers: List<Observer>
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(): void
+}
 
-    def get_name(self):
-        return self.name
+class Task extends Subject {
+    -status: String
+    +setStatus(status: String): void
+    +getStatus(): String
+}
 
-    def get_email(self):
-        return self.email
+class User implements Observer {
+    -name: String
+    +User(name: String)
+    +update(subject: Subject): void
+}
 
-    def save_state_to_memento(self):
-        return ClientMemento(self.name, self.email)
+Subject "1" -- "*" Observer: <<notify>>
+Task --> Subject: <<extend>>
+User --> Observer: <<implement>>
+User --> Subject: <<observe>>
 
-    def get_state_from_memento(self, memento):
-        self.name = memento.get_name()
-        self.email = memento.get_email()
+@enduml
 ```
 {% endcode %}
 
-**Класс ClientMemento (Мнемонико Клиента)**
+### Пример кода на Python
+
+**Интерфейс Observer**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class ClientMemento:
-    def __init__(self, name, email):
-        self.name = name
-        self.email = email
+from abc import ABC, abstractmethod
 
-    def get_name(self):
-        return self.name
-
-    def get_email(self):
-        return self.email
+class Observer(ABC):
+    @abstractmethod
+    def update(self, subject):
+        pass
 ```
 {% endcode %}
 
-**Класс Caretaker (Опекун)**
+**Класс Subject**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Caretaker:
+class Subject:
     def __init__(self):
-        self.memento_list = []
+        self._observers = []
 
-    def add_memento(self, memento):
-        self.memento_list.append(memento)
+    def attach(self, observer):
+        self._observers.append(observer)
 
-    def get_memento(self, index):
-        return self.memento_list[index]
+    def detach(self, observer):
+        self._observers.remove(observer)
+
+    def notify(self):
+        for observer in self._observers:
+            observer.update(self)
+```
+{% endcode %}
+
+**Класс Task (наследует Subject)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Task(Subject):
+    def __init__(self):
+        super().__init__()
+        self._status = None
+
+    def set_status(self, status):
+        self._status = status
+        self.notify()
+
+    def get_status(self):
+        return self._status
+```
+{% endcode %}
+
+**Класс User (реализует Observer)**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class User(Observer):
+    def __init__(self, name):
+        self.name = name
+
+    def update(self, subject):
+        if isinstance(subject, Task):
+            print(f"Уведомление для {self.name}: Статус задачи изменен на {subject.get_status()}")
 ```
 {% endcode %}
 
@@ -80,75 +122,25 @@ class Caretaker:
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    # Создаем объект клиента
-    client = Client("Иван Иванов", "ivan@example.com")
+    # Создаем задачу
+    task = Task()
 
-    # Создаем объект опекуна
-    caretaker = Caretaker()
+    # Создаем пользователей
+    user1 = User("Иван")
+    user2 = User("Мария")
 
-    # Сохраняем текущее состояние клиента
-    caretaker.add_memento(client.save_state_to_memento())
+    # Подписываем пользователей на уведомления о статусе задачи
+    task.attach(user1)
+    task.attach(user2)
 
-    # Изменяем данные клиента
-    client.set_name("Петр Петров")
-    client.set_email("petr@example.com")
-
-    # Сохраняем новое состояние клиента
-    caretaker.add_memento(client.save_state_to_memento())
-
-    # Восстанавливаем предыдущее состояние клиента
-    client.get_state_from_memento(caretaker.get_memento(0))
-
-    # Выводим данные клиента
-    print("Имя:", client.get_name())
-    print("Email:", client.get_email())
-```
-{% endcode %}
-
-#### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (103).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plantuml
-@startuml
-
-class Client {
-    -name: String
-    -email: String
-    +__init__(name: String, email: String): void
-    +set_name(name: String): void
-    +set_email(email: String): void
-    +get_name(): String
-    +get_email(): String
-    +save_state_to_memento(): ClientMemento
-    +get_state_from_memento(memento: ClientMemento): void
-}
-
-class ClientMemento {
-    -name: String
-    -email: String
-    +__init__(name: String, email: String): void
-    +get_name(): String
-    +get_email(): String
-}
-
-class Caretaker {
-    -memento_list: List<ClientMemento>
-    +__init__(): void
-    +add_memento(memento: ClientMemento): void
-    +get_memento(index: int): ClientMemento
-}
-
-Client --> ClientMemento: <<create>>
-Caretaker --> ClientMemento: <<manage>>
-
-@enduml
+    # Изменяем статус задачи
+    task.set_status("В процессе")
+    task.set_status("Завершено")
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Мнемонико" позволяет нам эффективно управлять состоянием объектов в нашей CRM-системе. Мы можем сохранять состояние объекта перед внесением изменений и восстанавливать его позже, если это необходимо. Это делает нашу систему более гибкой и удобной для пользователей, позволяя им отменять свои действия и возвращаться к предыдущему состоянию.
+В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Python. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
 
-Надеюсь, этот кейс поможет вам лучше понять, как применять паттерн "Мнемонико" в реальных проектах.
+Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.
