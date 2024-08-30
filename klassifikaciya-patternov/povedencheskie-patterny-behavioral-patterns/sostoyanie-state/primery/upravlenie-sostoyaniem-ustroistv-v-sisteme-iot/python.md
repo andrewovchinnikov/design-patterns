@@ -1,119 +1,64 @@
 # Python
 
-Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Python.
+Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
 
 ### Описание кейса
 
-Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
+Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
 
-### Применение паттерна
+### Применение паттерна "Состояние"
 
-Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (108).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
-@startuml
-
-interface Observer {
-    +update(subject: Subject): void
-}
-
-class Subject {
-    -observers: List<Observer>
-    +attach(observer: Observer): void
-    +detach(observer: Observer): void
-    +notify(): void
-}
-
-class Task extends Subject {
-    -status: String
-    +setStatus(status: String): void
-    +getStatus(): String
-}
-
-class User implements Observer {
-    -name: String
-    +User(name: String)
-    +update(subject: Subject): void
-}
-
-Subject "1" -- "*" Observer: <<notify>>
-Task --> Subject: <<extend>>
-User --> Observer: <<implement>>
-User --> Subject: <<observe>>
-
-@enduml
-```
-{% endcode %}
+Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
 
 ### Пример кода на Python
 
-**Интерфейс Observer**
+**1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class Observer(ABC):
+class State(ABC):
     @abstractmethod
-    def update(self, subject):
+    def handle(self, device):
         pass
 ```
 {% endcode %}
 
-**Класс Subject**
+**2. Реализация конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Subject:
-    def __init__(self):
-        self._observers = []
+class OnState(State):
+    def handle(self, device):
+        print("Устройство включено.")
+        # Логика для состояния "включено"
 
-    def attach(self, observer):
-        self._observers.append(observer)
+class OffState(State):
+    def handle(self, device):
+        print("Устройство выключено.")
+        # Логика для состояния "выключено"
 
-    def detach(self, observer):
-        self._observers.remove(observer)
-
-    def notify(self):
-        for observer in self._observers:
-            observer.update(self)
+class EnergySavingState(State):
+    def handle(self, device):
+        print("Устройство в режиме энергосбережения.")
+        # Логика для состояния "энергосбережение"
 ```
 {% endcode %}
 
-**Класс Task (наследует Subject)**
+**3. Определение класса устройства**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Task(Subject):
-    def __init__(self):
-        super().__init__()
-        self._status = None
+class Device:
+    def __init__(self, state: State):
+        self.state = state
 
-    def set_status(self, status):
-        self._status = status
-        self.notify()
+    def set_state(self, state: State):
+        self.state = state
 
-    def get_status(self):
-        return self._status
-```
-{% endcode %}
-
-**Класс User (реализует Observer)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class User(Observer):
-    def __init__(self, name):
-        self.name = name
-
-    def update(self, subject):
-        if isinstance(subject, Task):
-            print(f"Уведомление для {self.name}: Статус задачи изменен на {subject.get_status()}")
+    def request(self):
+        self.state.handle(self)
 ```
 {% endcode %}
 
@@ -122,25 +67,57 @@ class User(Observer):
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    # Создаем задачу
-    task = Task()
+    device = Device(OffState())
+    device.request()  # Устройство выключено.
 
-    # Создаем пользователей
-    user1 = User("Иван")
-    user2 = User("Мария")
+    device.set_state(OnState())
+    device.request()  # Устройство включено.
 
-    # Подписываем пользователей на уведомления о статусе задачи
-    task.attach(user1)
-    task.attach(user2)
+    device.set_state(EnergySavingState())
+    device.request()  # Устройство в режиме энергосбережения.
+```
+{% endcode %}
 
-    # Изменяем статус задачи
-    task.set_status("В процессе")
-    task.set_status("Завершено")
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (112).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface State {
+    +handle(Device device)
+}
+
+class OnState {
+    +handle(Device device)
+}
+
+class OffState {
+    +handle(Device device)
+}
+
+class EnergySavingState {
+    +handle(Device device)
+}
+
+class Device {
+    -state: State
+    +__init__(State state)
+    +set_state(State state)
+    +request()
+}
+
+State <|-- OnState
+State <|-- OffState
+State <|-- EnergySavingState
+Device --> State
+@enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Python. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
+Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
 
-Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.
+Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.

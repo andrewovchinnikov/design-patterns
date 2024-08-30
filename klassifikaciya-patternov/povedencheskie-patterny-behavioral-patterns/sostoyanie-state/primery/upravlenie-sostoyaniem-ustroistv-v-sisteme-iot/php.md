@@ -1,135 +1,79 @@
 # PHP
 
-Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач.
+Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
 
 ### Описание кейса
 
-Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
+Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
 
-### Применение паттерна
+### Применение паттерна "Состояние"
 
-Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (106).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
-@startuml
-
-interface Observer {
-    +update(subject: Subject): void
-}
-
-class Subject {
-    -observers: List<Observer>
-    +attach(observer: Observer): void
-    +detach(observer: Observer): void
-    +notify(): void
-}
-
-class Task extends Subject {
-    -status: String
-    +setStatus(status: String): void
-    +getStatus(): String
-}
-
-class User implements Observer {
-    -name: String
-    +User(name: String)
-    +update(subject: Subject): void
-}
-
-Subject "1" -- "*" Observer: <<notify>>
-Task --> Subject: <<extend>>
-User --> Observer: <<implement>>
-User --> Subject: <<observe>>
-
-@enduml
-```
-{% endcode %}
+Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
 
 ### Пример кода на PHP
 
-**Интерфейс Observer**
-
-```php
-<?php
-
-interface Observer {
-    public function update(Subject $subject);
-}
-```
-
-**Класс Subject**
+**1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-
-class Subject {
-    private $observers = [];
-
-    public function attach(Observer $observer) {
-        $this->observers[] = $observer;
-    }
-
-    public function detach(Observer $observer) {
-        $this->observers = array_filter($this->observers, function ($obs) use ($observer) {
-            return $obs !== $observer;
-        });
-    }
-
-    public function notify() {
-        foreach ($this->observers as $observer) {
-            $observer->update($this);
-        }
-    }
+interface State {
+    public function handle(Device $device);
 }
+?>
 ```
 {% endcode %}
 
-**Класс Task (наследует Subject)**
+**2. Реализация конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
-
-class Task extends Subject {
-    private $status;
-
-    public function setStatus($status) {
-        $this->status = $status;
-        $this->notify();
-    }
-
-    public function getStatus() {
-        return $this->status;
+class OnState implements State {
+    public function handle(Device $device) {
+        echo "Устройство включено.\n";
+        // Логика для состояния "включено"
     }
 }
+
+class OffState implements State {
+    public function handle(Device $device) {
+        echo "Устройство выключено.\n";
+        // Логика для состояния "выключено"
+    }
+}
+
+class EnergySavingState implements State {
+    public function handle(Device $device) {
+        echo "Устройство в режиме энергосбережения.\n";
+        // Логика для состояния "энергосбережение"
+    }
+}
+?>
 ```
 {% endcode %}
 
-**Класс User (реализует Observer)**
+**3. Определение класса устройства**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
+class Device {
+    private $state;
 
-class User implements Observer {
-    private $name;
-
-    public function __construct($name) {
-        $this->name = $name;
+    public function __construct(State $state) {
+        $this->setState($state);
     }
 
-    public function update(Subject $subject) {
-        if ($subject instanceof Task) {
-            echo "Уведомление для {$this->name}: Статус задачи изменен на {$subject->getStatus()}\n";
-        }
+    public function setState(State $state) {
+        $this->state = $state;
+    }
+
+    public function request() {
+        $this->state->handle($this);
     }
 }
+?>
 ```
 {% endcode %}
 
@@ -138,26 +82,58 @@ class User implements Observer {
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
 <?php
+$device = new Device(new OffState());
+$device->request(); // Устройство выключено.
 
-// Создаем задачу
-$task = new Task();
+$device->setState(new OnState());
+$device->request(); // Устройство включено.
 
-// Создаем пользователей
-$user1 = new User("Иван");
-$user2 = new User("Мария");
+$device->setState(new EnergySavingState());
+$device->request(); // Устройство в режиме энергосбережения.
+?>
+```
+{% endcode %}
 
-// Подписываем пользователей на уведомления о статусе задачи
-$task->attach($user1);
-$task->attach($user2);
+### UML диаграмма
 
-// Изменяем статус задачи
-$task->setStatus("В процессе");
-$task->setStatus("Завершено");
+<figure><img src="../../../../../.gitbook/assets/image (110).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface State {
+    +handle(Device device)
+}
+
+class OnState {
+    +handle(Device device)
+}
+
+class OffState {
+    +handle(Device device)
+}
+
+class EnergySavingState {
+    +handle(Device device)
+}
+
+class Device {
+    -state: State
+    +__construct(State state)
+    +setState(State state)
+    +request()
+}
+
+State <|-- OnState
+State <|-- OffState
+State <|-- EnergySavingState
+Device --> State
+@enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
+Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
 
-Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.
+Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.

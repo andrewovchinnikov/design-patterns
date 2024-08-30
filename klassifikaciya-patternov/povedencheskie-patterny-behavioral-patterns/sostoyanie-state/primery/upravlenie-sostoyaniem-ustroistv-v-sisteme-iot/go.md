@@ -1,123 +1,18 @@
 # Go
 
-Мы — команда разработчиков, работающая над системой управления проектами. Наша задача — сделать так, чтобы пользователи могли легко отслеживать статус своих задач и получать уведомления о любых изменениях. В этом кейсе мы рассмотрим, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Go.
+Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
 
 ### Описание кейса
 
-Наша система управления проектами позволяет пользователям создавать задачи и отслеживать их статус. Когда статус задачи изменяется (например, с "В процессе" на "Завершено"), все заинтересованные пользователи должны получать уведомления. Для этого мы будем использовать паттерн "Наблюдатель", который позволяет объектам (наблюдателям) подписываться на события, происходящие в другом объекте (субъекте), и получать уведомления об этих событиях.
+Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
 
-### Применение паттерна
+### Применение паттерна "Состояние"
 
-Паттерн "Наблюдатель" идеально подходит для нашей задачи, так как он позволяет легко добавлять и удалять наблюдателей (пользователей), которые будут получать уведомления о изменении статуса задач. Это упрощает управление уведомлениями и делает систему более гибкой.
-
-### UML диаграмма
-
-<figure><img src="../../../../../.gitbook/assets/image (107).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
-
-{% code overflow="wrap" lineNumbers="true" %}
-```plant-uml
-@startuml
-
-interface Observer {
-    +update(subject: Subject): void
-}
-
-class Subject {
-    -observers: List<Observer>
-    +attach(observer: Observer): void
-    +detach(observer: Observer): void
-    +notify(): void
-}
-
-class Task extends Subject {
-    -status: String
-    +setStatus(status: String): void
-    +getStatus(): String
-}
-
-class User implements Observer {
-    -name: String
-    +User(name: String)
-    +update(subject: Subject): void
-}
-
-Subject "1" -- "*" Observer: <<notify>>
-Task --> Subject: <<extend>>
-User --> Observer: <<implement>>
-User --> Subject: <<observe>>
-
-@enduml
-```
-{% endcode %}
+Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
 
 ### Пример кода на Go
 
-**Интерфейс Observer**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Observer interface {
-    update(subject Subject)
-}
-```
-{% endcode %}
-
-**Класс Subject**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Subject struct {
-    observers []Observer
-}
-
-func (s *Subject) attach(observer Observer) {
-    s.observers = append(s.observers, observer)
-}
-
-func (s *Subject) detach(observer Observer) {
-    for i, obs := range s.observers {
-        if obs == observer {
-            s.observers = append(s.observers[:i], s.observers[i+1:]...)
-            break
-        }
-    }
-}
-
-func (s *Subject) notify() {
-    for _, observer := range s.observers {
-        observer.update(s)
-    }
-}
-```
-{% endcode %}
-
-**Класс Task (наследует Subject)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-type Task struct {
-    Subject
-    status string
-}
-
-func (t *Task) setStatus(status string) {
-    t.status = status
-    t.notify()
-}
-
-func (t *Task) getStatus() string {
-    return t.status
-}
-```
-{% endcode %}
-
-**Класс User (реализует Observer)**
+**1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -125,18 +20,57 @@ package main
 
 import "fmt"
 
-type User struct {
-    name string
+type State interface {
+    Handle(device *Device)
+}
+```
+{% endcode %}
+
+**2. Реализация конкретных состояний**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type OnState struct{}
+
+func (s *OnState) Handle(device *Device) {
+    fmt.Println("Устройство включено.")
+    // Логика для состояния "включено"
 }
 
-func NewUser(name string) *User {
-    return &User{name: name}
+type OffState struct{}
+
+func (s *OffState) Handle(device *Device) {
+    fmt.Println("Устройство выключено.")
+    // Логика для состояния "выключено"
 }
 
-func (u *User) update(subject Subject) {
-    if task, ok := subject.(*Task); ok {
-        fmt.Printf("Уведомление для %s: Статус задачи изменен на %s\n", u.name, task.getStatus())
-    }
+type EnergySavingState struct{}
+
+func (s *EnergySavingState) Handle(device *Device) {
+    fmt.Println("Устройство в режиме энергосбережения.")
+    // Логика для состояния "энергосбережение"
+}
+```
+{% endcode %}
+
+**3. Определение класса устройства**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```go
+type Device struct {
+    state State
+}
+
+func NewDevice(state State) *Device {
+    return &Device{state: state}
+}
+
+func (d *Device) SetState(state State) {
+    d.state = state
+}
+
+func (d *Device) Request() {
+    d.state.Handle(d)
 }
 ```
 {% endcode %}
@@ -145,29 +79,59 @@ func (u *User) update(subject Subject) {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
 func main() {
-    // Создаем задачу
-    task := &Task{}
+    device := NewDevice(&OffState{})
+    device.Request() // Устройство выключено.
 
-    // Создаем пользователей
-    user1 := NewUser("Иван")
-    user2 := NewUser("Мария")
+    device.SetState(&OnState{})
+    device.Request() // Устройство включено.
 
-    // Подписываем пользователей на уведомления о статусе задачи
-    task.attach(user1)
-    task.attach(user2)
-
-    // Изменяем статус задачи
-    task.setStatus("В процессе")
-    task.setStatus("Завершено")
+    device.SetState(&EnergySavingState{})
+    device.Request() // Устройство в режиме энергосбережения.
 }
+```
+{% endcode %}
+
+### UML диаграмма
+
+<figure><img src="../../../../../.gitbook/assets/image (111).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+
+{% code overflow="wrap" lineNumbers="true" %}
+```plantuml
+@startuml
+interface State {
+    +Handle(Device device)
+}
+
+class OnState {
+    +Handle(Device device)
+}
+
+class OffState {
+    +Handle(Device device)
+}
+
+class EnergySavingState {
+    +Handle(Device device)
+}
+
+class Device {
+    -state: State
+    +NewDevice(State state)
+    +SetState(State state)
+    +Request()
+}
+
+State <|-- OnState
+State <|-- OffState
+State <|-- EnergySavingState
+Device --> State
+@enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-В этом кейсе мы рассмотрели, как можно использовать паттерн "Наблюдатель" для реализации системы уведомлений о статусе задач на языке Go. Мы создали интерфейс `Observer`, класс `Subject`, который управляет списком наблюдателей, и классы `Task` и `User`, которые реализуют логику задачи и пользователя соответственно.
+Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
 
-Паттерн "Наблюдатель" позволяет легко добавлять и удалять наблюдателей, что делает систему гибкой и удобной для расширения. В результате, пользователи получают уведомления о любых изменениях статуса задач, что улучшает их взаимодействие с системой управления проектами.
+Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.
