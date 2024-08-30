@@ -1,93 +1,109 @@
 # Go
 
-Мы — команда разработчиков, которая занимается созданием систем мониторинга состояния серверов. Наша задача — обеспечить надежное и своевременное уведомление о состоянии серверов, чтобы администраторы могли оперативно реагировать на любые изменения.
+Мы — команда программистов в финтехе. Наша задача — создавать надежные и эффективные системы для обработки финансовых транзакций. В этом кейсе мы рассмотрим, как применить паттерн "Состояние" для обработки различных состояний транзакций в банковской системе на языке Go.
 
-### Описание кейса
+#### Описание кейса
 
-В этом кейсе мы рассмотрим, как применить паттерн "Наблюдатель" (Observer) для мониторинга состояния серверов. Паттерн "Наблюдатель" позволяет объектам (наблюдателям) получать уведомления о событиях, происходящих в других объектах (наблюдаемых). В нашем случае сервер будет наблюдаемым объектом, а администраторы — наблюдателями.
+В банковской системе транзакции могут находиться в разных состояниях: создана, обрабатывается, завершена, отклонена и т.д. Каждое состояние имеет свои правила и поведение. Например, транзакция в состоянии "создана" может быть отменена, а в состоянии "завершена" — нет. Паттерн "Состояние" позволяет нам легко управлять этими состояниями и их переходами.
 
-### Применение паттерна
+#### Применение паттерна
 
-Паттерн "Наблюдатель" поможет нам реализовать систему, в которой серверы будут уведомлять администраторов о своем состоянии. Это позволит администраторам своевременно реагировать на любые изменения, такие как перегрузка, отказ оборудования и т.д.
+Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от внутреннего состояния. Вместо того чтобы использовать большие условные конструкции, мы создаем отдельные классы для каждого состояния и делегируем им выполнение операций.
 
-### Пример кода на Go
+#### Код
 
-**1. Определение интерфейсов**
+**1. Определение интерфейса состояния**
 
-{% code overflow="wrap" lineNumbers="true" %}
-```go
-// Интерфейс для наблюдаемых объектов (серверов)
-type Observable interface {
-    Attach(Observer)
-    Detach(Observer)
-    Notify()
-}
-
-// Интерфейс для наблюдателей (администраторов)
-type Observer interface {
-    Update(Observable)
-}
-```
-{% endcode %}
-
-**2. Реализация наблюдаемого объекта (сервера)**
-
-{% code overflow="wrap" lineNumbers="true" %}
 ```go
 package main
 
 import "fmt"
 
-type Server struct {
-    status    string
-    observers []Observer
-}
-
-func (s *Server) Attach(observer Observer) {
-    s.observers = append(s.observers, observer)
-}
-
-func (s *Server) Detach(observer Observer) {
-    for i, obs := range s.observers {
-        if obs == observer {
-            s.observers = append(s.observers[:i], s.observers[i+1:]...)
-            break
-        }
-    }
-}
-
-func (s *Server) Notify() {
-    for _, observer := range s.observers {
-        observer.Update(s)
-    }
-}
-
-func (s *Server) ChangeStatus(newStatus string) {
-    s.status = newStatus
-    s.Notify()
-}
-
-func (s *Server) GetStatus() string {
-    return s.status
+type TransactionState interface {
+    Process()
+    Complete()
+    Cancel()
 }
 ```
-{% endcode %}
 
-**3. Реализация наблюдателя (администратора)**
+**2. Создание конкретных состояний**
+
+```go
+type CreatedState struct{}
+
+func (s *CreatedState) Process() {
+    fmt.Println("Транзакция обрабатывается...")
+    // Логика обработки транзакции
+}
+
+func (s *CreatedState) Complete() {
+    fmt.Println("Транзакция не может быть завершена в состоянии 'создана'")
+}
+
+func (s *CreatedState) Cancel() {
+    fmt.Println("Транзакция отменена.")
+    // Логика отмены транзакции
+}
+
+type ProcessingState struct{}
+
+func (s *ProcessingState) Process() {
+    fmt.Println("Транзакция уже обрабатывается...")
+}
+
+func (s *ProcessingState) Complete() {
+    fmt.Println("Транзакция завершена.")
+    // Логика завершения транзакции
+}
+
+func (s *ProcessingState) Cancel() {
+    fmt.Println("Транзакция не может быть отменена в состоянии 'обрабатывается'")
+}
+
+type CompletedState struct{}
+
+func (s *CompletedState) Process() {
+    fmt.Println("Транзакция не может быть обработана в состоянии 'завершена'")
+}
+
+func (s *CompletedState) Complete() {
+    fmt.Println("Транзакция уже завершена.")
+}
+
+func (s *CompletedState) Cancel() {
+    fmt.Println("Транзакция не может быть отменена в состоянии 'завершена'")
+}
+```
+
+**3. Создание контекста**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
-import "fmt"
-
-type Admin struct {
-    name string
+type Transaction struct {
+    state TransactionState
 }
 
-func (a *Admin) Update(observable Observable) {
-    server := observable.(*Server)
-    fmt.Printf("Администратор %s получил уведомление: состояние сервера изменилось на %s\n", a.name, server.GetStatus())
+func NewTransaction() *Transaction {
+    return &Transaction{state: &CreatedState{}}
+}
+
+func (t *Transaction) SetState(state TransactionState) {
+    t.state = state
+}
+
+func (t *Transaction) Process() {
+    t.state.Process()
+    t.SetState(&ProcessingState{})
+}
+
+func (t *Transaction) Complete() {
+    t.state.Complete()
+    t.SetState(&CompletedState{})
+}
+
+func (t *Transaction) Cancel() {
+    t.state.Cancel()
+    t.SetState(&CreatedState{})
 }
 ```
 {% endcode %}
@@ -96,72 +112,64 @@ func (a *Admin) Update(observable Observable) {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-package main
-
 func main() {
-    // Создаем сервер
-    server := &Server{}
+    transaction := NewTransaction()
 
-    // Создаем администраторов
-    admin1 := &Admin{name: "Админ 1"}
-    admin2 := &Admin{name: "Админ 2"}
-
-    // Подписываем администраторов на уведомления от сервера
-    server.Attach(admin1)
-    server.Attach(admin2)
-
-    // Изменяем состояние сервера
-    server.ChangeStatus("Перегрузка")
-
-    // Отписываем одного администратора
-    server.Detach(admin1)
-
-    // Изменяем состояние сервера еще раз
-    server.ChangeStatus("Нормально")
+    transaction.Process() // Транзакция обрабатывается...
+    transaction.Complete() // Транзакция завершена.
+    transaction.Cancel() // Транзакция не может быть отменена в состоянии 'завершена'
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (4).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-
-interface Observable {
-    +Attach(Observer observer)
-    +Detach(Observer observer)
-    +Notify()
+interface TransactionState {
+    +Process()
+    +Complete()
+    +Cancel()
 }
 
-interface Observer {
-    +Update(Observable observable)
+class CreatedState {
+    +Process()
+    +Complete()
+    +Cancel()
 }
 
-class Server {
-    -status: string
-    -observers: Observer[]
-    +Attach(Observer observer)
-    +Detach(Observer observer)
-    +Notify()
-    +ChangeStatus(newStatus: string)
-    +GetStatus(): string
+class ProcessingState {
+    +Process()
+    +Complete()
+    +Cancel()
 }
 
-class Admin {
-    -name: string
-    +Update(Observable observable)
+class CompletedState {
+    +Process()
+    +Complete()
+    +Cancel()
 }
 
-Observable <|-- Server
-Observer <|-- Admin
+class Transaction {
+    -state: TransactionState
+    +NewTransaction()
+    +SetState(state: TransactionState)
+    +Process()
+    +Complete()
+    +Cancel()
+}
 
+TransactionState <|-- CreatedState
+TransactionState <|-- ProcessingState
+TransactionState <|-- CompletedState
+Transaction --> TransactionState
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Наблюдатель" позволяет нам создать гибкую систему мониторинга состояния серверов. Администраторы могут подписываться на уведомления от серверов и своевременно получать информацию о любых изменениях. Это помогает оперативно реагировать на проблемы и поддерживать стабильную работу серверов.
+Паттерн "Состояние" позволяет нам гибко управлять различными состояниями транзакций в банковской системе. Мы создали отдельные классы для каждого состояния и делегировали им выполнение операций. Это упрощает код, делает его более читаемым и поддерживаемым. Теперь, если нам нужно добавить новое состояние или изменить поведение существующего, мы можем сделать это без изменения основного кода транзакции.

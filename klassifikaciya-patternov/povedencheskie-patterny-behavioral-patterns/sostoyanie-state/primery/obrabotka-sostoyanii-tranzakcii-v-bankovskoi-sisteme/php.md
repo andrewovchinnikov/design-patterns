@@ -1,86 +1,116 @@
 # PHP
 
-Мы — команда разработчиков, которая занимается созданием систем мониторинга состояния серверов. Наша задача — обеспечить надежное и своевременное уведомление о состоянии серверов, чтобы администраторы могли оперативно реагировать на любые изменения.
+Мы — команда программистов в финтехе. Наша задача — создавать надежные и эффективные системы для обработки финансовых транзакций. В этом кейсе мы рассмотрим, как применить паттерн "Состояние" для обработки различных состояний транзакций в банковской системе.
 
 ### Описание кейса
 
-В этом кейсе мы рассмотрим, как применить паттерн "Наблюдатель" (Observer) для мониторинга состояния серверов. Паттерн "Наблюдатель" позволяет объектам (наблюдателям) получать уведомления о событиях, происходящих в других объектах (наблюдаемых). В нашем случае сервер будет наблюдаемым объектом, а администраторы — наблюдателями.
+В банковской системе транзакции могут находиться в разных состояниях: создана, обрабатывается, завершена, отклонена и т.д. Каждое состояние имеет свои правила и поведение. Например, транзакция в состоянии "создана" может быть отменена, а в состоянии "завершена" — нет. Паттерн "Состояние" позволяет нам легко управлять этими состояниями и их переходами.
 
 ### Применение паттерна
 
-Паттерн "Наблюдатель" поможет нам реализовать систему, в которой серверы будут уведомлять администраторов о своем состоянии. Это позволит администраторам своевременно реагировать на любые изменения, такие как перегрузка, отказ оборудования и т.д.
+Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от внутреннего состояния. Вместо того чтобы использовать большие условные конструкции, мы создаем отдельные классы для каждого состояния и делегируем им выполнение операций.
 
 ### Пример кода на PHP
 
-**1. Определение интерфейсов**
+**1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Интерфейс для наблюдаемых объектов (серверов)
-interface Observable {
-    public function attach(Observer $observer);
-    public function detach(Observer $observer);
-    public function notify();
+<?php
+interface TransactionState {
+    public function process();
+    public function complete();
+    public function cancel();
 }
-
-// Интерфейс для наблюдателей (администраторов)
-interface Observer {
-    public function update(Observable $observable);
-}
+?>
 ```
 {% endcode %}
 
-**2. Реализация наблюдаемого объекта (сервера)**
+**2. Создание конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Server implements Observable {
-    private $status;
-    private $observers = [];
-
-    public function attach(Observer $observer) {
-        $this->observers[] = $observer;
+<?php
+class CreatedState implements TransactionState {
+    public function process() {
+        echo "Транзакция обрабатывается...\n";
+        // Логика обработки транзакции
     }
 
-    public function detach(Observer $observer) {
-        $this->observers = array_filter($this->observers, function($obs) use ($observer) {
-            return $obs !== $observer;
-        });
+    public function complete() {
+        echo "Транзакция не может быть завершена в состоянии 'создана'\n";
     }
 
-    public function notify() {
-        foreach ($this->observers as $observer) {
-            $observer->update($this);
-        }
-    }
-
-    public function changeStatus($newStatus) {
-        $this->status = $newStatus;
-        $this->notify();
-    }
-
-    public function getStatus() {
-        return $this->status;
+    public function cancel() {
+        echo "Транзакция отменена.\n";
+        // Логика отмены транзакции
     }
 }
+
+class ProcessingState implements TransactionState {
+    public function process() {
+        echo "Транзакция уже обрабатывается...\n";
+    }
+
+    public function complete() {
+        echo "Транзакция завершена.\n";
+        // Логика завершения транзакции
+    }
+
+    public function cancel() {
+        echo "Транзакция не может быть отменена в состоянии 'обрабатывается'\n";
+    }
+}
+
+class CompletedState implements TransactionState {
+    public function process() {
+        echo "Транзакция не может быть обработана в состоянии 'завершена'\n";
+    }
+
+    public function complete() {
+        echo "Транзакция уже завершена.\n";
+    }
+
+    public function cancel() {
+        echo "Транзакция не может быть отменена в состоянии 'завершена'\n";
+    }
+}
+?>
 ```
 {% endcode %}
 
-**3. Реализация наблюдателя (администратора)**
+**3. Создание контекста**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-class Admin implements Observer {
-    private $name;
+<?php
+class Transaction {
+    private $state;
 
-    public function __construct($name) {
-        $this->name = $name;
+    public function __construct() {
+        $this->setState(new CreatedState());
     }
 
-    public function update(Observable $observable) {
-        echo "Администратор {$this->name} получил уведомление: состояние сервера изменилось на {$observable->getStatus()}\n";
+    public function setState(TransactionState $state) {
+        $this->state = $state;
+    }
+
+    public function process() {
+        $this->state->process();
+        $this->setState(new ProcessingState());
+    }
+
+    public function complete() {
+        $this->state->complete();
+        $this->setState(new CompletedState());
+    }
+
+    public function cancel() {
+        $this->state->cancel();
+        $this->setState(new CreatedState());
     }
 }
+?>
 ```
 {% endcode %}
 
@@ -88,69 +118,64 @@ class Admin implements Observer {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-// Создаем сервер
-$server = new Server();
+<?php
+$transaction = new Transaction();
 
-// Создаем администраторов
-$admin1 = new Admin("Админ 1");
-$admin2 = new Admin("Админ 2");
-
-// Подписываем администраторов на уведомления от сервера
-$server->attach($admin1);
-$server->attach($admin2);
-
-// Изменяем состояние сервера
-$server->changeStatus("Перегрузка");
-
-// Отписываем одного администратора
-$server->detach($admin1);
-
-// Изменяем состояние сервера еще раз
-$server->changeStatus("Нормально");
+$transaction->process(); // Транзакция обрабатывается...
+$transaction->complete(); // Транзакция завершена.
+$transaction->cancel(); // Транзакция не может быть отменена в состоянии 'завершена'
+?>
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-
-interface Observable {
-    +attach(Observer observer)
-    +detach(Observer observer)
-    +notify()
+interface TransactionState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-interface Observer {
-    +update(Observable observable)
+class CreatedState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-class Server {
-    -status: string
-    -observers: Observer[]
-    +attach(Observer observer)
-    +detach(Observer observer)
-    +notify()
-    +changeStatus(newStatus: string)
-    +getStatus(): string
+class ProcessingState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-class Admin {
-    -name: string
-    +__construct(name: string)
-    +update(Observable observable)
+class CompletedState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-Observable <|-- Server
-Observer <|-- Admin
+class Transaction {
+    -state: TransactionState
+    +__construct()
+    +setState(state: TransactionState)
+    +process()
+    +complete()
+    +cancel()
+}
 
+TransactionState <|-- CreatedState
+TransactionState <|-- ProcessingState
+TransactionState <|-- CompletedState
+Transaction --> TransactionState
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Наблюдатель" позволяет нам создать гибкую систему мониторинга состояния серверов. Администраторы могут подписываться на уведомления от серверов и своевременно получать информацию о любых изменениях. Это помогает оперативно реагировать на проблемы и поддерживать стабильную работу серверов.
+Паттерн "Состояние" позволяет нам гибко управлять различными состояниями транзакций в банковской системе. Мы создали отдельные классы для каждого состояния и делегировали им выполнение операций. Это упрощает код, делает его более читаемым и поддерживаемым. Теперь, если нам нужно добавить новое состояние или изменить поведение существующего, мы можем сделать это без изменения основного кода транзакции.

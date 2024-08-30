@@ -126,7 +126,7 @@ echo "Общая стоимость: " . $order->getTotalPrice() . "\n";
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3) (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
