@@ -1,0 +1,28 @@
+@startuml
+
+interface Observer {
+    +update(event: String): void
+}
+
+interface Observable {
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(event: String): void
+}
+
+class User {
+    -observers: Observer[]
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(event: String): void
+    +performAction(action: String): void
+}
+
+class Statistics {
+    +update(event: String): void
+}
+
+User --|> Observable
+Statistics --|> Observer
+
+@enduml

@@ -1,27 +1,29 @@
 @startuml
 
-interface Command {
-    +execute(): void
-    +unexecute(): void
+class Mediator {
+    +send(message: string, colleague: Colleague): void
 }
 
-class ConcreteCommand {
-    -receiver: Receiver
-    +execute(): void
-    +unexecute(): void
+abstract class Colleague {
+    -mediator: Mediator
+    +setMediator(mediator: Mediator): void
+    +send(message: string): void
+    +receive(message: string): void
 }
 
-class Receiver {
-    +action(): void
+class ConcreteColleague1 {
+    +send(message: string): void
+    +receive(message: string): void
 }
 
-class Invoker {
-    -command: Command
-    +setCommand(command: Command): void
-    +executeCommand(): void
+class ConcreteColleague2 {
+    +send(message: string): void
+    +receive(message: string): void
 }
 
-ConcreteCommand --> Receiver: <<uses>>
-Invoker --> Command: <<uses>>
+Mediator <|-- ConcreteColleague1
+Mediator <|-- ConcreteColleague2
+Colleague <|-- ConcreteColleague1
+Colleague <|-- ConcreteColleague2
 
 @enduml

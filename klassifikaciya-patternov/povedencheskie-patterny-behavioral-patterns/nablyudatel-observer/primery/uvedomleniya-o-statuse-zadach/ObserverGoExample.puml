@@ -1,0 +1,31 @@
+@startuml
+
+interface Observer {
+    +update(subject: Subject): void
+}
+
+class Subject {
+    -observers: List<Observer>
+    +attach(observer: Observer): void
+    +detach(observer: Observer): void
+    +notify(): void
+}
+
+class Task extends Subject {
+    -status: String
+    +setStatus(status: String): void
+    +getStatus(): String
+}
+
+class User implements Observer {
+    -name: String
+    +User(name: String)
+    +update(subject: Subject): void
+}
+
+Subject "1" -- "*" Observer: <<notify>>
+Task --> Subject: <<extend>>
+User --> Observer: <<implement>>
+User --> Subject: <<observe>>
+
+@enduml

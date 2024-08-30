@@ -1,0 +1,31 @@
+@startuml
+
+interface Observable {
+    +Attach(Observer observer)
+    +Detach(Observer observer)
+    +Notify()
+}
+
+interface Observer {
+    +Update(Observable observable)
+}
+
+class Server {
+    -status: string
+    -observers: Observer[]
+    +Attach(Observer observer)
+    +Detach(Observer observer)
+    +Notify()
+    +ChangeStatus(newStatus: string)
+    +GetStatus(): string
+}
+
+class Admin {
+    -name: string
+    +Update(Observable observable)
+}
+
+Observable <|-- Server
+Observer <|-- Admin
+
+@enduml

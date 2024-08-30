@@ -1,0 +1,29 @@
+@startuml
+interface State {
+    +Handle(Device device)
+}
+
+class OnState {
+    +Handle(Device device)
+}
+
+class OffState {
+    +Handle(Device device)
+}
+
+class EnergySavingState {
+    +Handle(Device device)
+}
+
+class Device {
+    -state: State
+    +NewDevice(State state)
+    +SetState(State state)
+    +Request()
+}
+
+State <|-- OnState
+State <|-- OffState
+State <|-- EnergySavingState
+Device --> State
+@enduml

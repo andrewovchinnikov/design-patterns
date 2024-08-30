@@ -1,0 +1,28 @@
+@startuml
+
+class Document {
+    -content: String
+    +__init__(content: String): void
+    +set_content(content: String): void
+    +get_content(): String
+    +save_state_to_memento(): DocumentMemento
+    +get_state_from_memento(memento: DocumentMemento): void
+}
+
+class DocumentMemento {
+    -content: String
+    +__init__(content: String): void
+    +get_content(): String
+}
+
+class Caretaker {
+    -memento_list: List<DocumentMemento>
+    +__init__(): void
+    +add_memento(memento: DocumentMemento): void
+    +get_memento(index: int): DocumentMemento
+}
+
+Document --> DocumentMemento: <<create>>
+Caretaker --> DocumentMemento: <<manage>>
+
+@enduml

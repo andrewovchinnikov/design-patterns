@@ -1,0 +1,49 @@
+@startuml
+
+interface OrderState {
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
+}
+
+class CreatedState {
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
+}
+
+class ConfirmedState {
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
+}
+
+class ShippedState {
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
+}
+
+class DeliveredState {
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
+}
+
+class Order {
+    -state: OrderState
+    +__construct()
+    +setState(OrderState $state)
+    +confirmOrder()
+    +shipOrder()
+    +deliverOrder()
+}
+
+OrderState <|-- CreatedState
+OrderState <|-- ConfirmedState
+OrderState <|-- ShippedState
+OrderState <|-- DeliveredState
+
+Order --> OrderState
+
+@enduml

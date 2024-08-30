@@ -1,0 +1,32 @@
+@startuml
+
+class Client {
+    -name: String
+    -email: String
+    +__construct(name: String, email: String): void
+    +setName(name: String): void
+    +setEmail(email: String): void
+    +getName(): String
+    +getEmail(): String
+    +saveStateToMemento(): ClientMemento
+    +getStateFromMemento(memento: ClientMemento): void
+}
+
+class ClientMemento {
+    -name: String
+    -email: String
+    +__construct(name: String, email: String): void
+    +getName(): String
+    +getEmail(): String
+}
+
+class Caretaker {
+    -mementoList: List<ClientMemento>
+    +addMemento(memento: ClientMemento): void
+    +getMemento(index: int): ClientMemento
+}
+
+Client --> ClientMemento: <<create>>
+Caretaker --> ClientMemento: <<manage>>
+
+@enduml

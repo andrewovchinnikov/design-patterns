@@ -1,0 +1,39 @@
+@startuml
+interface TransactionState {
+    +process()
+    +complete()
+    +cancel()
+}
+
+class CreatedState {
+    +process()
+    +complete()
+    +cancel()
+}
+
+class ProcessingState {
+    +process()
+    +complete()
+    +cancel()
+}
+
+class CompletedState {
+    +process()
+    +complete()
+    +cancel()
+}
+
+class Transaction {
+    -state: TransactionState
+    +__construct()
+    +setState(state: TransactionState)
+    +process()
+    +complete()
+    +cancel()
+}
+
+TransactionState <|-- CreatedState
+TransactionState <|-- ProcessingState
+TransactionState <|-- CompletedState
+Transaction --> TransactionState
+@enduml

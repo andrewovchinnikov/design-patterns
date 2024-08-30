@@ -1,0 +1,33 @@
+@startuml
+
+class Order {
+    -items: List<String>
+    -totalPrice: float
+    +__init__(items: List<String>, totalPrice: float): void
+    +set_items(items: List<String>): void
+    +set_total_price(totalPrice: float): void
+    +get_items(): List<String>
+    +get_total_price(): float
+    +save_state_to_memento(): OrderMemento
+    +get_state_from_memento(memento: OrderMemento): void
+}
+
+class OrderMemento {
+    -items: List<String>
+    -totalPrice: float
+    +__init__(items: List<String>, totalPrice: float): void
+    +get_items(): List<String>
+    +get_total_price(): float
+}
+
+class Caretaker {
+    -mementoList: List<OrderMemento>
+    +__init__(): void
+    +add_memento(memento: OrderMemento): void
+    +get_memento(index: int): OrderMemento
+}
+
+Order --> OrderMemento: <<create>>
+Caretaker --> OrderMemento: <<manage>>
+
+@enduml

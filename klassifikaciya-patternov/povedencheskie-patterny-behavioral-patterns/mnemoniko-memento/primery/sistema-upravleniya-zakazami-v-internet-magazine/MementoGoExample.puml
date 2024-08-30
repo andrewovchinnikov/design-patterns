@@ -1,0 +1,33 @@
+@startuml
+
+class Order {
+    -items: List<String>
+    -totalPrice: float
+    +NewOrder(items: List<String>, totalPrice: float): Order
+    +SetItems(items: List<String>): void
+    +SetTotalPrice(totalPrice: float): void
+    +GetItems(): List<String>
+    +GetTotalPrice(): float
+    +SaveStateToMemento(): OrderMemento
+    +GetStateFromMemento(memento: OrderMemento): void
+}
+
+class OrderMemento {
+    -items: List<String>
+    -totalPrice: float
+    +NewOrderMemento(items: List<String>, totalPrice: float): OrderMemento
+    +GetItems(): List<String>
+    +GetTotalPrice(): float
+}
+
+class Caretaker {
+    -mementoList: List<OrderMemento>
+    +NewCaretaker(): Caretaker
+    +AddMemento(memento: OrderMemento): void
+    +GetMemento(index: int): OrderMemento
+}
+
+Order --> OrderMemento: <<create>>
+Caretaker --> OrderMemento: <<manage>>
+
+@enduml
