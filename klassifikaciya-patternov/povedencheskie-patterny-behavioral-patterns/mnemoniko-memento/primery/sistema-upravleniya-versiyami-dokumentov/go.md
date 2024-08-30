@@ -117,7 +117,7 @@ func main() {
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (6).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (6) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Мнемонико"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml

@@ -1,4 +1,4 @@
-# Python
+# PHP
 
 Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать и поддерживать платформу, которая позволяет пользователям легко и удобно совершать покупки. Одной из важных задач является обработка заказов. Заказы проходят через несколько состояний: создание, подтверждение, отправка и доставка. Для управления этими состояниями мы используем паттерн проектирования "Состояние".
 
@@ -17,157 +17,179 @@
 
 Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от его внутреннего состояния. В нашем случае, это позволяет заказу изменять свое поведение в зависимости от текущего состояния (создан, подтвержден, отправлен, доставлен).
 
-### Пример кода на Python
+### Пример кода на PHP
 
 **1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```python
-from abc import ABC, abstractmethod
+```php
+<?php
 
-class OrderState(ABC):
-    @abstractmethod
-    def confirm_order(self, order):
-        pass
-
-    @abstractmethod
-    def ship_order(self, order):
-        pass
-
-    @abstractmethod
-    def deliver_order(self, order):
-        pass
+interface OrderState {
+    public function confirmOrder(Order $order);
+    public function shipOrder(Order $order);
+    public function deliverOrder(Order $order);
+}
 ```
 {% endcode %}
 
 **2. Реализация конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```python
-class CreatedState(OrderState):
-    def confirm_order(self, order):
-        order.set_state(ConfirmedState())
-        print("Заказ подтвержден.")
+```php
+<?php
 
-    def ship_order(self, order):
-        print("Заказ не может быть отправлен, пока не подтвержден.")
+class CreatedState implements OrderState {
+    public function confirmOrder(Order $order) {
+        $order->setState(new ConfirmedState());
+        echo "Заказ подтвержден.\n";
+    }
 
-    def deliver_order(self, order):
-        print("Заказ не может быть доставлен, пока не отправлен.")
+    public function shipOrder(Order $order) {
+        echo "Заказ не может быть отправлен, пока не подтвержден.\n";
+    }
 
-class ConfirmedState(OrderState):
-    def confirm_order(self, order):
-        print("Заказ уже подтвержден.")
+    public function deliverOrder(Order $order) {
+        echo "Заказ не может быть доставлен, пока не отправлен.\n";
+    }
+}
 
-    def ship_order(self, order):
-        order.set_state(ShippedState())
-        print("Заказ отправлен.")
+class ConfirmedState implements OrderState {
+    public function confirmOrder(Order $order) {
+        echo "Заказ уже подтвержден.\n";
+    }
 
-    def deliver_order(self, order):
-        print("Заказ не может быть доставлен, пока не отправлен.")
+    public function shipOrder(Order $order) {
+        $order->setState(new ShippedState());
+        echo "Заказ отправлен.\n";
+    }
 
-class ShippedState(OrderState):
-    def confirm_order(self, order):
-        print("Заказ уже подтвержден.")
+    public function deliverOrder(Order $order) {
+        echo "Заказ не может быть доставлен, пока не отправлен.\n";
+    }
+}
 
-    def ship_order(self, order):
-        print("Заказ уже отправлен.")
+class ShippedState implements OrderState {
+    public function confirmOrder(Order $order) {
+        echo "Заказ уже подтвержден.\n";
+    }
 
-    def deliver_order(self, order):
-        order.set_state(DeliveredState())
-        print("Заказ доставлен.")
+    public function shipOrder(Order $order) {
+        echo "Заказ уже отправлен.\n";
+    }
 
-class DeliveredState(OrderState):
-    def confirm_order(self, order):
-        print("Заказ уже подтвержден.")
+    public function deliverOrder(Order $order) {
+        $order->setState(new DeliveredState());
+        echo "Заказ доставлен.\n";
+    }
+}
 
-    def ship_order(self, order):
-        print("Заказ уже отправлен.")
+class DeliveredState implements OrderState {
+    public function confirmOrder(Order $order) {
+        echo "Заказ уже подтвержден.\n";
+    }
 
-    def deliver_order(self, order):
-        print("Заказ уже доставлен.")
+    public function shipOrder(Order $order) {
+        echo "Заказ уже отправлен.\n";
+    }
+
+    public function deliverOrder(Order $order) {
+        echo "Заказ уже доставлен.\n";
+    }
+}
 ```
 {% endcode %}
 
 **3. Класс заказа**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```python
-class Order:
-    def __init__(self):
-        self.state = CreatedState()
+```php
+<?php
 
-    def set_state(self, state):
-        self.state = state
+class Order {
+    private $state;
 
-    def confirm_order(self):
-        self.state.confirm_order(self)
+    public function __construct() {
+        $this->state = new CreatedState();
+    }
 
-    def ship_order(self):
-        self.state.ship_order(self)
+    public function setState(OrderState $state) {
+        $this->state = $state;
+    }
 
-    def deliver_order(self):
-        self.state.deliver_order(self)
+    public function confirmOrder() {
+        $this->state->confirmOrder($this);
+    }
+
+    public function shipOrder() {
+        $this->state->shipOrder($this);
+    }
+
+    public function deliverOrder() {
+        $this->state->deliverOrder($this);
+    }
+}
 ```
 {% endcode %}
 
 #### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
-```python
-if __name__ == "__main__":
-    order = Order()
-    order.confirm_order()  # Заказ подтвержден.
-    order.ship_order()     # Заказ отправлен.
-    order.deliver_order()  # Заказ доставлен.
+```php
+<?php
+
+$order = new Order();
+$order->confirmOrder(); // Заказ подтвержден.
+$order->shipOrder(); // Заказ отправлен.
+$order->deliverOrder(); // Заказ доставлен.
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
 interface OrderState {
-    +confirm_order(order: Order)
-    +ship_order(order: Order)
-    +deliver_order(order: Order)
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
 }
 
 class CreatedState {
-    +confirm_order(order: Order)
-    +ship_order(order: Order)
-    +deliver_order(order: Order)
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
 }
 
 class ConfirmedState {
-    +confirm_order(order: Order)
-    +ship_order(order: Order)
-    +deliver_order(order: Order)
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
 }
 
 class ShippedState {
-    +confirm_order(order: Order)
-    +ship_order(order: Order)
-    +deliver_order(order: Order)
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
 }
 
 class DeliveredState {
-    +confirm_order(order: Order)
-    +ship_order(order: Order)
-    +deliver_order(order: Order)
+    +confirmOrder(Order $order)
+    +shipOrder(Order $order)
+    +deliverOrder(Order $order)
 }
 
 class Order {
     -state: OrderState
-    +__init__()
-    +set_state(state: OrderState)
-    +confirm_order()
-    +ship_order()
-    +deliver_order()
+    +__construct()
+    +setState(OrderState $state)
+    +confirmOrder()
+    +shipOrder()
+    +deliverOrder()
 }
 
 OrderState <|-- CreatedState

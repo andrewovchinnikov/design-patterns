@@ -1,83 +1,99 @@
 # Python
 
-Мы — команда разработчиков, которая занимается созданием систем мониторинга состояния серверов. Наша задача — обеспечить надежное и своевременное уведомление о состоянии серверов, чтобы администраторы могли оперативно реагировать на любые изменения.
+Мы — команда программистов в финтехе. Наша задача — создавать надежные и эффективные системы для обработки финансовых транзакций. В этом кейсе мы рассмотрим, как применить паттерн "Состояние" для обработки различных состояний транзакций в банковской системе.
 
 ### Описание кейса
 
-В этом кейсе мы рассмотрим, как применить паттерн "Наблюдатель" (Observer) для мониторинга состояния серверов. Паттерн "Наблюдатель" позволяет объектам (наблюдателям) получать уведомления о событиях, происходящих в других объектах (наблюдаемых). В нашем случае сервер будет наблюдаемым объектом, а администраторы — наблюдателями.
+В банковской системе транзакции могут находиться в разных состояниях: создана, обрабатывается, завершена, отклонена и т.д. Каждое состояние имеет свои правила и поведение. Например, транзакция в состоянии "создана" может быть отменена, а в состоянии "завершена" — нет. Паттерн "Состояние" позволяет нам легко управлять этими состояниями и их переходами.
 
 ### Применение паттерна
 
-Паттерн "Наблюдатель" поможет нам реализовать систему, в которой серверы будут уведомлять администраторов о своем состоянии. Это позволит администраторам своевременно реагировать на любые изменения, такие как перегрузка, отказ оборудования и т.д.
+Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от внутреннего состояния. Вместо того чтобы использовать большие условные конструкции, мы создаем отдельные классы для каждого состояния и делегируем им выполнение операций.
 
 ### Пример кода на Python
 
-**1. Определение интерфейсов**
+**1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-# Интерфейс для наблюдаемых объектов (серверов)
-class Observable(ABC):
+class TransactionState(ABC):
     @abstractmethod
-    def attach(self, observer):
+    def process(self):
         pass
 
     @abstractmethod
-    def detach(self, observer):
+    def complete(self):
         pass
 
     @abstractmethod
-    def notify(self):
-        pass
-
-# Интерфейс для наблюдателей (администраторов)
-class Observer(ABC):
-    @abstractmethod
-    def update(self, observable):
+    def cancel(self):
         pass
 ```
 {% endcode %}
 
-**2. Реализация наблюдаемого объекта (сервера)**
+**2. Создание конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Server(Observable):
+class CreatedState(TransactionState):
+    def process(self):
+        print("Транзакция обрабатывается...")
+        # Логика обработки транзакции
+
+    def complete(self):
+        print("Транзакция не может быть завершена в состоянии 'создана'")
+
+    def cancel(self):
+        print("Транзакция отменена.")
+        # Логика отмены транзакции
+
+class ProcessingState(TransactionState):
+    def process(self):
+        print("Транзакция уже обрабатывается...")
+
+    def complete(self):
+        print("Транзакция завершена.")
+        # Логика завершения транзакции
+
+    def cancel(self):
+        print("Транзакция не может быть отменена в состоянии 'обрабатывается'")
+
+class CompletedState(TransactionState):
+    def process(self):
+        print("Транзакция не может быть обработана в состоянии 'завершена'")
+
+    def complete(self):
+        print("Транзакция уже завершена.")
+
+    def cancel(self):
+        print("Транзакция не может быть отменена в состоянии 'завершена'")
+```
+{% endcode %}
+
+**3. Создание контекста**
+
+{% code overflow="wrap" lineNumbers="true" %}
+```python
+class Transaction:
     def __init__(self):
-        self.status = ""
-        self.observers = []
+        self.state = CreatedState()
 
-    def attach(self, observer):
-        self.observers.append(observer)
+    def set_state(self, state):
+        self.state = state
 
-    def detach(self, observer):
-        self.observers.remove(observer)
+    def process(self):
+        self.state.process()
+        self.set_state(ProcessingState())
 
-    def notify(self):
-        for observer in self.observers:
-            observer.update(self)
+    def complete(self):
+        self.state.complete()
+        self.set_state(CompletedState())
 
-    def change_status(self, new_status):
-        self.status = new_status
-        self.notify()
-
-    def get_status(self):
-        return self.status
-```
-{% endcode %}
-
-**3. Реализация наблюдателя (администратора)**
-
-{% code overflow="wrap" lineNumbers="true" %}
-```python
-class Admin(Observer):
-    def __init__(self, name):
-        self.name = name
-
-    def update(self, observable):
-        print(f"Администратор {self.name} получил уведомление: состояние сервера изменилось на {observable.get_status()}")
+    def cancel(self):
+        self.state.cancel()
+        self.set_state(CreatedState())
 ```
 {% endcode %}
 
@@ -86,69 +102,62 @@ class Admin(Observer):
 {% code overflow="wrap" lineNumbers="true" %}
 ```python
 if __name__ == "__main__":
-    # Создаем сервер
-    server = Server()
+    transaction = Transaction()
 
-    # Создаем администраторов
-    admin1 = Admin("Админ 1")
-    admin2 = Admin("Админ 2")
-
-    # Подписываем администраторов на уведомления от сервера
-    server.attach(admin1)
-    server.attach(admin2)
-
-    # Изменяем состояние сервера
-    server.change_status("Перегрузка")
-
-    # Отписываем одного администратора
-    server.detach(admin1)
-
-    # Изменяем состояние сервера еще раз
-    server.change_status("Нормально")
+    transaction.process()  # Транзакция обрабатывается...
+    transaction.complete()  # Транзакция завершена.
+    transaction.cancel()  # Транзакция не может быть отменена в состоянии 'завершена'
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1) (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Наблюдатель"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-
-interface Observable {
-    +attach(Observer observer)
-    +detach(Observer observer)
-    +notify()
+interface TransactionState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-interface Observer {
-    +update(Observable observable)
+class CreatedState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-class Server {
-    -status: string
-    -observers: Observer[]
-    +attach(Observer observer)
-    +detach(Observer observer)
-    +notify()
-    +change_status(newStatus: string)
-    +get_status(): string
+class ProcessingState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-class Admin {
-    -name: string
-    +__init__(name: string)
-    +update(Observable observable)
+class CompletedState {
+    +process()
+    +complete()
+    +cancel()
 }
 
-Observable <|-- Server
-Observer <|-- Admin
+class Transaction {
+    -state: TransactionState
+    +__init__()
+    +set_state(state: TransactionState)
+    +process()
+    +complete()
+    +cancel()
+}
 
+TransactionState <|-- CreatedState
+TransactionState <|-- ProcessingState
+TransactionState <|-- CompletedState
+Transaction --> TransactionState
 @enduml
 ```
 {% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Наблюдатель" позволяет нам создать гибкую систему мониторинга состояния серверов. Администраторы могут подписываться на уведомления от серверов и своевременно получать информацию о любых изменениях. Это помогает оперативно реагировать на проблемы и поддерживать стабильную работу серверов.
+Паттерн "Состояние" позволяет нам гибко управлять различными состояниями транзакций в банковской системе. Мы создали отдельные классы для каждого состояния и делегировали им выполнение операций. Это упрощает код, делает его более читаемым и поддерживаемым. Теперь, если нам нужно добавить новое состояние или изменить поведение существующего, мы можем сделать это без изменения основного кода транзакции.

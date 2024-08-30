@@ -1,4 +1,4 @@
-# PHP
+# Go
 
 Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать и поддерживать платформу, которая позволяет пользователям легко и удобно совершать покупки. Одной из важных задач является обработка заказов. Заказы проходят через несколько состояний: создание, подтверждение, отправка и доставка. Для управления этими состояниями мы используем паттерн проектирования "Состояние".
 
@@ -17,18 +17,20 @@
 
 Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от его внутреннего состояния. В нашем случае, это позволяет заказу изменять свое поведение в зависимости от текущего состояния (создан, подтвержден, отправлен, доставлен).
 
-### Пример кода на PHP
+### Пример кода на Go
 
 **1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
+```go
+package main
 
-interface OrderState {
-    public function confirmOrder(Order $order);
-    public function shipOrder(Order $order);
-    public function deliverOrder(Order $order);
+import "fmt"
+
+type OrderState interface {
+    ConfirmOrder(order *Order)
+    ShipOrder(order *Order)
+    DeliverOrder(order *Order)
 }
 ```
 {% endcode %}
@@ -36,66 +38,66 @@ interface OrderState {
 **2. Реализация конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
+```go
+package main
 
-class CreatedState implements OrderState {
-    public function confirmOrder(Order $order) {
-        $order->setState(new ConfirmedState());
-        echo "Заказ подтвержден.\n";
-    }
+type CreatedState struct{}
 
-    public function shipOrder(Order $order) {
-        echo "Заказ не может быть отправлен, пока не подтвержден.\n";
-    }
-
-    public function deliverOrder(Order $order) {
-        echo "Заказ не может быть доставлен, пока не отправлен.\n";
-    }
+func (s *CreatedState) ConfirmOrder(order *Order) {
+    order.SetState(&ConfirmedState{})
+    fmt.Println("Заказ подтвержден.")
 }
 
-class ConfirmedState implements OrderState {
-    public function confirmOrder(Order $order) {
-        echo "Заказ уже подтвержден.\n";
-    }
-
-    public function shipOrder(Order $order) {
-        $order->setState(new ShippedState());
-        echo "Заказ отправлен.\n";
-    }
-
-    public function deliverOrder(Order $order) {
-        echo "Заказ не может быть доставлен, пока не отправлен.\n";
-    }
+func (s *CreatedState) ShipOrder(order *Order) {
+    fmt.Println("Заказ не может быть отправлен, пока не подтвержден.")
 }
 
-class ShippedState implements OrderState {
-    public function confirmOrder(Order $order) {
-        echo "Заказ уже подтвержден.\n";
-    }
-
-    public function shipOrder(Order $order) {
-        echo "Заказ уже отправлен.\n";
-    }
-
-    public function deliverOrder(Order $order) {
-        $order->setState(new DeliveredState());
-        echo "Заказ доставлен.\n";
-    }
+func (s *CreatedState) DeliverOrder(order *Order) {
+    fmt.Println("Заказ не может быть доставлен, пока не отправлен.")
 }
 
-class DeliveredState implements OrderState {
-    public function confirmOrder(Order $order) {
-        echo "Заказ уже подтвержден.\n";
-    }
+type ConfirmedState struct{}
 
-    public function shipOrder(Order $order) {
-        echo "Заказ уже отправлен.\n";
-    }
+func (s *ConfirmedState) ConfirmOrder(order *Order) {
+    fmt.Println("Заказ уже подтвержден.")
+}
 
-    public function deliverOrder(Order $order) {
-        echo "Заказ уже доставлен.\n";
-    }
+func (s *ConfirmedState) ShipOrder(order *Order) {
+    order.SetState(&ShippedState{})
+    fmt.Println("Заказ отправлен.")
+}
+
+func (s *ConfirmedState) DeliverOrder(order *Order) {
+    fmt.Println("Заказ не может быть доставлен, пока не отправлен.")
+}
+
+type ShippedState struct{}
+
+func (s *ShippedState) ConfirmOrder(order *Order) {
+    fmt.Println("Заказ уже подтвержден.")
+}
+
+func (s *ShippedState) ShipOrder(order *Order) {
+    fmt.Println("Заказ уже отправлен.")
+}
+
+func (s *ShippedState) DeliverOrder(order *Order) {
+    order.SetState(&DeliveredState{})
+    fmt.Println("Заказ доставлен.")
+}
+
+type DeliveredState struct{}
+
+func (s *DeliveredState) ConfirmOrder(order *Order) {
+    fmt.Println("Заказ уже подтвержден.")
+}
+
+func (s *DeliveredState) ShipOrder(order *Order) {
+    fmt.Println("Заказ уже отправлен.")
+}
+
+func (s *DeliveredState) DeliverOrder(order *Order) {
+    fmt.Println("Заказ уже доставлен.")
 }
 ```
 {% endcode %}
@@ -103,31 +105,31 @@ class DeliveredState implements OrderState {
 **3. Класс заказа**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
+```go
+package main
 
-class Order {
-    private $state;
+type Order struct {
+    state OrderState
+}
 
-    public function __construct() {
-        $this->state = new CreatedState();
-    }
+func NewOrder() *Order {
+    return &Order{state: &CreatedState{}}
+}
 
-    public function setState(OrderState $state) {
-        $this->state = $state;
-    }
+func (o *Order) SetState(state OrderState) {
+    o.state = state
+}
 
-    public function confirmOrder() {
-        $this->state->confirmOrder($this);
-    }
+func (o *Order) ConfirmOrder() {
+    o.state.ConfirmOrder(o)
+}
 
-    public function shipOrder() {
-        $this->state->shipOrder($this);
-    }
+func (o *Order) ShipOrder() {
+    o.state.ShipOrder(o)
+}
 
-    public function deliverOrder() {
-        $this->state->deliverOrder($this);
-    }
+func (o *Order) DeliverOrder() {
+    o.state.DeliverOrder(o)
 }
 ```
 {% endcode %}
@@ -135,61 +137,63 @@ class Order {
 #### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
-```php
-<?php
+```go
+package main
 
-$order = new Order();
-$order->confirmOrder(); // Заказ подтвержден.
-$order->shipOrder(); // Заказ отправлен.
-$order->deliverOrder(); // Заказ доставлен.
+func main() {
+    order := NewOrder()
+    order.ConfirmOrder() // Заказ подтвержден.
+    order.ShipOrder()    // Заказ отправлен.
+    order.DeliverOrder() // Заказ доставлен.
+}
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (2).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
 interface OrderState {
-    +confirmOrder(Order $order)
-    +shipOrder(Order $order)
-    +deliverOrder(Order $order)
+    +ConfirmOrder(order *Order)
+    +ShipOrder(order *Order)
+    +DeliverOrder(order *Order)
 }
 
 class CreatedState {
-    +confirmOrder(Order $order)
-    +shipOrder(Order $order)
-    +deliverOrder(Order $order)
+    +ConfirmOrder(order *Order)
+    +ShipOrder(order *Order)
+    +DeliverOrder(order *Order)
 }
 
 class ConfirmedState {
-    +confirmOrder(Order $order)
-    +shipOrder(Order $order)
-    +deliverOrder(Order $order)
+    +ConfirmOrder(order *Order)
+    +ShipOrder(order *Order)
+    +DeliverOrder(order *Order)
 }
 
 class ShippedState {
-    +confirmOrder(Order $order)
-    +shipOrder(Order $order)
-    +deliverOrder(Order $order)
+    +ConfirmOrder(order *Order)
+    +ShipOrder(order *Order)
+    +DeliverOrder(order *Order)
 }
 
 class DeliveredState {
-    +confirmOrder(Order $order)
-    +shipOrder(Order $order)
-    +deliverOrder(Order $order)
+    +ConfirmOrder(order *Order)
+    +ShipOrder(order *Order)
+    +DeliverOrder(order *Order)
 }
 
 class Order {
     -state: OrderState
-    +__construct()
-    +setState(OrderState $state)
-    +confirmOrder()
-    +shipOrder()
-    +deliverOrder()
+    +NewOrder()
+    +SetState(state OrderState)
+    +ConfirmOrder()
+    +ShipOrder()
+    +DeliverOrder()
 }
 
 OrderState <|-- CreatedState

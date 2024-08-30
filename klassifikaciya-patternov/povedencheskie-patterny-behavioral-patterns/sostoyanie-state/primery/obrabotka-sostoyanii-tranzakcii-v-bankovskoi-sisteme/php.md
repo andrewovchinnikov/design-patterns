@@ -130,7 +130,7 @@ $transaction->cancel(); // Транзакция не может быть отм�
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (4).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml

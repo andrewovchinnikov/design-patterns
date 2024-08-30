@@ -1,4 +1,4 @@
-# Go
+# Python
 
 Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать и поддерживать платформу, которая позволяет пользователям легко и удобно совершать покупки. Одной из важных задач является обработка заказов. Заказы проходят через несколько состояний: создание, подтверждение, отправка и доставка. Для управления этими состояниями мы используем паттерн проектирования "Состояние".
 
@@ -17,183 +17,157 @@
 
 Паттерн "Состояние" позволяет объекту изменять свое поведение в зависимости от его внутреннего состояния. В нашем случае, это позволяет заказу изменять свое поведение в зависимости от текущего состояния (создан, подтвержден, отправлен, доставлен).
 
-### Пример кода на Go
+### Пример кода на Python
 
 **1. Определение интерфейса состояния**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
+```python
+from abc import ABC, abstractmethod
 
-import "fmt"
+class OrderState(ABC):
+    @abstractmethod
+    def confirm_order(self, order):
+        pass
 
-type OrderState interface {
-    ConfirmOrder(order *Order)
-    ShipOrder(order *Order)
-    DeliverOrder(order *Order)
-}
+    @abstractmethod
+    def ship_order(self, order):
+        pass
+
+    @abstractmethod
+    def deliver_order(self, order):
+        pass
 ```
 {% endcode %}
 
 **2. Реализация конкретных состояний**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
+```python
+class CreatedState(OrderState):
+    def confirm_order(self, order):
+        order.set_state(ConfirmedState())
+        print("Заказ подтвержден.")
 
-type CreatedState struct{}
+    def ship_order(self, order):
+        print("Заказ не может быть отправлен, пока не подтвержден.")
 
-func (s *CreatedState) ConfirmOrder(order *Order) {
-    order.SetState(&ConfirmedState{})
-    fmt.Println("Заказ подтвержден.")
-}
+    def deliver_order(self, order):
+        print("Заказ не может быть доставлен, пока не отправлен.")
 
-func (s *CreatedState) ShipOrder(order *Order) {
-    fmt.Println("Заказ не может быть отправлен, пока не подтвержден.")
-}
+class ConfirmedState(OrderState):
+    def confirm_order(self, order):
+        print("Заказ уже подтвержден.")
 
-func (s *CreatedState) DeliverOrder(order *Order) {
-    fmt.Println("Заказ не может быть доставлен, пока не отправлен.")
-}
+    def ship_order(self, order):
+        order.set_state(ShippedState())
+        print("Заказ отправлен.")
 
-type ConfirmedState struct{}
+    def deliver_order(self, order):
+        print("Заказ не может быть доставлен, пока не отправлен.")
 
-func (s *ConfirmedState) ConfirmOrder(order *Order) {
-    fmt.Println("Заказ уже подтвержден.")
-}
+class ShippedState(OrderState):
+    def confirm_order(self, order):
+        print("Заказ уже подтвержден.")
 
-func (s *ConfirmedState) ShipOrder(order *Order) {
-    order.SetState(&ShippedState{})
-    fmt.Println("Заказ отправлен.")
-}
+    def ship_order(self, order):
+        print("Заказ уже отправлен.")
 
-func (s *ConfirmedState) DeliverOrder(order *Order) {
-    fmt.Println("Заказ не может быть доставлен, пока не отправлен.")
-}
+    def deliver_order(self, order):
+        order.set_state(DeliveredState())
+        print("Заказ доставлен.")
 
-type ShippedState struct{}
+class DeliveredState(OrderState):
+    def confirm_order(self, order):
+        print("Заказ уже подтвержден.")
 
-func (s *ShippedState) ConfirmOrder(order *Order) {
-    fmt.Println("Заказ уже подтвержден.")
-}
+    def ship_order(self, order):
+        print("Заказ уже отправлен.")
 
-func (s *ShippedState) ShipOrder(order *Order) {
-    fmt.Println("Заказ уже отправлен.")
-}
-
-func (s *ShippedState) DeliverOrder(order *Order) {
-    order.SetState(&DeliveredState{})
-    fmt.Println("Заказ доставлен.")
-}
-
-type DeliveredState struct{}
-
-func (s *DeliveredState) ConfirmOrder(order *Order) {
-    fmt.Println("Заказ уже подтвержден.")
-}
-
-func (s *DeliveredState) ShipOrder(order *Order) {
-    fmt.Println("Заказ уже отправлен.")
-}
-
-func (s *DeliveredState) DeliverOrder(order *Order) {
-    fmt.Println("Заказ уже доставлен.")
-}
+    def deliver_order(self, order):
+        print("Заказ уже доставлен.")
 ```
 {% endcode %}
 
 **3. Класс заказа**
 
 {% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
+```python
+class Order:
+    def __init__(self):
+        self.state = CreatedState()
 
-type Order struct {
-    state OrderState
-}
+    def set_state(self, state):
+        self.state = state
 
-func NewOrder() *Order {
-    return &Order{state: &CreatedState{}}
-}
+    def confirm_order(self):
+        self.state.confirm_order(self)
 
-func (o *Order) SetState(state OrderState) {
-    o.state = state
-}
+    def ship_order(self):
+        self.state.ship_order(self)
 
-func (o *Order) ConfirmOrder() {
-    o.state.ConfirmOrder(o)
-}
-
-func (o *Order) ShipOrder() {
-    o.state.ShipOrder(o)
-}
-
-func (o *Order) DeliverOrder() {
-    o.state.DeliverOrder(o)
-}
+    def deliver_order(self):
+        self.state.deliver_order(self)
 ```
 {% endcode %}
 
 #### Пример использования
 
 {% code overflow="wrap" lineNumbers="true" %}
-```go
-package main
-
-func main() {
-    order := NewOrder()
-    order.ConfirmOrder() // Заказ подтвержден.
-    order.ShipOrder()    // Заказ отправлен.
-    order.DeliverOrder() // Заказ доставлен.
-}
+```python
+if __name__ == "__main__":
+    order = Order()
+    order.confirm_order()  # Заказ подтвержден.
+    order.ship_order()     # Заказ отправлен.
+    order.deliver_order()  # Заказ доставлен.
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (1).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (3).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 
 interface OrderState {
-    +ConfirmOrder(order *Order)
-    +ShipOrder(order *Order)
-    +DeliverOrder(order *Order)
+    +confirm_order(order: Order)
+    +ship_order(order: Order)
+    +deliver_order(order: Order)
 }
 
 class CreatedState {
-    +ConfirmOrder(order *Order)
-    +ShipOrder(order *Order)
-    +DeliverOrder(order *Order)
+    +confirm_order(order: Order)
+    +ship_order(order: Order)
+    +deliver_order(order: Order)
 }
 
 class ConfirmedState {
-    +ConfirmOrder(order *Order)
-    +ShipOrder(order *Order)
-    +DeliverOrder(order *Order)
+    +confirm_order(order: Order)
+    +ship_order(order: Order)
+    +deliver_order(order: Order)
 }
 
 class ShippedState {
-    +ConfirmOrder(order *Order)
-    +ShipOrder(order *Order)
-    +DeliverOrder(order *Order)
+    +confirm_order(order: Order)
+    +ship_order(order: Order)
+    +deliver_order(order: Order)
 }
 
 class DeliveredState {
-    +ConfirmOrder(order *Order)
-    +ShipOrder(order *Order)
-    +DeliverOrder(order *Order)
+    +confirm_order(order: Order)
+    +ship_order(order: Order)
+    +deliver_order(order: Order)
 }
 
 class Order {
     -state: OrderState
-    +NewOrder()
-    +SetState(state OrderState)
-    +ConfirmOrder()
-    +ShipOrder()
-    +DeliverOrder()
+    +__init__()
+    +set_state(state: OrderState)
+    +confirm_order()
+    +ship_order()
+    +deliver_order()
 }
 
 OrderState <|-- CreatedState
