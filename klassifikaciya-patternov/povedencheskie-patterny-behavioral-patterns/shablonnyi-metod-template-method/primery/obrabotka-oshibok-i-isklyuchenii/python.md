@@ -1,123 +1,100 @@
 # Python
 
-Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
+Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать надежные и масштабируемые системы, которые обеспечивают бесперебойную работу нашего сервиса. Одной из важных задач является обработка ошибок и исключений, чтобы пользователи не сталкивались с неприятными сюрпризами.
 
 ### Описание кейса
 
-Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
+В этом кейсе мы рассмотрим, как применить паттерн "Шаблонный метод" для обработки ошибок и исключений. Этот паттерн позволяет нам определить общий алгоритм обработки ошибок, при этом предоставляя возможность подклассам переопределять отдельные шаги этого алгоритма.
 
-### Применение паттерна "Состояние"
+### Применение паттерна
 
-Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
+Паттерн "Шаблонный метод" позволяет нам создать базовый класс, который определяет общий алгоритм обработки ошибок. Подклассы могут переопределять отдельные шаги этого алгоритма, чтобы адаптировать его под свои нужды. Это особенно полезно, когда у нас есть несколько типов ошибок, которые требуют различной обработки.
 
 ### Пример кода на Python
 
-**1. Определение интерфейса состояния**
+**Базовый класс**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
-class State(ABC):
+# Базовый класс для обработки ошибок
+class ErrorHandler(ABC):
+    def handle_error(self, error):
+        self.log_error(error)
+        self.notify_user(error)
+        self.perform_custom_action(error)
+
+    def log_error(self, error):
+        print(f"Логирование ошибки: {error}")
+
+    def notify_user(self, error):
+        print(f"Уведомление пользователя об ошибке: {error}")
+
     @abstractmethod
-    def handle(self, device):
+    def perform_custom_action(self, error):
         pass
 ```
-{% endcode %}
 
-**2. Реализация конкретных состояний**
+**Подкласс для обработки ошибок платежей**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class OnState(State):
-    def handle(self, device):
-        print("Устройство включено.")
-        # Логика для состояния "включено"
-
-class OffState(State):
-    def handle(self, device):
-        print("Устройство выключено.")
-        # Логика для состояния "выключено"
-
-class EnergySavingState(State):
-    def handle(self, device):
-        print("Устройство в режиме энергосбережения.")
-        # Логика для состояния "энергосбережение"
+class PaymentErrorHandler(ErrorHandler):
+    def perform_custom_action(self, error):
+        print(f"Выполнение пользовательских действий для ошибки платежа: {error}")
 ```
-{% endcode %}
 
-**3. Определение класса устройства**
+**Подкласс для обработки ошибок авторизации**
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
-class Device:
-    def __init__(self, state: State):
-        self.state = state
-
-    def set_state(self, state: State):
-        self.state = state
-
-    def request(self):
-        self.state.handle(self)
+class AuthErrorHandler(ErrorHandler):
+    def perform_custom_action(self, error):
+        print(f"Выполнение пользовательских действий для ошибки авторизации: {error}")
 ```
-{% endcode %}
 
 #### Пример использования
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```python
+def main():
+    # Создание экземпляра обработчика ошибок платежей
+    payment_error_handler = PaymentErrorHandler()
+    payment_error_handler.handle_error("Ошибка платежа: недостаточно средств")
+
+    print()
+
+    # Создание экземпляра обработчика ошибок авторизации
+    auth_error_handler = AuthErrorHandler()
+    auth_error_handler.handle_error("Ошибка авторизации: неверный пароль")
+
 if __name__ == "__main__":
-    device = Device(OffState())
-    device.request()  # Устройство выключено.
-
-    device.set_state(OnState())
-    device.request()  # Устройство включено.
-
-    device.set_state(EnergySavingState())
-    device.request()  # Устройство в режиме энергосбережения.
+    main()
 ```
-{% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (112).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (116).png" alt=""><figcaption><p>UML диаграмма для паттерна "Шаблонный метод"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface State {
-    +handle(Device device)
+abstract class ErrorHandler {
+    +handle_error(error: String): void
+    #log_error(error: String): void
+    #notify_user(error: String): void
+    #perform_custom_action(error: String): void
 }
 
-class OnState {
-    +handle(Device device)
+class PaymentErrorHandler {
+    +perform_custom_action(error: String): void
 }
 
-class OffState {
-    +handle(Device device)
+class AuthErrorHandler {
+    +perform_custom_action(error: String): void
 }
 
-class EnergySavingState {
-    +handle(Device device)
-}
-
-class Device {
-    -state: State
-    +__init__(State state)
-    +set_state(State state)
-    +request()
-}
-
-State <|-- OnState
-State <|-- OffState
-State <|-- EnergySavingState
-Device --> State
+ErrorHandler <|-- PaymentErrorHandler
+ErrorHandler <|-- AuthErrorHandler
 @enduml
 ```
-{% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
-
-Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.
+Паттерн "Шаблонный метод" позволяет нам создать гибкую систему обработки ошибок, которая легко расширяется и адаптируется под различные типы ошибок. В данном кейсе мы создали базовый класс `ErrorHandler`, который определяет общий алгоритм обработки ошибок. Подклассы `PaymentErrorHandler` и `AuthErrorHandler` переопределяют метод `perform_custom_action`, чтобы выполнять специфические действия для своих типов ошибок. Это позволяет нам легко добавлять новые типы ошибок и обработчиков, не изменяя основной алгоритм.

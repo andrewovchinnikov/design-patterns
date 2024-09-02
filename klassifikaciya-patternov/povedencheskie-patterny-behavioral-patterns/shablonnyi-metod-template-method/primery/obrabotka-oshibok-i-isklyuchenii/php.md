@@ -1,79 +1,68 @@
 # PHP
 
-Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
+Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать надежные и масштабируемые системы, которые обеспечивают бесперебойную работу нашего сервиса. Одной из важных задач является обработка ошибок и исключений, чтобы пользователи не сталкивались с неприятными сюрпризами.
 
-### Описание кейса
+### Описание
 
-Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
+В этом кейсе мы рассмотрим, как применить паттерн "Шаблонный метод" для обработки ошибок и исключений. Этот паттерн позволяет нам определить общий алгоритм обработки ошибок, при этом предоставляя возможность подклассам переопределять отдельные шаги этого алгоритма.
 
-### Применение паттерна "Состояние"
+### Применение паттерна
 
-Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
+Паттерн "Шаблонный метод" позволяет нам создать базовый класс, который определяет общий алгоритм обработки ошибок. Подклассы могут переопределять отдельные шаги этого алгоритма, чтобы адаптировать его под свои нужды. Это особенно полезно, когда у нас есть несколько типов ошибок, которые требуют различной обработки.
 
-### Пример кода на PHP
+### Привер кода на PHP
 
-**1. Определение интерфейса состояния**
+**Базовый класс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-interface State {
-    public function handle(Device $device);
+abstract class ErrorHandler {
+    // Шаблонный метод, который определяет общий алгоритм обработки ошибок
+    public function handleError($error) {
+        $this->logError($error);
+        $this->notifyUser($error);
+        $this->performCustomAction($error);
+    }
+
+    // Метод для логирования ошибки
+    protected function logError($error) {
+        echo "Логирование ошибки: " . $error . "\n";
+    }
+
+    // Метод для уведомления пользователя об ошибке
+    protected function notifyUser($error) {
+        echo "Уведомление пользователя об ошибке: " . $error . "\n";
+    }
+
+    // Абстрактный метод для выполнения пользовательских действий
+    abstract protected function performCustomAction($error);
 }
-?>
 ```
 {% endcode %}
 
-**2. Реализация конкретных состояний**
+**Подкласс для обработки ошибок платежей**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class OnState implements State {
-    public function handle(Device $device) {
-        echo "Устройство включено.\n";
-        // Логика для состояния "включено"
+class PaymentErrorHandler extends ErrorHandler {
+    // Переопределение метода для выполнения пользовательских действий
+    protected function performCustomAction($error) {
+        echo "Выполнение пользовательских действий для ошибки платежа: " . $error . "\n";
     }
 }
-
-class OffState implements State {
-    public function handle(Device $device) {
-        echo "Устройство выключено.\n";
-        // Логика для состояния "выключено"
-    }
-}
-
-class EnergySavingState implements State {
-    public function handle(Device $device) {
-        echo "Устройство в режиме энергосбережения.\n";
-        // Логика для состояния "энергосбережение"
-    }
-}
-?>
 ```
 {% endcode %}
 
-**3. Определение класса устройства**
+**Подкласс для обработки ошибок авторизации**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-class Device {
-    private $state;
-
-    public function __construct(State $state) {
-        $this->setState($state);
-    }
-
-    public function setState(State $state) {
-        $this->state = $state;
-    }
-
-    public function request() {
-        $this->state->handle($this);
+class AuthErrorHandler extends ErrorHandler {
+    // Переопределение метода для выполнения пользовательских действий
+    protected function performCustomAction($error) {
+        echo "Выполнение пользовательских действий для ошибки авторизации: " . $error . "\n";
     }
 }
-?>
 ```
 {% endcode %}
 
@@ -81,59 +70,46 @@ class Device {
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```php
-<?php
-$device = new Device(new OffState());
-$device->request(); // Устройство выключено.
+// Создание экземпляра обработчика ошибок платежей
+$paymentErrorHandler = new PaymentErrorHandler();
+$paymentErrorHandler->handleError("Ошибка платежа: недостаточно средств");
 
-$device->setState(new OnState());
-$device->request(); // Устройство включено.
+echo "\n";
 
-$device->setState(new EnergySavingState());
-$device->request(); // Устройство в режиме энергосбережения.
-?>
+// Создание экземпляра обработчика ошибок авторизации
+$authErrorHandler = new AuthErrorHandler();
+$authErrorHandler->handleError("Ошибка авторизации: неверный пароль");
 ```
 {% endcode %}
 
-### UML диаграмма
+#### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (110).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (114).png" alt=""><figcaption><p>UML диаграмма для паттерна "Шаблонный метод"</p></figcaption></figure>
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface State {
-    +handle(Device device)
+abstract class ErrorHandler {
+    +handleError(error: String): void
+    #logError(error: String): void
+    #notifyUser(error: String): void
+    #performCustomAction(error: String): void
 }
 
-class OnState {
-    +handle(Device device)
+class PaymentErrorHandler {
+    #performCustomAction(error: String): void
 }
 
-class OffState {
-    +handle(Device device)
+class AuthErrorHandler {
+    #performCustomAction(error: String): void
 }
 
-class EnergySavingState {
-    +handle(Device device)
-}
-
-class Device {
-    -state: State
-    +__construct(State state)
-    +setState(State state)
-    +request()
-}
-
-State <|-- OnState
-State <|-- OffState
-State <|-- EnergySavingState
-Device --> State
+ErrorHandler <|-- PaymentErrorHandler
+ErrorHandler <|-- AuthErrorHandler
 @enduml
 ```
 {% endcode %}
 
-### Вывод для кейса
+#### Вывод для кейса
 
-Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
-
-Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.
+Паттерн "Шаблонный метод" позволяет нам создать гибкую систему обработки ошибок, которая легко расширяется и адаптируется под различные типы ошибок. В данном кейсе мы создали базовый класс `ErrorHandler`, который определяет общий алгоритм обработки ошибок. Подклассы `PaymentErrorHandler` и `AuthErrorHandler` переопределяют метод `performCustomAction`, чтобы выполнять специфические действия для своих типов ошибок. Это позволяет нам легко добавлять новые типы ошибок и обработчиков, не изменяя основной алгоритм.

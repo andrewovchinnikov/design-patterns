@@ -1,18 +1,18 @@
 # Go
 
-Мы — инженерная лаборатория, которая занимается разработкой и внедрением решений в области Интернета вещей (IoT). Наша цель — создать умные и эффективные системы, которые упрощают жизнь и делают её комфортнее. Сегодня мы рассмотрим, как применить паттерн "Состояние" для управления состоянием устройств в системе IoT.
+Мы — департамент разработки в ведущем маркетплейсе РФ. Наша задача — создавать надежные и масштабируемые системы, которые обеспечивают бесперебойную работу нашего сервиса. Одной из важных задач является обработка ошибок и исключений, чтобы пользователи не сталкивались с неприятными сюрпризами.
 
-### Описание кейса
+### Описание
 
-Представьте, что у нас есть умный дом с различными устройствами: лампочками, термостатами, дверными замками и т.д. Каждое устройство может находиться в разных состояниях: включено, выключено, в режиме энергосбережения и т.д. Нам нужно управлять этими состояниями и переключаться между ними в зависимости от различных условий.
+В этом кейсе мы рассмотрим, как применить паттерн "Шаблонный метод" для обработки ошибок и исключений. Этот паттерн позволяет нам определить общий алгоритм обработки ошибок, при этом предоставляя возможность подклассам переопределять отдельные шаги этого алгоритма.
 
-### Применение паттерна "Состояние"
+### Применение паттерна
 
-Паттерн "Состояние" позволяет объекту изменять своё поведение в зависимости от внутреннего состояния. Это особенно полезно для управления состояниями устройств в системе IoT, где устройства могут иметь множество состояний и переключаться между ними.
+Паттерн "Шаблонный метод" позволяет нам создать базовый класс, который определяет общий алгоритм обработки ошибок. Подклассы могут переопределять отдельные шаги этого алгоритма, чтобы адаптировать его под свои нужды. Это особенно полезно, когда у нас есть несколько типов ошибок, которые требуют различной обработки.
 
 ### Пример кода на Go
 
-**1. Определение интерфейса состояния**
+**Базовый класс**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
@@ -20,57 +20,59 @@ package main
 
 import "fmt"
 
-type State interface {
-    Handle(device *Device)
+// Базовый класс для обработки ошибок
+type ErrorHandler interface {
+    HandleError(error string)
+    PerformCustomAction(error string)
+}
+
+// Базовый класс с шаблонным методом
+type BaseErrorHandler struct{}
+
+func (b *BaseErrorHandler) HandleError(error string) {
+    b.LogError(error)
+    b.NotifyUser(error)
+    b.PerformCustomAction(error)
+}
+
+func (b *BaseErrorHandler) LogError(error string) {
+    fmt.Println("Логирование ошибки:", error)
+}
+
+func (b *BaseErrorHandler) NotifyUser(error string) {
+    fmt.Println("Уведомление пользователя об ошибке:", error)
+}
+
+func (b *BaseErrorHandler) PerformCustomAction(error string) {
+    // Пустой метод, который будет переопределен в подклассах
 }
 ```
 {% endcode %}
 
-**2. Реализация конкретных состояний**
+**Подкласс для обработки ошибок платежей**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type OnState struct{}
-
-func (s *OnState) Handle(device *Device) {
-    fmt.Println("Устройство включено.")
-    // Логика для состояния "включено"
+type PaymentErrorHandler struct {
+    BaseErrorHandler
 }
 
-type OffState struct{}
-
-func (s *OffState) Handle(device *Device) {
-    fmt.Println("Устройство выключено.")
-    // Логика для состояния "выключено"
-}
-
-type EnergySavingState struct{}
-
-func (s *EnergySavingState) Handle(device *Device) {
-    fmt.Println("Устройство в режиме энергосбережения.")
-    // Логика для состояния "энергосбережение"
+func (p *PaymentErrorHandler) PerformCustomAction(error string) {
+    fmt.Println("Выполнение пользовательских действий для ошибки платежа:", error)
 }
 ```
 {% endcode %}
 
-**3. Определение класса устройства**
+**Подкласс для обработки ошибок авторизации**
 
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
-type Device struct {
-    state State
+type AuthErrorHandler struct {
+    BaseErrorHandler
 }
 
-func NewDevice(state State) *Device {
-    return &Device{state: state}
-}
-
-func (d *Device) SetState(state State) {
-    d.state = state
-}
-
-func (d *Device) Request() {
-    d.state.Handle(d)
+func (a *AuthErrorHandler) PerformCustomAction(error string) {
+    fmt.Println("Выполнение пользовательских действий для ошибки авторизации:", error)
 }
 ```
 {% endcode %}
@@ -80,58 +82,51 @@ func (d *Device) Request() {
 {% code overflow="wrap" lineNumbers="true" %}
 ```go
 func main() {
-    device := NewDevice(&OffState{})
-    device.Request() // Устройство выключено.
+    // Создание экземпляра обработчика ошибок платежей
+    paymentErrorHandler := &PaymentErrorHandler{}
+    paymentErrorHandler.HandleError("Ошибка платежа: недостаточно средств")
 
-    device.SetState(&OnState{})
-    device.Request() // Устройство включено.
+    fmt.Println()
 
-    device.SetState(&EnergySavingState{})
-    device.Request() // Устройство в режиме энергосбережения.
+    // Создание экземпляра обработчика ошибок авторизации
+    authErrorHandler := &AuthErrorHandler{}
+    authErrorHandler.HandleError("Ошибка авторизации: неверный пароль")
 }
 ```
 {% endcode %}
 
 ### UML диаграмма
 
-<figure><img src="../../../../../.gitbook/assets/image (111).png" alt=""><figcaption><p>UML диаграмма для паттерна "Состояние"</p></figcaption></figure>
+<figure><img src="../../../../../.gitbook/assets/image (115).png" alt=""><figcaption><p>UML диаграмма для паттерна "Шаблонный метод"</p></figcaption></figure>
 
-{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
-interface State {
-    +Handle(Device device)
+interface ErrorHandler {
+    +HandleError(error: String): void
+    +PerformCustomAction(error: String): void
 }
 
-class OnState {
-    +Handle(Device device)
+class BaseErrorHandler {
+    +HandleError(error: String): void
+    #LogError(error: String): void
+    #NotifyUser(error: String): void
+    #PerformCustomAction(error: String): void
 }
 
-class OffState {
-    +Handle(Device device)
+class PaymentErrorHandler {
+    +PerformCustomAction(error: String): void
 }
 
-class EnergySavingState {
-    +Handle(Device device)
+class AuthErrorHandler {
+    +PerformCustomAction(error: String): void
 }
 
-class Device {
-    -state: State
-    +NewDevice(State state)
-    +SetState(State state)
-    +Request()
-}
-
-State <|-- OnState
-State <|-- OffState
-State <|-- EnergySavingState
-Device --> State
+ErrorHandler <|-- BaseErrorHandler
+BaseErrorHandler <|-- PaymentErrorHandler
+BaseErrorHandler <|-- AuthErrorHandler
 @enduml
 ```
-{% endcode %}
 
 ### Вывод для кейса
 
-Паттерн "Состояние" позволяет нам гибко управлять состояниями устройств в системе IoT. Мы можем легко добавлять новые состояния и изменять поведение устройств в зависимости от текущего состояния. Это делает нашу систему более модульной и удобной для расширения.
-
-Надеюсь, этот пример поможет вам лучше понять, как применять паттерн "Состояние" в реальных проектах.
+Паттерн "Шаблонный метод" позволяет нам создать гибкую систему обработки ошибок, которая легко расширяется и адаптируется под различные типы ошибок. В данном кейсе мы создали базовый класс `BaseErrorHandler`, который определяет общий алгоритм обработки ошибок. Подклассы `PaymentErrorHandler` и `AuthErrorHandler` переопределяют метод `PerformCustomAction`, чтобы выполнять специфические действия для своих типов ошибок. Это позволяет нам легко добавлять новые типы ошибок и обработчиков, не изменяя основной алгоритм.
