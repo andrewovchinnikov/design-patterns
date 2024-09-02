@@ -1,2 +1,0 @@
-# Шаблонный метод (Template Method)
-
