@@ -14,6 +14,7 @@
 
 **Базовый класс**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 from abc import ABC, abstractmethod
 
@@ -34,25 +35,31 @@ class ErrorHandler(ABC):
     def perform_custom_action(self, error):
         pass
 ```
+{% endcode %}
 
 **Подкласс для обработки ошибок платежей**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class PaymentErrorHandler(ErrorHandler):
     def perform_custom_action(self, error):
         print(f"Выполнение пользовательских действий для ошибки платежа: {error}")
 ```
+{% endcode %}
 
 **Подкласс для обработки ошибок авторизации**
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 class AuthErrorHandler(ErrorHandler):
     def perform_custom_action(self, error):
         print(f"Выполнение пользовательских действий для ошибки авторизации: {error}")
 ```
+{% endcode %}
 
 #### Пример использования
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```python
 def main():
     # Создание экземпляра обработчика ошибок платежей
@@ -68,11 +75,13 @@ def main():
 if __name__ == "__main__":
     main()
 ```
+{% endcode %}
 
 ### UML диаграмма
 
 <figure><img src="../../../../../.gitbook/assets/image (116).png" alt=""><figcaption><p>UML диаграмма для паттерна "Шаблонный метод"</p></figcaption></figure>
 
+{% code overflow="wrap" lineNumbers="true" %}
 ```plantuml
 @startuml
 abstract class ErrorHandler {
@@ -94,6 +103,7 @@ ErrorHandler <|-- PaymentErrorHandler
 ErrorHandler <|-- AuthErrorHandler
 @enduml
 ```
+{% endcode %}
 
 ### Вывод для кейса
 
