@@ -4,6 +4,8 @@
 
 ### **UML диаграмма**
 
+<figure><img src="../../../.gitbook/assets/image.png" alt=""><figcaption><p>UML диаграмма для паттерна "Шаблонный метод"</p></figcaption></figure>
+
 ```plaintext
 @startuml
 
